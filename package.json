@@ -1,0 +1,17 @@
+{
+  "name": "tree-sitter-perl",
+  "version": "1.0.0",
+  "description": "A tree-sitter parser, for Perl!",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "veesh",
+  "license": "ISC",
+  "dependencies": {
+    "nan": "^2.16.0"
+  },
+  "devDependencies": {
+    "tree-sitter-cli": "^0.20.6"
+  }
+}
