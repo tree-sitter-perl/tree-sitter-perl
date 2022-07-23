@@ -9,3 +9,5 @@ package-lock.json
 *.so
 *.o
 bindings/c/*.h
+/Cargo.toml
+src/*
