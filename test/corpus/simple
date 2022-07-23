@@ -4,3 +4,11 @@ basic comment
 # this is a comment
 ---
 (source_file (comment))
+
+
+===========================
+numeric parsing
+===========================
+111_111e99_99
+---
+(source_file (number))

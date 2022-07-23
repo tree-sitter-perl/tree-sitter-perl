@@ -11,3 +11,4 @@ package-lock.json
 bindings/c/*.h
 /Cargo.toml
 src/*
+tree-sitter-perl.wasm
