@@ -9,6 +9,6 @@ basic comment
 ===========================
 numeric parsing
 ===========================
-111_111e99_99
+111_111e99_99;
 ---
-(source_file (number))
+(source_file (expression_statement (number)))
