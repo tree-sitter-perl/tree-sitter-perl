@@ -43,7 +43,8 @@ If you'd like to contribute, Pull Requests are welcome! The plan is to build the
 from the bottom up, from simple statements with solid code coverage, eventually building
 up to full, complex syntax.
 
-You can see a reference of the grammar's DSL [here](https://tree-sitter.github.io/tree-sitter/creating-parsers#the-grammar-dsl). It's fairly straigthforward, and makes for pleasant reading.
+You can see a reference of the grammar's DSL [here](https://tree-sitter.github.io/tree-sitter/creating-parsers#the-grammar-dsl). It's fairly straigthforward, and makes for pleasant reading. It is stored in `grammar.js` at the root of this repo.
 
 For subtle points in the grammar implementation, PLEASE leave comments. The extra bytes
 spent on the comments in dev will go a long way in the big picture.
+
