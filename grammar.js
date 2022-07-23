@@ -1,14 +1,28 @@
 module.exports = grammar({
   name: 'perl',
+  supertypes: $ => [
+    $.statement,
+    $.expression,
+    $.primitive
+  ],
   rules: {
     source_file: $ => repeat(
       choice(
         $.comment,
-        // TODO - make number nest more formally under some sort of expression_statement
-        $.number
+        $.statement
       )
     ),
     comment: $ => token(/#.*/),
+    statement: $ => choice(
+      $.expression_statement
+    ),
+    expression_statement: $ => seq($.expression, ';'),
+    expression: $ => choice(
+      $.primitive
+    ),
+    primitive: $ => choice(
+      $.number
+    ),
     number: $ => {
       const hex_literal = seq(
         choice('0x', '0X'),
