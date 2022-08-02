@@ -7,6 +7,12 @@ module.exports = grammar({
     $.expression,
     $.primitive
   ],
+  precedences: [
+    // TODO - implement precendence from 
+    // https://perldoc.perl.org/perlop#Operator-Precedence-and-Associativity
+    // syntax is array of arrays, where each one is a partial precendence list, for
+    // resolving conflicts w/in their own class
+  ],
   rules: {
     source_file: $ => repeat(
       choice(
