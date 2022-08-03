@@ -1,4 +1,4 @@
-const primitives = require('./lib/primitives.js')
+import primitives from './lib/primitives.js'
 
 module.exports = grammar({
   name: 'perl',
@@ -8,7 +8,7 @@ module.exports = grammar({
     $.primitive
   ],
   precedences: [
-    // TODO - implement precendence from 
+    // TODO - implement precendence from
     // https://perldoc.perl.org/perlop#Operator-Precedence-and-Associativity
     // syntax is array of arrays, where each one is a partial precendence list, for
     // resolving conflicts w/in their own class
@@ -28,6 +28,6 @@ module.exports = grammar({
     expression: $ => choice(
       $.primitive
     ),
-    ...primitives,
+    ...primitives
   }
 })
