@@ -1,6 +1,7 @@
 import primitives from './lib/primitives.js'
+import operators from './lib/operators.js'
 
-module.exports = grammar({
+export default grammar({
   name: 'perl',
   supertypes: $ => [
     $.statement,
@@ -8,6 +9,7 @@ module.exports = grammar({
     $.primitive
   ],
   precedences: [
+    operators.precedenceLevels
     // TODO - implement precendence from
     // https://perldoc.perl.org/perlop#Operator-Precedence-and-Associativity
     // syntax is array of arrays, where each one is a partial precendence list, for
