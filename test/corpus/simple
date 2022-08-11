@@ -33,9 +33,23 @@ numeric parsing
     (number)))
 
 ================================================================================
-maths!
+maths! higher prec
 ================================================================================
-1 + 2 * 4 ** 5 - 5;
+2 * 4 ** 5;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (binary_expression
+      left: (number)
+      right: (binary_expression
+        left: (number)
+        right: (number)))))
+
+================================================================================
+maths: same prec - left assoc
+================================================================================
+3 x 5 % 2;
 --------------------------------------------------------------------------------
 
 (source_file
@@ -43,9 +57,5 @@ maths!
     (binary_expression
       left: (binary_expression
         left: (number)
-        right: (binary_expression
-          left: (number)
-          right: (binary_expression
-            left: (number)
-            right: (number))))
+        right: (number))
       right: (number))))
