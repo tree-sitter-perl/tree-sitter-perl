@@ -59,3 +59,16 @@ maths: same prec - left assoc
         left: (number)
         right: (number))
       right: (number))))
+
+============
+unary prefixes!
+===================
+!3;
+~0;
+~.0;
+-----
+(source_file
+(expression_statement (unary_expression (operand: (number))))
+(expression_statement (unary_expression (operand: (number))))
+(expression_statement (unary_expression (operand: (number))))
+)
