@@ -1,14 +1,14 @@
-import primitives from './lib/primitives.js'
-import operators from './lib/operators.js'
+const primitives = require('./lib/primitives.js')
+const operators = require('./lib/operators.js')
 
-export default grammar({
+module.exports = grammar({
   name: 'perl',
   supertypes: $ => [
     $.statement,
     $.expression,
     $.primitive
   ],
-  precedences: [
+  precedences: $ => [
     operators.precedenceLevels
     // TODO - implement precendence from
     // https://perldoc.perl.org/perlop#Operator-Precedence-and-Associativity
@@ -28,8 +28,10 @@ export default grammar({
     ),
     expression_statement: $ => seq($.expression, ';'),
     expression: $ => choice(
-      $.primitive
+      $.primitive,
+      $.binary_expression
     ),
-    ...primitives
+    ...primitives,
+    binary_expression: $ => choice(...operators.binops($))
   }
 })
