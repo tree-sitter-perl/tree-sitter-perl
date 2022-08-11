@@ -1,26 +1,51 @@
-===========================
+================================================================================
 basic comment
-==========================
+================================================================================
 # this is a comment
----
-(source_file (comment))
+--------------------------------------------------------------------------------
 
+(source_file
+  (comment))
 
-===========================
+================================================================================
 numeric parsing
-===========================
+================================================================================
 111_111e99_99;
 111_111e-99_99;
 0xDEADBEEF;
 0b11011011011;
 077;
 1234567890198;
----
+--------------------------------------------------------------------------------
+
 (source_file
-  (expression_statement (number))
-  (expression_statement (number))
-  (expression_statement (number))
-  (expression_statement (number))
-  (expression_statement (number))
-  (expression_statement (number))
-)
+  (expression_statement
+    (number))
+  (expression_statement
+    (number))
+  (expression_statement
+    (number))
+  (expression_statement
+    (number))
+  (expression_statement
+    (number))
+  (expression_statement
+    (number)))
+
+================================================================================
+maths!
+================================================================================
+1 + 2 * 4 ** 5 - 5;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (binary_expression
+      left: (binary_expression
+        left: (number)
+        right: (binary_expression
+          left: (number)
+          right: (binary_expression
+            left: (number)
+            right: (number))))
+      right: (number))))
