@@ -4,7 +4,7 @@
   "description": "A tree-sitter parser, for Perl!",
   "main": "bindings/node",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "tree-sitter generate && tree-sitter test"
   },
   "author": "veesh",
   "license": "ISC",
@@ -12,6 +12,11 @@
     "nan": "^2.16.0"
   },
   "devDependencies": {
+    "eslint": "^8.21.0",
+    "eslint-config-standard": "^17.0.0",
+    "eslint-plugin-import": "^2.26.0",
+    "eslint-plugin-n": "^15.2.4",
+    "eslint-plugin-promise": "^6.0.0",
     "tree-sitter-cli": "^0.20.6"
   }
 }
