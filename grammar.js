@@ -29,9 +29,11 @@ module.exports = grammar({
     expression_statement: $ => seq($.expression, ';'),
     expression: $ => choice(
       $.primitive,
-      $.binary_expression
+      $.binary_expression,
+      $.unary_expression,
     ),
     ...primitives,
-    binary_expression: $ => choice(...operators.binops($))
+    binary_expression: $ => choice(...operators.binops($)),
+    unary_expression: $ => choice(...operators.unops($))
   }
 })
