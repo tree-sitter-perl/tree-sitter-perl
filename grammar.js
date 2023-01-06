@@ -112,7 +112,61 @@ module.exports = grammar({
     * list, while permitting multiple internal commas and an optional trailing one */
     list_expression: $ => seq($._term, ',', repeat(seq(optional($._term), ',')), optional($._term)),
 
-    _term: $ => $.expression,
+    _term: $ => choice(
+      /* TODO:
+       * termbinop
+       * termunop
+       * anonymous
+       * termdo
+       * term '?' term ':' term
+       * REFGEN term
+       * KW_LOCAL
+       * '(' expr ')'
+       * QWLIST
+       * '(' ')'
+       * scalar
+       * star
+       * hash
+       * array
+       * arraylen
+       * subscripted
+       * sliceme '[' expr ']'
+       * kvslice '[' expr ']'
+       * sliceme '{' expr '}'
+       * kvslice '{' expr '}'
+       * THING
+       * amper
+       * amper '(' ')'
+       * amper '(' expr ')'
+       * NOAMP -- wtf even is this thing?
+       * term '->' '$' '*'
+       * term '->' '@' '*'
+       * term '->' '%' '*'
+       * term '->' '&' '*'
+       * term '->' '*' '*'
+       * LOOPEX (term?)
+       * NOTOP listexpr
+       * UNIOP
+       * UNIOP block
+       * UNIOP term
+       * KW_REQUIRE
+       * KW_REQUIRE term
+       * UNIOPSUB
+       * UNIOPSUB term
+       * FUNC0
+       * FUNC0 '(' ')'
+       * FUNC0OP
+       * FUNC0OP '(' ')'
+       * FUNC1 '(' ')'
+       * FUNC1 '(' expr ')'
+       * PMFUNC
+       * BAREWORD
+       * listop
+       */
+
+      // legacy
+      $.expression,
+    ),
 
     /****
      * Misc bits
