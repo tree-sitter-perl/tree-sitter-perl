@@ -49,10 +49,12 @@ module.exports = grammar({
     if_statement: $ =>
       seq('if', '(', field('condition', $.expression), ')',
         field('block', $.block),
+        optional($._else)
       ),
     unless_statement: $ =>
       seq('unless', '(', field('condition', $.expression), ')',
         field('block', $.block),
+        optional($._else)
       ),
     while_statement: $ =>
       seq('while', '(', field('condition', $.expression), ')',
@@ -77,6 +79,14 @@ module.exports = grammar({
     postfix_while_expression:  $ => seq($.expression, 'while',  field('condition', $.expression)),
     postfix_until_expression:  $ => seq($.expression, 'until',  field('condition', $.expression)),
     postfix_for_expression:    $ => seq($.expression, $._for,   field('list', $.expression)),
+
+    _else: $ => choice($.else, $.elsif),
+    else: $ => seq('else', field('block', $.block)),
+    elsif: $ =>
+      seq('elsif', '(', field('condition', $.expression), ')',
+        field('block', $.block),
+        optional($._else)
+      ),
 
     /****
      * Misc bits
