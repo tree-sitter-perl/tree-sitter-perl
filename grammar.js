@@ -20,11 +20,7 @@ module.exports = grammar({
     $.comment,
   ],
   rules: {
-    source_file: $ => repeat(
-      choice(
-        $.statement
-      )
-    ),
+    source_file: $ => repeat($.statement),
     comment: $ => token(/#.*/),
     statement: $ => choice(
       $.expression_statement,
@@ -32,7 +28,11 @@ module.exports = grammar({
       $.postfix_unless_statement,
       $.postfix_while_statement,
       $.postfix_until_statement,
-      $.postfix_for_statement
+      $.postfix_for_statement,
+      $.if_statement,
+      $.unless_statement,
+      $.while_statement,
+      $.until_statement,
     ),
     expression_statement: $ => seq($.expression, ';'),
     postfix_if_statement:     $ => seq($.expression, 'if',     field('condition', $.expression), ';'),
@@ -40,6 +40,12 @@ module.exports = grammar({
     postfix_while_statement:  $ => seq($.expression, 'while',  field('condition', $.expression), ';'),
     postfix_until_statement:  $ => seq($.expression, 'until',  field('condition', $.expression), ';'),
     postfix_for_statement:    $ => seq($.expression, $._for,   field('condition', $.expression), ';'),
+    if_statement:     $ => seq('if',     '(', field('condition', $.expression), ')', field('body', $._block)),
+    // TODO: handle elsif + else
+    unless_statement: $ => seq('unless', '(', field('condition', $.expression), ')', field('body', $._block)),
+    while_statement:  $ => seq('while',  '(', field('condition', $.expression), ')', field('body', $._block)),
+    until_statement:  $ => seq('until',  '(', field('condition', $.expression), ')', field('body', $._block)),
+    _block: $ => seq('{', repeat($.statement), '}'),
     expression: $ => choice(
       $.primitive,
       $.binary_expression,
