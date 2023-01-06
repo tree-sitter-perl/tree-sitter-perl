@@ -58,3 +58,14 @@ EXPR ** EXPR
 
 (source_file
   (expression_statement (binary_expression left: (number) right: (number))))
+================================================================================
+(EXPR)
+================================================================================
+1 * (2 + 3);
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (binary_expression
+      left: (number)
+      right: (binary_expression left: (number) right: (number)))))

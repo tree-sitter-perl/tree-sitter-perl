@@ -124,8 +124,9 @@ module.exports = grammar({
        * term '?' term ':' term
        * REFGEN term
        * KW_LOCAL
-       * '(' expr ')'
-       * QWLIST
+       */
+      seq('(', $._expr, ')'),
+      /* QWLIST
        * '(' ')'
        * scalar
        * star
