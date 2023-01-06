@@ -130,3 +130,39 @@ until(1) { 123; }
   (until_statement (number)
     (block
       (expression_statement (number)))))
+================================================================================
+for (LIST) BLOCK
+================================================================================
+for (1) { 23; }
+foreach (1) { 23; }
+--------------------------------------------------------------------------------
+
+(source_file
+  (for_statement (number)
+    (block (expression_statement (number))))
+  (for_statement (number)
+    (block (expression_statement (number)))))
+================================================================================
+for VAR (LIST) BLOCK
+================================================================================
+for $V (1) { 23; }
+foreach $V (1) { 23; }
+--------------------------------------------------------------------------------
+
+(source_file
+  (for_statement (scalar_var) (number)
+    (block (expression_statement (number))))
+  (for_statement (scalar_var) (number)
+    (block (expression_statement (number)))))
+================================================================================
+for my VAR (LIST) BLOCK
+================================================================================
+for my $x (1) { 23; }
+foreach my $x (1) { 23; }
+--------------------------------------------------------------------------------
+
+(source_file
+  (for_statement (scalar_var) (number)
+    (block (expression_statement (number))))
+  (for_statement (scalar_var) (number)
+    (block (expression_statement (number)))))
