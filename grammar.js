@@ -1,5 +1,34 @@
 const primitives = require('./lib/primitives.js')
 
+/* perl.y's precedence list */
+const TERMPREC = {
+  LOW: 0,
+  LOOPEX: 1,
+  OROP: 2,
+  ANDOP: 3,
+  LSTOP: 4,
+  COMMA: 5,
+  ASSIGNOP: 6,
+  QUESTION_MARK: 7,
+  DOTDOT: 8,
+  OROR: 9,
+  ANDAND: 10,
+  BITOROP: 11,
+  BITANDOP: 12,
+  CHEQOP: 13,
+  CHRELOP: 14,
+  UNOP: 15,
+  REQUIRE: 16,
+  SHIFTOP: 17,
+  ADDOP: 18,
+  MULOP: 19,
+  MATCHOP: 20,
+  UMINUS: 21,
+  POWOP: 22,
+  ARROW: 23,
+  PAREN: 24,
+};
+
 /* perl.y defines a `stmtseq` rule, which can match empty. tree-sitter does
  * not allow this normally, so we'll have to be slightly more complex about it
  */
@@ -118,8 +147,9 @@ module.exports = grammar({
       /* TODO:
        * anonymous
        * termdo
-       * term '?' term ':' term
-       * REFGEN term
+       */
+      $.conditional_expression,
+      /* REFGEN term
        * KW_LOCAL
        */
       seq('(', $._expr, ')'),
@@ -173,15 +203,15 @@ module.exports = grammar({
     binary_expression: $ => choice(
       // prec.right(1, ASSIGNOP,
       // prec(2, DOTDOT,
-      prec.left(3, binop($._OROR_DORDOR, $._term)),
-      prec.left(4, binop($._ANDAND, $._term)),
-      prec.left(5, binop($._BITOROP, $._term)),
-      prec.left(6, binop($._BITANDOP, $._term)),
-      prec.left(7, binop($._SHIFTOP, $._term)),
-      prec.left(8, binop($._ADDOP, $._term)),
-      prec.left(9, binop($._MULOP, $._term)),
+      prec.left(TERMPREC.OROR,     binop($._OROR_DORDOR, $._term)),
+      prec.left(TERMPREC.ANDAND,   binop($._ANDAND, $._term)),
+      prec.left(TERMPREC.BITOROP,  binop($._BITOROP, $._term)),
+      prec.left(TERMPREC.BITANDOP, binop($._BITANDOP, $._term)),
+      prec.left(TERMPREC.SHIFTOP,  binop($._SHIFTOP, $._term)),
+      prec.left(TERMPREC.ADDOP,    binop($._ADDOP, $._term)),
+      prec.left(TERMPREC.MULOP,    binop($._MULOP, $._term)),
       // prec.left(10, MATCHOP,
-      prec.right(11, binop($._POWOP, $._term)),
+      prec.right(TERMPREC.POWOP,   binop($._POWOP, $._term)),
       /* TODO: termrelop, termeqop */
     ),
 
@@ -193,6 +223,10 @@ module.exports = grammar({
       unop_pre('!', $._term),
       // TODO: prefix and postfix ++ and --
     ),
+
+    conditional_expression: $ => prec.right(TERMPREC.QUESTION_MARK, seq(
+      field('condition', $._term), '?', field('consequent', $._term), ':', field('alternative', $._term)
+    )),
 
     /****
      * Token types defined by toke.c

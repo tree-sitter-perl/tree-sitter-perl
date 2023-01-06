@@ -77,3 +77,25 @@ EXPR ** EXPR
 
 (source_file
   (expression_statement (unary_expression operand: (number))))
+================================================================================
+EXPR ? EXPR : EXPR
+================================================================================
+12 ? 34 : 56;
+1 ? 2 : 3 ? 4 : 5;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (conditional_expression
+      condition: (number)
+      consequent: (number)
+      alternative: (number)))
+  (expression_statement
+    (conditional_expression
+      condition: (number)
+      consequent: (number)
+      alternative:
+        (conditional_expression
+          condition: (number)
+          consequent: (number)
+          alternative: (number)))))
