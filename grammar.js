@@ -6,6 +6,9 @@ const operators = require('./lib/operators.js')
  */
 const stmtseq = $ => repeat($._fullstmt);
 
+const binop = (op, term) =>
+  seq(field('left', term), field('operator', op), field('right', term));
+
 module.exports = grammar({
   name: 'perl',
   supertypes: $ => [
@@ -100,8 +103,8 @@ module.exports = grammar({
 
     _expr: $ => choice($.lowprec_logical_expression, $._listexpr),
     lowprec_logical_expression: $ => choice(
-      prec.left(2, seq(field('left', $._expr), field('operator', 'and'), field('right', $._expr))),
-      prec.left(1, seq(field('left', $._expr), field('operator', 'or'),  field('right', $._expr))),
+      prec.left(2, binop('and', $._expr)),
+      prec.left(1, binop('or', $._expr)),
     ),
 
     _listexpr: $ => choice(
@@ -113,8 +116,8 @@ module.exports = grammar({
     list_expression: $ => seq($._term, ',', repeat(seq(optional($._term), ',')), optional($._term)),
 
     _term: $ => choice(
+      $.binary_expression,
       /* TODO:
-       * termbinop
        * termunop
        * anonymous
        * termdo
@@ -168,18 +171,44 @@ module.exports = grammar({
       $.expression,
     ),
 
+    // perly.y calls this `termbinop`
+    binary_expression: $ => choice(
+      // prec.right(1, ASSIGNOP,
+      // prec(2, DOTDOT,
+      prec.left(3, binop($._OROR_DORDOR, $._term)),
+      prec.left(4, binop($._ANDAND, $._term)),
+      prec.left(5, binop($._BITOROP, $._term)),
+      prec.left(6, binop($._BITANDOP, $._term)),
+      prec.left(7, binop($._SHIFTOP, $._term)),
+      prec.left(8, binop($._ADDOP, $._term)),
+      prec.left(9, binop($._MULOP, $._term)),
+      // prec.left(10, MATCHOP,
+      prec.right(11, binop($._POWOP, $._term)),
+      /* TODO: termrelop, termeqop */
+    ),
+
+    /****
+     * Token types defined by toke.c
+     */
+    _OROR_DORDOR: $ => choice('||', '//'),
+    _ANDAND: $ => '&&',
+    _BITOROP: $ => '|', // TODO also |. when enabled
+    _BITANDOP: $ => '&', // TODO: also &. when enabled
+    _SHIFTOP: $ => choice('<<', '>>'),
+    _ADDOP: $ => choice('+', '-', '.'),
+    _MULOP: $ => choice('*', '/', '%', 'x'),
+    _POWOP: $ => '**',
+
     /****
      * Misc bits
      */
     comment: $ => token(/#.*/),
     expression: $ => choice(
       $.primitive,
-      $.binary_expression,
       $.unary_expression,
       $._variable,
     ),
     ...primitives,
-    binary_expression: $ => choice(...operators.binops($)),
     unary_expression: $ => choice(...operators.unops($)),
     // TODO: These variables don't handle ${name} or ${^THING} yet
     _variable: $ => choice($.scalar_var, $.array_var, $.hash_var),
