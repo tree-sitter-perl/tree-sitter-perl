@@ -64,7 +64,8 @@ module.exports = grammar({
     _barestmt: $ => choice(
       /* TODO: sub */
       /* TODO: package */
-      /* TODO: use-or-no */
+      $.use_version_statement,
+      $.use_statement,
       $.if_statement,
       $.unless_statement,
       /* TODO: given/when/default */
@@ -75,6 +76,8 @@ module.exports = grammar({
       seq($.expression_statement, ';'),
       seq(';'),
     ),
+    use_version_statement: $ => seq($._KW_USE, field('version', $.version), ';'),
+    use_statement: $ => seq($._KW_USE, field('module', $.package), optional($._listexpr), ';'),
     if_statement: $ =>
       seq('if', '(', field('condition', $._expr), ')',
         field('block', $.block),
@@ -257,7 +260,7 @@ module.exports = grammar({
       /* TODO: privateref */
     ),
 
-    _bareword: $ => /[a-zA-Z_]\w*/,  // TODO: unicode
+    _bareword: $ => /[a-zA-Z_]\w*(?:::[a-zA-Z_]\w*)*/,  // TODO: unicode
 
     /****
      * Token types defined by toke.c
@@ -271,12 +274,18 @@ module.exports = grammar({
     _MULOP: $ => choice('*', '/', '%', 'x'),
     _POWOP: $ => '**',
 
+    _KW_USE: $ => choice('use', 'no'),
+
     /****
      * Misc bits
      */
     comment: $ => token(/#.*/),
     ...primitives,
     _identifier: $ => /[a-zA-Z_]\w*/,
-    _for: $ => choice('for', 'foreach')
+
+    _for: $ => choice('for', 'foreach'),
+
+    package: $ => $._bareword,
+    version: $ => /v[0-9]+(?:\.[0-9]+)*/,
   }
 })
