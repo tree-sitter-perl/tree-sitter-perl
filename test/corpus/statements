@@ -13,7 +13,7 @@ postfix if
 --------------------------------------------------------------------------------
 
 (source_file
-  (postfix_if_statement (number) (number)))
+  (expression_statement (postfix_if_expression (number) (number))))
 ================================================================================
 postfix unless
 ================================================================================
@@ -21,7 +21,7 @@ postfix unless
 --------------------------------------------------------------------------------
 
 (source_file
-  (postfix_unless_statement (number) (number)))
+  (expression_statement (postfix_unless_expression (number) (number))))
 ================================================================================
 postfix while
 ================================================================================
@@ -29,7 +29,7 @@ postfix while
 --------------------------------------------------------------------------------
 
 (source_file
-  (postfix_while_statement (number) (number)))
+  (expression_statement (postfix_while_expression (number) (number))))
 ================================================================================
 postfix until
 ================================================================================
@@ -37,7 +37,7 @@ postfix until
 --------------------------------------------------------------------------------
 
 (source_file
-  (postfix_until_statement (number) (number)))
+  (expression_statement (postfix_until_expression (number) (number))))
 ================================================================================
 postfix for
 ================================================================================
@@ -46,8 +46,8 @@ postfix for
 --------------------------------------------------------------------------------
 
 (source_file
-  (postfix_for_statement (number) (number))
-  (postfix_for_statement (number) (number)))
+  (expression_statement (postfix_for_expression (number) (number)))
+  (expression_statement (postfix_for_expression (number) (number))))
 ================================================================================
 block if
 ================================================================================
@@ -55,7 +55,9 @@ if(1) { 123; }
 --------------------------------------------------------------------------------
 
 (source_file
-  (if_statement (number) (expression_statement (number))))
+  (if_statement (number)
+    (block
+      (expression_statement (number)))))
 ================================================================================
 block unless
 ================================================================================
@@ -63,7 +65,9 @@ unless(1) { 123; }
 --------------------------------------------------------------------------------
 
 (source_file
-  (unless_statement (number) (expression_statement (number))))
+  (unless_statement (number)
+    (block
+      (expression_statement (number)))))
 ================================================================================
 block while
 ================================================================================
@@ -71,7 +75,9 @@ while(1) { 123; }
 --------------------------------------------------------------------------------
 
 (source_file
-  (while_statement (number) (expression_statement (number))))
+  (while_statement (number)
+    (block
+      (expression_statement (number)))))
 ================================================================================
 block until
 ================================================================================
@@ -79,4 +85,6 @@ until(1) { 123; }
 --------------------------------------------------------------------------------
 
 (source_file
-  (until_statement (number) (expression_statement (number))))
+  (until_statement (number)
+    (block
+      (expression_statement (number)))))
