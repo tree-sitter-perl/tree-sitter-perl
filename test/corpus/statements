@@ -133,36 +133,36 @@ until(1) { 123; }
 ================================================================================
 for (LIST) BLOCK
 ================================================================================
-for (1) { 23; }
-foreach (1) { 23; }
+for (1, 2, 3) { 456; }
+foreach (1, 2, 3) { 456; }
 --------------------------------------------------------------------------------
 
 (source_file
-  (for_statement (number)
+  (for_statement (list_expression (number) (number) (number))
     (block (expression_statement (number))))
-  (for_statement (number)
+  (for_statement (list_expression (number) (number) (number))
     (block (expression_statement (number)))))
 ================================================================================
 for VAR (LIST) BLOCK
 ================================================================================
-for $V (1) { 23; }
-foreach $V (1) { 23; }
+for $V (1, 2, 3) { 456; }
+foreach $V (1, 2, 3) { 456; }
 --------------------------------------------------------------------------------
 
 (source_file
-  (for_statement (scalar_var) (number)
+  (for_statement (scalar_var) (list_expression (number) (number) (number))
     (block (expression_statement (number))))
-  (for_statement (scalar_var) (number)
+  (for_statement (scalar_var) (list_expression (number) (number) (number))
     (block (expression_statement (number)))))
 ================================================================================
 for my VAR (LIST) BLOCK
 ================================================================================
-for my $x (1) { 23; }
-foreach my $x (1) { 23; }
+for my $x (1, 2, 3) { 456; }
+foreach my $x (1, 2, 3) { 456; }
 --------------------------------------------------------------------------------
 
 (source_file
-  (for_statement (scalar_var) (number)
+  (for_statement (scalar_var) (list_expression (number) (number) (number))
     (block (expression_statement (number))))
-  (for_statement (scalar_var) (number)
+  (for_statement (scalar_var) (list_expression (number) (number) (number))
     (block (expression_statement (number)))))
