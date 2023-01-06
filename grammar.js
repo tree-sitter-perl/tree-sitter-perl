@@ -45,7 +45,6 @@ const binop = (op, term) =>
 module.exports = grammar({
   name: 'perl',
   supertypes: $ => [
-    $.expression,
     $.primitive
   ],
   extras: $ => [
@@ -199,7 +198,7 @@ module.exports = grammar({
        */
 
       // legacy
-      $.expression,
+      $.primitive,
     ),
 
     // perly.y calls this `termbinop`
@@ -276,9 +275,6 @@ module.exports = grammar({
      * Misc bits
      */
     comment: $ => token(/#.*/),
-    expression: $ => choice(
-      $.primitive,
-    ),
     ...primitives,
     _identifier: $ => /[a-zA-Z_]\w*/,
     _for: $ => choice('for', 'foreach')
