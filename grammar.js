@@ -97,8 +97,8 @@ module.exports = grammar({
     for_statement: $ =>
       seq($._for,
         optional(choice(
-          seq('my', field('my_var', $.scalar_var)),
-          field('var', $.scalar_var)
+          seq('my', field('my_var', $.scalar)),
+          field('var', $.scalar)
         )),
         '(', field('list', $._expr), ')',
         field('block', $.block),
@@ -157,12 +157,13 @@ module.exports = grammar({
       seq('(', $._expr, ')'),
       /* QWLIST
        * '(' ')'
-       * scalar
-       * star
-       * hash
-       * array
-       * arraylen
-       * subscripted
+       */
+      $.scalar,
+      $.glob,
+      $.hash,
+      $.array,
+      $.arraylen,
+      /* subscripted
        * sliceme '[' expr ']'
        * kvslice '[' expr ']'
        * sliceme '{' expr '}'
@@ -243,6 +244,22 @@ module.exports = grammar({
       seq('do', $.block),
     ),
 
+    scalar:   $ => seq('$',  $._indirob),
+    array:    $ => seq('@',  $._indirob),
+    hash:     $ => seq('%',  $._indirob),
+    arraylen: $ => seq('$#', $._indirob),
+    // perly.y calls this `star`
+    glob:     $ => seq('*',  $._indirob),
+
+    _indirob: $ => choice(
+      $._bareword,
+      $.scalar,
+      $.block,
+      /* TODO: privateref */
+    ),
+
+    _bareword: $ => /[a-zA-Z_]\w*/,  // TODO: unicode
+
     /****
      * Token types defined by toke.c
      */
@@ -261,14 +278,8 @@ module.exports = grammar({
     comment: $ => token(/#.*/),
     expression: $ => choice(
       $.primitive,
-      $._variable,
     ),
     ...primitives,
-    // TODO: These variables don't handle ${name} or ${^THING} yet
-    _variable: $ => choice($.scalar_var, $.array_var, $.hash_var),
-    scalar_var: $ => seq('$', /\s*/, $._identifier),
-    array_var: $ => seq('@', /\s*/, $._identifier),
-    hash_var: $ => seq('%', /\s*/, $._identifier),
     _identifier: $ => /[a-zA-Z_]\w*/,
     _for: $ => choice('for', 'foreach')
   }

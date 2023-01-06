@@ -150,9 +150,9 @@ foreach $V (1, 2, 3) { 456; }
 --------------------------------------------------------------------------------
 
 (source_file
-  (for_statement (scalar_var) (list_expression (number) (number) (number))
+  (for_statement (scalar) (list_expression (number) (number) (number))
     (block (expression_statement (number))))
-  (for_statement (scalar_var) (list_expression (number) (number) (number))
+  (for_statement (scalar) (list_expression (number) (number) (number))
     (block (expression_statement (number)))))
 ================================================================================
 for my VAR (LIST) BLOCK
@@ -162,7 +162,7 @@ foreach my $x (1, 2, 3) { 456; }
 --------------------------------------------------------------------------------
 
 (source_file
-  (for_statement (scalar_var) (list_expression (number) (number) (number))
+  (for_statement (scalar) (list_expression (number) (number) (number))
     (block (expression_statement (number))))
-  (for_statement (scalar_var) (list_expression (number) (number) (number))
+  (for_statement (scalar) (list_expression (number) (number) (number))
     (block (expression_statement (number)))))
