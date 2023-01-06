@@ -42,27 +42,27 @@ module.exports = grammar({
       /* TODO: given/when/default */
       $.while_statement,
       $.until_statement,
-      /* TODO: C-style  for(expr;expr;expr) {BLOCK} */
+      /* TODO: C-style  for(_expr;_expr;_expr) {BLOCK} */
       $.for_statement,
       seq($.expression_statement, ';'),
       seq(';'),
     ),
     if_statement: $ =>
-      seq('if', '(', field('condition', $.expression), ')',
+      seq('if', '(', field('condition', $._expr), ')',
         field('block', $.block),
         optional($._else)
       ),
     unless_statement: $ =>
-      seq('unless', '(', field('condition', $.expression), ')',
+      seq('unless', '(', field('condition', $._expr), ')',
         field('block', $.block),
         optional($._else)
       ),
     while_statement: $ =>
-      seq('while', '(', field('condition', $.expression), ')',
+      seq('while', '(', field('condition', $._expr), ')',
         field('block', $.block),
       ),
     until_statement: $ =>
-      seq('until', '(', field('condition', $.expression), ')',
+      seq('until', '(', field('condition', $._expr), ')',
         field('block', $.block),
       ),
     for_statement: $ =>
@@ -71,32 +71,40 @@ module.exports = grammar({
           seq('my', field('my_var', $.scalar_var)),
           field('var', $.scalar_var)
         )),
-        '(', field('list', $.expression), ')',
+        '(', field('list', $._expr), ')',
         field('block', $.block),
       ),
 
     // perly.y calls this `sideff`
     expression_statement: $ => choice(
-      $.expression,
+      $._expr,
       $.postfix_if_expression,
       $.postfix_unless_expression,
       $.postfix_while_expression,
       $.postfix_until_expression,
       $.postfix_for_expression,
     ),
-    postfix_if_expression:     $ => seq($.expression, 'if',     field('condition', $.expression)),
-    postfix_unless_expression: $ => seq($.expression, 'unless', field('condition', $.expression)),
-    postfix_while_expression:  $ => seq($.expression, 'while',  field('condition', $.expression)),
-    postfix_until_expression:  $ => seq($.expression, 'until',  field('condition', $.expression)),
-    postfix_for_expression:    $ => seq($.expression, $._for,   field('list', $.expression)),
+    postfix_if_expression:     $ => seq($._expr, 'if',     field('condition', $._expr)),
+    postfix_unless_expression: $ => seq($._expr, 'unless', field('condition', $._expr)),
+    postfix_while_expression:  $ => seq($._expr, 'while',  field('condition', $._expr)),
+    postfix_until_expression:  $ => seq($._expr, 'until',  field('condition', $._expr)),
+    postfix_for_expression:    $ => seq($._expr, $._for,   field('list', $._expr)),
 
     _else: $ => choice($.else, $.elsif),
     else: $ => seq('else', field('block', $.block)),
     elsif: $ =>
-      seq('elsif', '(', field('condition', $.expression), ')',
+      seq('elsif', '(', field('condition', $._expr), ')',
         field('block', $.block),
         optional($._else)
       ),
+
+    _expr: $ => choice($.lowprec_logical_expression, $._listexpr),
+    lowprec_logical_expression: $ => choice(
+      prec.left(2, seq(field('left', $._expr), field('operator', 'and'), field('right', $._expr))),
+      prec.left(1, seq(field('left', $._expr), field('operator', 'or'),  field('right', $._expr))),
+    ),
+    // TODO
+    _listexpr: $ => $.expression,
 
     /****
      * Misc bits
