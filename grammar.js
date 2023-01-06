@@ -15,10 +15,13 @@ module.exports = grammar({
     // syntax is array of arrays, where each one is a partial precendence list, for
     // resolving conflicts w/in their own class
   ],
+  extras: $ => [
+    /\s|\\\r?\n/,
+    $.comment,
+  ],
   rules: {
     source_file: $ => repeat(
       choice(
-        $.comment,
         $.statement
       )
     ),
