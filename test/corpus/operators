@@ -14,4 +14,15 @@ and
 
 (source_file
   (expression_statement (lowprec_logical_expression (number) (number))))
+================================================================================
+comma lists
+================================================================================
+1, 2, 3;
+1, 2,;
+1,,3;
+--------------------------------------------------------------------------------
 
+(source_file
+  (expression_statement (list_expression (number) (number) (number)))
+  (expression_statement (list_expression (number) (number)))
+  (expression_statement (list_expression (number) (number))))

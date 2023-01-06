@@ -103,8 +103,16 @@ module.exports = grammar({
       prec.left(2, seq(field('left', $._expr), field('operator', 'and'), field('right', $._expr))),
       prec.left(1, seq(field('left', $._expr), field('operator', 'or'),  field('right', $._expr))),
     ),
-    // TODO
-    _listexpr: $ => $.expression,
+
+    _listexpr: $ => choice(
+      $.list_expression,
+      $._term
+    ),
+    /* ensure that an entire list expression's contents appear in one big flat
+    * list, while permitting multiple internal commas and an optional trailing one */
+    list_expression: $ => seq($._term, ',', repeat(seq(optional($._term), ',')), optional($._term)),
+
+    _term: $ => $.expression,
 
     /****
      * Misc bits
