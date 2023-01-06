@@ -27,9 +27,19 @@ module.exports = grammar({
     ),
     comment: $ => token(/#.*/),
     statement: $ => choice(
-      $.expression_statement
+      $.expression_statement,
+      $.postfix_if_statement,
+      $.postfix_unless_statement,
+      $.postfix_while_statement,
+      $.postfix_until_statement,
+      $.postfix_for_statement
     ),
     expression_statement: $ => seq($.expression, ';'),
+    postfix_if_statement:     $ => seq($.expression, 'if',     field('condition', $.expression), ';'),
+    postfix_unless_statement: $ => seq($.expression, 'unless', field('condition', $.expression), ';'),
+    postfix_while_statement:  $ => seq($.expression, 'while',  field('condition', $.expression), ';'),
+    postfix_until_statement:  $ => seq($.expression, 'until',  field('condition', $.expression), ';'),
+    postfix_for_statement:    $ => seq($.expression, $._for,   field('condition', $.expression), ';'),
     expression: $ => choice(
       $.primitive,
       $.binary_expression,
@@ -44,6 +54,7 @@ module.exports = grammar({
     scalar_var: $ => seq('$', /\s*/, $._identifier),
     array_var: $ => seq('@', /\s*/, $._identifier),
     hash_var: $ => seq('%', /\s*/, $._identifier),
-    _identifier: $ => /[a-zA-Z_]\w*/
+    _identifier: $ => /[a-zA-Z_]\w*/,
+    _for: $ => choice('for', 'foreach')
   }
 })
