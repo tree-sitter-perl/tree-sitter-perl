@@ -69,3 +69,11 @@ EXPR ** EXPR
     (binary_expression
       left: (number)
       right: (binary_expression left: (number) right: (number)))))
+================================================================================
+!EXPR
+================================================================================
+!123;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement (unary_expression operand: (number))))

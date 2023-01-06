@@ -1,10 +1,14 @@
 const primitives = require('./lib/primitives.js')
-const operators = require('./lib/operators.js')
 
 /* perl.y defines a `stmtseq` rule, which can match empty. tree-sitter does
  * not allow this normally, so we'll have to be slightly more complex about it
  */
 const stmtseq = $ => repeat($._fullstmt);
+
+const unop_pre = (op, term) =>
+  seq(field('operator', op), field('operand', term));
+const unop_post = (op, term) =>
+  seq(field('operand', term), field('operator', op));
 
 const binop = (op, term) =>
   seq(field('left', term), field('operator', op), field('right', term));
@@ -14,13 +18,6 @@ module.exports = grammar({
   supertypes: $ => [
     $.expression,
     $.primitive
-  ],
-  precedences: $ => [
-    operators.precedenceLevels
-    // TODO - implement precendence from
-    // https://perldoc.perl.org/perlop#Operator-Precedence-and-Associativity
-    // syntax is array of arrays, where each one is a partial precendence list, for
-    // resolving conflicts w/in their own class
   ],
   extras: $ => [
     /\s|\\\r?\n/,
@@ -117,8 +114,8 @@ module.exports = grammar({
 
     _term: $ => choice(
       $.binary_expression,
+      $.unary_expression,
       /* TODO:
-       * termunop
        * anonymous
        * termdo
        * term '?' term ':' term
@@ -188,6 +185,15 @@ module.exports = grammar({
       /* TODO: termrelop, termeqop */
     ),
 
+    // perly.y calls this `termunop`
+    unary_expression: $ => choice(
+      unop_pre('-', $._term),
+      unop_pre('+', $._term),
+      unop_pre('~', $._term), // TODO: also ~. when enabled
+      unop_pre('!', $._term),
+      // TODO: prefix and postfix ++ and --
+    ),
+
     /****
      * Token types defined by toke.c
      */
@@ -206,11 +212,9 @@ module.exports = grammar({
     comment: $ => token(/#.*/),
     expression: $ => choice(
       $.primitive,
-      $.unary_expression,
       $._variable,
     ),
     ...primitives,
-    unary_expression: $ => choice(...operators.unops($)),
     // TODO: These variables don't handle ${name} or ${^THING} yet
     _variable: $ => choice($.scalar_var, $.array_var, $.hash_var),
     scalar_var: $ => seq('$', /\s*/, $._identifier),
