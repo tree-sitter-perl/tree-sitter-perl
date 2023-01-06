@@ -144,10 +144,12 @@ module.exports = grammar({
     _term: $ => choice(
       $.binary_expression,
       $.unary_expression,
+      $.anonymous_array_expression,
+      $.anonymous_hash_expression,
       /* TODO:
-       * anonymous
-       * termdo
+       * anonymous sub
        */
+      $.do_expression,
       $.conditional_expression,
       /* REFGEN term
        * KW_LOCAL
@@ -227,6 +229,19 @@ module.exports = grammar({
     conditional_expression: $ => prec.right(TERMPREC.QUESTION_MARK, seq(
       field('condition', $._term), '?', field('consequent', $._term), ':', field('alternative', $._term)
     )),
+
+    anonymous_array_expression: $ => seq(
+      '[', optional($._expr), ']'
+    ),
+
+    anonymous_hash_expression: $ => seq(
+      '{', optional($._expr), '}'
+    ),
+
+    do_expression: $ => choice(
+      /* TODO: do FILENAME */
+      seq('do', $.block),
+    ),
 
     /****
      * Token types defined by toke.c
