@@ -144,6 +144,7 @@ module.exports = grammar({
     list_expression: $ => seq($._term, ',', repeat(seq(optional($._term), ',')), optional($._term)),
 
     _term: $ => choice(
+      $.assignment_expression,
       $.binary_expression,
       $.unary_expression,
       $.anonymous_array_expression,
@@ -204,9 +205,11 @@ module.exports = grammar({
       $.primitive,
     ),
 
+    assignment_expression: $ =>
+      prec.right(TERMPREC.ASSIGNOP, binop($._ASSIGNOP, $._term)),
+
     // perly.y calls this `termbinop`
     binary_expression: $ => choice(
-      // prec.right(1, ASSIGNOP,
       // prec(2, DOTDOT,
       prec.left(TERMPREC.OROR,     binop($._OROR_DORDOR, $._term)),
       prec.left(TERMPREC.ANDAND,   binop($._ANDAND, $._term)),
@@ -265,6 +268,7 @@ module.exports = grammar({
     /****
      * Token types defined by toke.c
      */
+    _ASSIGNOP: $ => choice('='), // TODO: +=, -=, etc...
     _OROR_DORDOR: $ => choice('||', '//'),
     _ANDAND: $ => '&&',
     _BITOROP: $ => '|', // TODO also |. when enabled
