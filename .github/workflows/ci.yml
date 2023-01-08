@@ -17,5 +17,5 @@ jobs:
         with:
           node-version: 18
       - run: npm install -g tree-sitter-cli
-      - run: npm install
+      - run: tree-sitter generate
       - run: npm test
