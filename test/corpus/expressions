@@ -1,0 +1,44 @@
+================================================================================
+do { STMT; }
+================================================================================
+do { 1; 2; };
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement (do_expression
+    (block
+      (expression_statement (number))
+      (expression_statement (number))))))
+================================================================================
+Anonymous array
+================================================================================
+[ 1, 2 ];
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement (anonymous_array_expression
+    (list_expression (number) (number)))))
+================================================================================
+Anonymous hash
+================================================================================
+{ 1, 2 };
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement (anonymous_hash_expression
+    (list_expression (number) (number)))))
+================================================================================
+Assignment
+================================================================================
+$var = 123;
+$var = 12 + 34;
+$var = 12, 34;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression (scalar) (number)))
+  (expression_statement
+    (assignment_expression (scalar) (binary_expression (number) (number))))
+  (expression_statement
+    (list_expression (assignment_expression (scalar) (number)) (number))))

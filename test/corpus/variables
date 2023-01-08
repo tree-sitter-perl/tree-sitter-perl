@@ -3,16 +3,30 @@ basic vars
 ================================================================================
 $s;
 @a;
+$#a;
 %h;
+*g;
 --------------------------------------------------------------------------------
 
 (source_file
-  (expression_statement
-    (scalar_var))
-  (expression_statement
-    (array_var))
-  (expression_statement
-    (hash_var)))
+  (expression_statement (scalar))
+  (expression_statement (array))
+  (expression_statement (arraylen))
+  (expression_statement (hash))
+  (expression_statement (glob)))
+================================================================================
+variable deref
+================================================================================
+$$sref;
+@$aref;
+%$href;
+*$gref;
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement (scalar (scalar)))
+  (expression_statement (array (scalar)))
+  (expression_statement (hash (scalar)))
+  (expression_statement (glob (scalar))))
 ================================================================================
 vars in expressions
 ================================================================================
@@ -20,4 +34,4 @@ $one + $two;
 --------------------------------------------------------------------------------
 (source_file
   (expression_statement
-    (binary_expression (scalar_var) (scalar_var))))
+    (binary_expression (scalar) (scalar))))
