@@ -75,7 +75,7 @@ module.exports = grammar({
       /* TODO: given/when/default */
       $.while_statement,
       $.until_statement,
-      /* TODO: C-style  for(_expr;_expr;_expr) {BLOCK} */
+      $.cstyle_for_statement,
       $.for_statement,
       seq($.expression_statement, ';'),
       seq(';'),
@@ -104,6 +104,15 @@ module.exports = grammar({
     until_statement: $ =>
       seq('until', '(', field('condition', $._expr), ')',
         field('block', $.block),
+      ),
+    cstyle_for_statement: $ =>
+      seq($._for,
+        '(',
+          field('initialiser', optional($._expr)), ';',
+          field('condition',   optional($._expr)), ';',
+          field('iterator',    optional($._expr)),
+        ')',
+        $.block
       ),
     for_statement: $ =>
       seq($._for,

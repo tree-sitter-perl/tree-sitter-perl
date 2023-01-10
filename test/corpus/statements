@@ -167,6 +167,20 @@ foreach my $x (1, 2, 3) { 456; }
   (for_statement (scalar) (list_expression (number) (number) (number))
     (block (expression_statement (number)))))
 ================================================================================
+C-style for
+================================================================================
+for (my $i = 0; $i < 10; $i++) { 123; }
+--------------------------------------------------------------------------------
+
+(source_file
+  (cstyle_for_statement
+    initialiser: (assignment_expression
+      left: (variable_declaration variable: (scalar))
+      right: (number))
+    condition: (relational_expression (scalar) (number))
+    iterator: (postinc_expression operand: (scalar))
+    (block (expression_statement (number)))))
+================================================================================
 use VERSION;
 ================================================================================
 use 5.014;
