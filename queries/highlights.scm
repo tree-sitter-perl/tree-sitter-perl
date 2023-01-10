@@ -47,3 +47,5 @@
 (loopex_expression (bareword) @label)
 
 (statement_label label: (bareword) @label)
+
+(function_call_expression (function) @function)
