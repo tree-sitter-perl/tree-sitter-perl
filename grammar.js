@@ -371,7 +371,15 @@ module.exports = grammar({
     /****
      * Token types defined by toke.c
      */
-    _ASSIGNOP: $ => choice('='), // TODO: +=, -=, etc...
+    _ASSIGNOP: $ => choice(
+      '=', '**=',
+      '+=', '-=', '.=',
+      '*=', '/=', '%=', 'x=',
+      '&=', '|=', '^=',
+      // TODO: Also &.= |.= ^.= when enabled
+      '<<=', '>>=',
+      '&&=', '||=', '//=',
+    ),
     _OROR_DORDOR: $ => choice('||', '//'),
     _ANDAND: $ => '&&',
     _BITOROP: $ => '|', // TODO also |. when enabled
