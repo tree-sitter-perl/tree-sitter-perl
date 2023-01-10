@@ -85,7 +85,12 @@ module.exports = grammar({
       seq('package', field('name', $.package), optional(field('version', $._version)), $.block),
     ),
     use_version_statement: $ => seq($._KW_USE, field('version', $._version), ';'),
-    use_statement: $ => seq($._KW_USE, field('module', $.package), optional($._listexpr), ';'),
+    use_statement: $ => seq(
+      $._KW_USE,
+      field('module', $.package),
+      optional(field('version', $._version)),
+      optional($._listexpr),
+      ';'
     ),
     if_statement: $ =>
       seq('if', '(', field('condition', $._expr), ')',
@@ -414,7 +419,7 @@ module.exports = grammar({
     _identifier: $ => /[a-zA-Z_]\w*/,
 
     package: $ => $._bareword,
-    _version: $ => choice($.number, $.version),
+    _version: $ => prec(1, choice($.number, $.version)),
     version: $ => /v[0-9]+(?:\.[0-9]+)*/,
   }
 })
