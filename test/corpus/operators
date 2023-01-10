@@ -145,3 +145,11 @@ $var--;
 (source_file
   (expression_statement (postinc_expression (scalar)))
   (expression_statement (postinc_expression (scalar))))
+================================================================================
+\EXPR
+================================================================================
+\123;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement (refgen_expression (number))))

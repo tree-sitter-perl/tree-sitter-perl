@@ -212,8 +212,8 @@ module.exports = grammar({
        */
       $.do_expression,
       $.conditional_expression,
-      /* REFGEN term
-       * KW_LOCAL
+      $.refgen_expression,
+      /* KW_LOCAL
        */
       seq('(', $._expr, ')'),
       /* QWLIST */
@@ -319,6 +319,8 @@ module.exports = grammar({
       field('condition', $._term), '?', field('consequent', $._term), ':', field('alternative', $._term)
     )),
 
+    refgen_expression: $ => seq($._REFGEN, $._term),
+
     anonymous_array_expression: $ => seq(
       '[', optional($._expr), ']'
     ),
@@ -406,6 +408,7 @@ module.exports = grammar({
     _NCEQOP: $ => choice('<=>', 'cmp', '~~'),
     _NCRELOP: $ => choice('isa'),
     _ARROW: $ => '->',
+    _REFGEN: $ => '\\',
 
     _KW_USE: $ => choice('use', 'no'),
     _KW_FOR: $ => choice('for', 'foreach'),
