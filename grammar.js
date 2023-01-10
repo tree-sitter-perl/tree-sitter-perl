@@ -153,10 +153,8 @@ module.exports = grammar({
        * term -> ( expr )
        * subscripted -> ( )
        * subscripted -> ( expr )
-       * ( expr ) [ expr ]
-       * QWLIST [ expr ]
-       * ( ) [ expr ]
        */
+      $.slice_expression,
     ),
 
     array_element_expression: $ => choice(
@@ -170,6 +168,10 @@ module.exports = grammar({
       seq(field('hash', seq('$', $._indirob)),         '{', $._expr, '}'),
       prec.left(TERMPREC.ARROW, seq($._term, $._ARROW, '{', $._expr, '}')),
       seq($._subscripted,                              '{', $._expr, '}'),
+    ),
+    slice_expression: $ => choice(
+      seq('(', optional(field('list', $._expr)), ')', '[', $._expr, ']'),
+      // TODO: QWLIST
     ),
 
     _term: $ => choice(

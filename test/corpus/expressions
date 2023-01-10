@@ -42,3 +42,12 @@ $var = 12, 34;
     (assignment_expression (scalar) (binary_expression (number) (number))))
   (expression_statement
     (list_expression (assignment_expression (scalar) (number)) (number))))
+================================================================================
+Slices
+================================================================================
+(1, 2, 3)[0];
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (slice_expression (list_expression (number) (number) (number)) (number))))
