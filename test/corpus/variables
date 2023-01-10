@@ -7,7 +7,6 @@ $#a;
 %h;
 *g;
 --------------------------------------------------------------------------------
-
 (source_file
   (expression_statement (scalar))
   (expression_statement (array))
@@ -35,3 +34,30 @@ $one + $two;
 (source_file
   (expression_statement
     (binary_expression (scalar) (scalar))))
+================================================================================
+variable declarations
+================================================================================
+my $s;
+my @a;
+my %h;
+my ($S, @A, %h);
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement (variable_declaration (scalar)))
+  (expression_statement (variable_declaration (array)))
+  (expression_statement (variable_declaration (hash)))
+  (expression_statement (variable_declaration (scalar) (array) (hash))))
+================================================================================
+variable declarations with initialiser
+================================================================================
+my $s = 123;
+my @a = (4, 5);
+my %h = (6, 7);
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement
+    (assignment_expression (variable_declaration (scalar)) (number)))
+  (expression_statement
+    (assignment_expression (variable_declaration (array)) (list_expression (number) (number))))
+  (expression_statement
+    (assignment_expression (variable_declaration (hash)) (list_expression (number) (number)))))

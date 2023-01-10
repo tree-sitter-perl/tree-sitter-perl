@@ -201,6 +201,11 @@ module.exports = grammar({
        * listop
        */
 
+      /* perly.y doesn't know about `my` because that is handled weirdly in
+       * toke.c but we'll have to do it differently here
+       */
+      $.variable_declaration,
+
       // legacy
       $.primitive,
     ),
@@ -248,6 +253,17 @@ module.exports = grammar({
       /* TODO: do FILENAME */
       seq('do', $.block),
     ),
+
+    variable_declaration: $ =>
+      seq('my', choice(
+        field('variable', $.scalar),
+        field('variable', $.array),
+        field('variable', $.hash),
+        field('variables', $._paren_list_of_variables))),
+    _variable: $ => choice($.scalar, $.array, $.hash),
+    // TODO: permit undef in a var list
+    _paren_list_of_variables: $ =>
+      seq('(', repeat(seq(optional($._variable), ',')), optional($._variable), ')'),
 
     scalar:   $ => seq('$',  $._indirob),
     array:    $ => seq('@',  $._indirob),
