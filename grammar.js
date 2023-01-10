@@ -143,6 +143,35 @@ module.exports = grammar({
     * list, while permitting multiple internal commas and an optional trailing one */
     list_expression: $ => seq($._term, ',', repeat(seq(optional($._term), ',')), optional($._term)),
 
+    _subscripted: $ => choice(
+      /* TODO:
+       * gelem { expr ; }
+       */
+      $.array_element_expression,
+      $.hash_element_expression,
+      /* term -> ( )
+       * term -> ( expr )
+       * subscripted -> ( )
+       * subscripted -> ( expr )
+       * ( expr ) [ expr ]
+       * QWLIST [ expr ]
+       * ( ) [ expr ]
+       */
+    ),
+
+    array_element_expression: $ => choice(
+      // perly.y matches scalar '[' expr ']' here but that would yield a scalar var node
+      seq(field('array', seq('$', $._indirob)),        '[', $._expr, ']'),
+      prec.left(TERMPREC.ARROW, seq($._term, $._ARROW, '[', $._expr, ']')),
+      seq($._subscripted,                              '[', $._expr, ']'),
+    ),
+    hash_element_expression: $ => choice(
+      // perly.y matches scalar '{' expr '}' here but that would yield a scalar var node
+      seq(field('hash', seq('$', $._indirob)),         '{', $._expr, '}'),
+      prec.left(TERMPREC.ARROW, seq($._term, $._ARROW, '{', $._expr, '}')),
+      seq($._subscripted,                              '{', $._expr, '}'),
+    ),
+
     _term: $ => choice(
       $.assignment_expression,
       $.binary_expression,
@@ -166,8 +195,8 @@ module.exports = grammar({
       $.hash,
       $.array,
       $.arraylen,
-      /* subscripted
-       * sliceme '[' expr ']'
+      $._subscripted,
+      /* sliceme '[' expr ']'
        * kvslice '[' expr ']'
        * sliceme '{' expr '}'
        * kvslice '{' expr '}'
@@ -293,6 +322,7 @@ module.exports = grammar({
     _ADDOP: $ => choice('+', '-', '.'),
     _MULOP: $ => choice('*', '/', '%', 'x'),
     _POWOP: $ => '**',
+    _ARROW: $ => '->',
 
     _KW_USE: $ => choice('use', 'no'),
 
