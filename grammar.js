@@ -189,9 +189,8 @@ module.exports = grammar({
        * KW_LOCAL
        */
       seq('(', $._expr, ')'),
-      /* QWLIST
-       * '(' ')'
-       */
+      /* QWLIST */
+      $.stub_expression,
       $.scalar,
       $.glob,
       $.hash,
@@ -295,6 +294,8 @@ module.exports = grammar({
     // TODO: permit undef in a var list
     _paren_list_of_variables: $ =>
       seq('(', repeat(seq(optional($._variable), ',')), optional($._variable), ')'),
+
+    stub_expression: $ => seq('(', ')'),
 
     scalar:   $ => seq('$',  $._indirob),
     array:    $ => seq('@',  $._indirob),

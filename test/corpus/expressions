@@ -51,3 +51,11 @@ Slices
 (source_file
   (expression_statement
     (slice_expression (list_expression (number) (number) (number)) (number))))
+================================================================================
+Stub
+================================================================================
+();
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement (stub_expression)))
