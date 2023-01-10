@@ -186,6 +186,8 @@ module.exports = grammar({
     _term: $ => choice(
       $.assignment_expression,
       $.binary_expression,
+      $.equality_expression,
+      $.relational_expression,
       $.unary_expression,
       $.preinc_expression,
       $.postinc_expression,
@@ -267,7 +269,22 @@ module.exports = grammar({
       prec.left(TERMPREC.MULOP,    binop($._MULOP, $._term)),
       // prec.left(10, MATCHOP,
       prec.right(TERMPREC.POWOP,   binop($._POWOP, $._term)),
-      /* TODO: termrelop, termeqop */
+    ),
+
+    // perl.y calls this `termeqop`
+    equality_expression: $ =>
+      prec.left(TERMPREC.CHEQOP, choice(
+        seq($._term, $._CHEQOP, $._term), // TODO: chaining
+        seq($._term, $._NCEQOP, $._term),
+      )
+    ),
+
+    // perly.y calls this `termrelop`
+    relational_expression: $ =>
+      prec.left(TERMPREC.CHRELOP, choice(
+        seq($._term, $._CHRELOP, $._term), // TODO: chaining
+        seq($._term, $._NCRELOP, $._term),
+      )
     ),
 
     // perly.y calls this `termunop`
@@ -354,6 +371,10 @@ module.exports = grammar({
     _ADDOP: $ => choice('+', '-', '.'),
     _MULOP: $ => choice('*', '/', '%', 'x'),
     _POWOP: $ => '**',
+    _CHEQOP: $ => choice('==', '!=', 'eq', 'ne'),
+    _CHRELOP: $ => choice('<', '<=', '>=', '>', 'lt', 'le', 'ge', 'gt'),
+    _NCEQOP: $ => choice('<=>', 'cmp', '~~'),
+    _NCRELOP: $ => choice('isa'),
     _ARROW: $ => '->',
 
     _KW_USE: $ => choice('use', 'no'),
