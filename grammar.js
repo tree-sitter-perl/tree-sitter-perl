@@ -272,10 +272,10 @@ module.exports = grammar({
 
     // perly.y calls this `termunop`
     unary_expression: $ => choice(
-      unop_pre('-', $._term),
-      unop_pre('+', $._term),
-      unop_pre('~', $._term), // TODO: also ~. when enabled
-      unop_pre('!', $._term),
+      prec(TERMPREC.UMINUS, unop_pre('-', $._term)),
+      prec(TERMPREC.UMINUS, unop_pre('+', $._term)),
+      prec(TERMPREC.UMINUS, unop_pre('~', $._term)), // TODO: also ~. when enabled
+      prec(TERMPREC.UMINUS, unop_pre('!', $._term)),
     ),
     preinc_expression: $ =>
       prec(TERMPREC.PREINC, unop_pre(choice('++', '--'), $._term)),
