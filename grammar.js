@@ -76,11 +76,12 @@ module.exports = grammar({
       seq($.expression_statement, ';'),
       seq(';'),
     ),
-    use_version_statement: $ => seq($._KW_USE, field('version', $._version), ';'),
-    use_statement: $ => seq($._KW_USE, field('module', $.package), optional($._listexpr), ';'),
     package_statement: $ => choice(
       seq('package', field('name', $.package), optional(field('version', $._version)), ';'),
       seq('package', field('name', $.package), optional(field('version', $._version)), $.block),
+    ),
+    use_version_statement: $ => seq($._KW_USE, field('version', $._version), ';'),
+    use_statement: $ => seq($._KW_USE, field('module', $.package), optional($._listexpr), ';'),
     ),
     if_statement: $ =>
       seq('if', '(', field('condition', $._expr), ')',
