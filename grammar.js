@@ -63,7 +63,7 @@ module.exports = grammar({
 
     _barestmt: $ => choice(
       /* TODO: sub */
-      /* TODO: package */
+      $.package_statement,
       $.use_version_statement,
       $.use_statement,
       $.if_statement,
@@ -76,8 +76,12 @@ module.exports = grammar({
       seq($.expression_statement, ';'),
       seq(';'),
     ),
-    use_version_statement: $ => seq($._KW_USE, field('version', $.version), ';'),
+    use_version_statement: $ => seq($._KW_USE, field('version', $._version), ';'),
     use_statement: $ => seq($._KW_USE, field('module', $.package), optional($._listexpr), ';'),
+    package_statement: $ => choice(
+      seq('package', field('name', $.package), optional(field('version', $._version)), ';'),
+      seq('package', field('name', $.package), optional(field('version', $._version)), $.block),
+    ),
     if_statement: $ =>
       seq('if', '(', field('condition', $._expr), ')',
         field('block', $.block),
@@ -217,9 +221,9 @@ module.exports = grammar({
        * UNIOP
        * UNIOP block
        * UNIOP term
-       * KW_REQUIRE
-       * KW_REQUIRE term
-       * UNIOPSUB
+       */
+      $.require_expression,
+      /* UNIOPSUB
        * UNIOPSUB term
        * FUNC0
        * FUNC0 '(' ')'
@@ -309,6 +313,9 @@ module.exports = grammar({
     glob_deref_expression: $ =>
       prec.left(TERMPREC.ARROW, seq($._term, $._ARROW, '*', '*')),
 
+    require_expression: $ =>
+      prec.left(TERMPREC.REQUIRE, seq('require', optional($._term))),
+
     scalar:   $ => seq('$',  $._indirob),
     array:    $ => seq('@',  $._indirob),
     hash:     $ => seq('%',  $._indirob),
@@ -351,6 +358,7 @@ module.exports = grammar({
     _for: $ => choice('for', 'foreach'),
 
     package: $ => $._bareword,
+    _version: $ => choice($.number, $.version),
     version: $ => /v[0-9]+(?:\.[0-9]+)*/,
   }
 })

@@ -111,3 +111,13 @@ $gref->**;
   ; TODO: It'd be nice to see if we can get these two to parse the same
   (expression_statement (glob (scalar)))
   (expression_statement (glob_deref_expression (scalar))))
+================================================================================
+require EXPR
+================================================================================
+require 123;
+require;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement (require_expression (number)))
+  (expression_statement (require_expression)))
