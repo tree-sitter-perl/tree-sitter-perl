@@ -121,3 +121,23 @@ require;
 (source_file
   (expression_statement (require_expression (number)))
   (expression_statement (require_expression)))
+================================================================================
+Loopex
+================================================================================
+next;
+last LOOP;
+redo;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement (loopex_expression))
+  (expression_statement (loopex_expression (bareword)))
+  (expression_statement (loopex_expression)))
+================================================================================
+goto
+================================================================================
+goto LABEL;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement (goto_expression (bareword))))

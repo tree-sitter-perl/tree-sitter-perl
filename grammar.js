@@ -234,8 +234,9 @@ module.exports = grammar({
       $.hash_deref_expression,
       $.amper_deref_expression,
       $.glob_deref_expression,
-      /* LOOPEX (term?)
-       * NOTOP listexpr
+      $.loopex_expression,
+      $.goto_expression,
+      /* NOTOP listexpr
        * UNIOP
        * UNIOP block
        * UNIOP term
@@ -250,8 +251,9 @@ module.exports = grammar({
        * FUNC1 '(' ')'
        * FUNC1 '(' expr ')'
        * PMFUNC
-       * BAREWORD
-       * listop
+       */
+      $.bareword,
+      /* listop
        */
 
       /* perly.y doesn't know about `my` because that is handled weirdly in
@@ -352,6 +354,11 @@ module.exports = grammar({
     require_expression: $ =>
       prec.left(TERMPREC.REQUIRE, seq('require', optional($._term))),
 
+    loopex_expression: $ =>
+      prec.left(TERMPREC.LOOPEX, seq(field('loopex', $._LOOPEX), optional($._term))),
+    goto_expression: $ =>
+      prec.left(TERMPREC.LOOPEX, seq('goto', $._term)),
+
     scalar:   $ => seq('$',  $._indirob),
     array:    $ => seq('@',  $._indirob),
     hash:     $ => seq('%',  $._indirob),
@@ -366,6 +373,7 @@ module.exports = grammar({
       /* TODO: privateref */
     ),
 
+    bareword: $ => $._bareword,
     _bareword: $ => /[a-zA-Z_]\w*(?:::[a-zA-Z_]\w*)*/,  // TODO: unicode
 
     /****
@@ -395,6 +403,7 @@ module.exports = grammar({
     _ARROW: $ => '->',
 
     _KW_USE: $ => choice('use', 'no'),
+    _LOOPEX: $ => choice('last', 'next', 'redo'),
 
     /****
      * Misc bits
