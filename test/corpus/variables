@@ -14,19 +14,6 @@ $#a;
   (expression_statement (hash))
   (expression_statement (glob)))
 ================================================================================
-variable deref
-================================================================================
-$$sref;
-@$aref;
-%$href;
-*$gref;
---------------------------------------------------------------------------------
-(source_file
-  (expression_statement (scalar (scalar)))
-  (expression_statement (array (scalar)))
-  (expression_statement (hash (scalar)))
-  (expression_statement (glob (scalar))))
-================================================================================
 vars in expressions
 ================================================================================
 $one + $two;

@@ -206,12 +206,13 @@ module.exports = grammar({
        * amper '(' ')'
        * amper '(' expr ')'
        * NOAMP -- wtf even is this thing?
-       * term '->' '$' '*'
-       * term '->' '@' '*'
-       * term '->' '%' '*'
-       * term '->' '&' '*'
-       * term '->' '*' '*'
-       * LOOPEX (term?)
+       */
+      $.scalar_deref_expression,
+      $.array_deref_expression,
+      $.hash_deref_expression,
+      $.amper_deref_expression,
+      $.glob_deref_expression,
+      /* LOOPEX (term?)
        * NOTOP listexpr
        * UNIOP
        * UNIOP block
@@ -296,6 +297,17 @@ module.exports = grammar({
       seq('(', repeat(seq(optional($._variable), ',')), optional($._variable), ')'),
 
     stub_expression: $ => seq('(', ')'),
+
+    scalar_deref_expression: $ =>
+      prec.left(TERMPREC.ARROW, seq($._term, $._ARROW, '$', '*')),
+    array_deref_expression: $ =>
+      prec.left(TERMPREC.ARROW, seq($._term, $._ARROW, '@', '*')),
+    hash_deref_expression: $ =>
+      prec.left(TERMPREC.ARROW, seq($._term, $._ARROW, '%', '*')),
+    amper_deref_expression: $ =>
+      prec.left(TERMPREC.ARROW, seq($._term, $._ARROW, '&', '*')),
+    glob_deref_expression: $ =>
+      prec.left(TERMPREC.ARROW, seq($._term, $._ARROW, '*', '*')),
 
     scalar:   $ => seq('$',  $._indirob),
     array:    $ => seq('@',  $._indirob),
