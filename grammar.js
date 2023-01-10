@@ -106,7 +106,7 @@ module.exports = grammar({
         field('block', $.block),
       ),
     cstyle_for_statement: $ =>
-      seq($._for,
+      seq($._KW_FOR,
         '(',
           field('initialiser', optional($._expr)), ';',
           field('condition',   optional($._expr)), ';',
@@ -115,7 +115,7 @@ module.exports = grammar({
         $.block
       ),
     for_statement: $ =>
-      seq($._for,
+      seq($._KW_FOR,
         optional(choice(
           seq('my', field('my_var', $.scalar)),
           field('var', $.scalar)
@@ -137,7 +137,7 @@ module.exports = grammar({
     postfix_unless_expression: $ => seq($._expr, 'unless', field('condition', $._expr)),
     postfix_while_expression:  $ => seq($._expr, 'while',  field('condition', $._expr)),
     postfix_until_expression:  $ => seq($._expr, 'until',  field('condition', $._expr)),
-    postfix_for_expression:    $ => seq($._expr, $._for,   field('list', $._expr)),
+    postfix_for_expression:    $ => seq($._expr, $._KW_FOR, field('list', $._expr)),
 
     _else: $ => choice($.else, $.elsif),
     else: $ => seq('else', field('block', $.block)),
@@ -403,6 +403,7 @@ module.exports = grammar({
     _ARROW: $ => '->',
 
     _KW_USE: $ => choice('use', 'no'),
+    _KW_FOR: $ => choice('for', 'foreach'),
     _LOOPEX: $ => choice('last', 'next', 'redo'),
 
     /****
@@ -411,8 +412,6 @@ module.exports = grammar({
     comment: $ => token(/#.*/),
     ...primitives,
     _identifier: $ => /[a-zA-Z_]\w*/,
-
-    _for: $ => choice('for', 'foreach'),
 
     package: $ => $._bareword,
     _version: $ => choice($.number, $.version),
