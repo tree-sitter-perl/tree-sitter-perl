@@ -48,6 +48,14 @@ module.exports = grammar({
   supertypes: $ => [
     $.primitive
   ],
+  externals: $ => [
+    /* ident-alikes */
+    $._q_string_begin,
+    /* immediates */
+    $._quotelike_end,
+    $._q_string_content,
+    $.escape_sequence,
+  ],
   extras: $ => [
     /\s|\\\r?\n/,
     $.comment,
@@ -268,6 +276,8 @@ module.exports = grammar({
 
       // legacy
       $.primitive,
+
+      $._literal,
     ),
 
     assignment_expression: $ =>
@@ -419,6 +429,22 @@ module.exports = grammar({
     comment: $ => token(/#.*/),
     ...primitives,
     _identifier: $ => /[a-zA-Z_]\w*/,
+
+    // toke.c calls this a THING and that is such a generic unhelpful word,
+    // we'll call it this instead
+    _literal: $ => choice(
+      $.string_literal,
+    ),
+
+    string_literal: $ => choice($._q_string),
+    _q_string: $ => seq(
+      $._q_string_begin,
+      repeat(choice(
+        $._q_string_content,
+        $.escape_sequence,
+      )),
+      $._quotelike_end
+    ),
 
     package: $ => $._bareword,
     _version: $ => prec(1, choice($.number, $.version)),

@@ -30,4 +30,31 @@ floats
     (number))
   (expression_statement
     (number)))
+================================================================================
+'' strings
+================================================================================
+'hello';
+'a\'string';
+'a\\string';
+'\n is literal';
+'a string with a final \\';
+--------------------------------------------------------------------------------
 
+(source_file
+  (expression_statement (string_literal))
+  (expression_statement (string_literal))
+  (expression_statement (string_literal (escape_sequence)))
+  (expression_statement (string_literal))
+  (expression_statement (string_literal (escape_sequence))))
+================================================================================
+q() strings
+================================================================================
+q(hello);
+q(a 'string');
+q(a (string) here);
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement (string_literal))
+  (expression_statement (string_literal))
+  (expression_statement (string_literal)))
