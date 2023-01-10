@@ -99,3 +99,23 @@ EXPR ? EXPR : EXPR
           condition: (number)
           consequent: (number)
           alternative: (number)))))
+================================================================================
+++EXPR
+================================================================================
+++$var;
+--$var;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement (preinc_expression (scalar)))
+  (expression_statement (preinc_expression (scalar))))
+================================================================================
+EXPR++
+================================================================================
+$var++;
+$var--;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement (postinc_expression (scalar)))
+  (expression_statement (postinc_expression (scalar))))

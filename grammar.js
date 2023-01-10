@@ -25,8 +25,9 @@ const TERMPREC = {
   MATCHOP: 20,
   UMINUS: 21,
   POWOP: 22,
-  ARROW: 23,
-  PAREN: 24,
+  PREINC: 23, POSTINC: 23,
+  ARROW: 24,
+  PAREN: 25,
 };
 
 /* perl.y defines a `stmtseq` rule, which can match empty. tree-sitter does
@@ -50,6 +51,9 @@ module.exports = grammar({
   extras: $ => [
     /\s|\\\r?\n/,
     $.comment,
+  ],
+  conflicts: $ => [
+    [ $.preinc_expression, $.postinc_expression ],
   ],
   rules: {
     source_file: $ => stmtseq($),
@@ -183,6 +187,8 @@ module.exports = grammar({
       $.assignment_expression,
       $.binary_expression,
       $.unary_expression,
+      $.preinc_expression,
+      $.postinc_expression,
       $.anonymous_array_expression,
       $.anonymous_hash_expression,
       /* TODO:
@@ -270,8 +276,11 @@ module.exports = grammar({
       unop_pre('+', $._term),
       unop_pre('~', $._term), // TODO: also ~. when enabled
       unop_pre('!', $._term),
-      // TODO: prefix and postfix ++ and --
     ),
+    preinc_expression: $ =>
+      prec(TERMPREC.PREINC, unop_pre(choice('++', '--'), $._term)),
+    postinc_expression: $ =>
+      prec(TERMPREC.POSTINC, unop_post(choice('++', '--'), $._term)),
 
     conditional_expression: $ => prec.right(TERMPREC.QUESTION_MARK, seq(
       field('condition', $._term), '?', field('consequent', $._term), ':', field('alternative', $._term)
