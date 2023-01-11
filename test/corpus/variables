@@ -7,26 +7,12 @@ $#a;
 %h;
 *g;
 --------------------------------------------------------------------------------
-
 (source_file
   (expression_statement (scalar))
   (expression_statement (array))
   (expression_statement (arraylen))
   (expression_statement (hash))
   (expression_statement (glob)))
-================================================================================
-variable deref
-================================================================================
-$$sref;
-@$aref;
-%$href;
-*$gref;
---------------------------------------------------------------------------------
-(source_file
-  (expression_statement (scalar (scalar)))
-  (expression_statement (array (scalar)))
-  (expression_statement (hash (scalar)))
-  (expression_statement (glob (scalar))))
 ================================================================================
 vars in expressions
 ================================================================================
@@ -35,3 +21,58 @@ $one + $two;
 (source_file
   (expression_statement
     (binary_expression (scalar) (scalar))))
+================================================================================
+variable declarations
+================================================================================
+my $s;
+my @a;
+my %h;
+my ($S, @A, %h);
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement (variable_declaration (scalar)))
+  (expression_statement (variable_declaration (array)))
+  (expression_statement (variable_declaration (hash)))
+  (expression_statement (variable_declaration (scalar) (array) (hash))))
+================================================================================
+variable declarations with initialiser
+================================================================================
+my $s = 123;
+my @a = (4, 5);
+my %h = (6, 7);
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement
+    (assignment_expression (variable_declaration (scalar)) (number)))
+  (expression_statement
+    (assignment_expression (variable_declaration (array)) (list_expression (number) (number))))
+  (expression_statement
+    (assignment_expression (variable_declaration (hash)) (list_expression (number) (number)))))
+================================================================================
+array elements
+================================================================================
+$a[123];
+$aref->[123];
+$a[1][2][3];
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement
+    (array_element_expression (number)))
+  (expression_statement
+    (array_element_expression (scalar) (number)))
+  (expression_statement
+    (array_element_expression (array_element_expression (array_element_expression (number)) (number)) (number))))
+================================================================================
+hash elements
+================================================================================
+$h{123};
+$href->{123};
+$h{1}{2}{3};
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement
+    (hash_element_expression (number)))
+  (expression_statement
+    (hash_element_expression (scalar) (number)))
+  (expression_statement
+    (hash_element_expression (hash_element_expression (hash_element_expression (number)) (number)) (number))))

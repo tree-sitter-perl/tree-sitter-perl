@@ -42,3 +42,102 @@ $var = 12, 34;
     (assignment_expression (scalar) (binary_expression (number) (number))))
   (expression_statement
     (list_expression (assignment_expression (scalar) (number)) (number))))
+================================================================================
+Slices
+================================================================================
+(1, 2, 3)[0];
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (slice_expression (list_expression (number) (number) (number)) (number))))
+================================================================================
+Stub
+================================================================================
+();
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement (stub_expression)))
+================================================================================
+Scalar deref
+================================================================================
+$$sref;
+$sref->$*;
+--------------------------------------------------------------------------------
+
+(source_file
+  ; TODO: It'd be nice to see if we can get these two to parse the same
+  (expression_statement (scalar (scalar)))
+  (expression_statement (scalar_deref_expression (scalar))))
+================================================================================
+Array deref
+================================================================================
+@$aref;
+$aref->@*;
+--------------------------------------------------------------------------------
+
+(source_file
+  ; TODO: It'd be nice to see if we can get these two to parse the same
+  (expression_statement (array (scalar)))
+  (expression_statement (array_deref_expression (scalar))))
+================================================================================
+Hash deref
+================================================================================
+%$href;
+$href->%*;
+--------------------------------------------------------------------------------
+
+(source_file
+  ; TODO: It'd be nice to see if we can get these two to parse the same
+  (expression_statement (hash (scalar)))
+  (expression_statement (hash_deref_expression (scalar))))
+================================================================================
+Amper deref
+================================================================================
+$cref->&*;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement (amper_deref_expression (scalar))))
+================================================================================
+Glob deref
+================================================================================
+*$gref;
+$gref->**;
+--------------------------------------------------------------------------------
+
+(source_file
+  ; TODO: It'd be nice to see if we can get these two to parse the same
+  (expression_statement (glob (scalar)))
+  (expression_statement (glob_deref_expression (scalar))))
+================================================================================
+require EXPR
+================================================================================
+require 123;
+require;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement (require_expression (number)))
+  (expression_statement (require_expression)))
+================================================================================
+Loopex
+================================================================================
+next;
+last LOOP;
+redo;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement (loopex_expression))
+  (expression_statement (loopex_expression (bareword)))
+  (expression_statement (loopex_expression)))
+================================================================================
+goto
+================================================================================
+goto LABEL;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement (goto_expression (bareword))))

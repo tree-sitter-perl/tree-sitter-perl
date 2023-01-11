@@ -167,18 +167,50 @@ foreach my $x (1, 2, 3) { 456; }
   (for_statement (scalar) (list_expression (number) (number) (number))
     (block (expression_statement (number)))))
 ================================================================================
+C-style for
+================================================================================
+for (my $i = 0; $i < 10; $i++) { 123; }
+--------------------------------------------------------------------------------
+
+(source_file
+  (cstyle_for_statement
+    initialiser: (assignment_expression
+      left: (variable_declaration variable: (scalar))
+      right: (number))
+    condition: (relational_expression (scalar) (number))
+    iterator: (postinc_expression operand: (scalar))
+    (block (expression_statement (number)))))
+================================================================================
 use VERSION;
 ================================================================================
+use 5.014;
 use v5.14;
 --------------------------------------------------------------------------------
 
 (source_file
+  (use_version_statement (number))
   (use_version_statement (version)))
 ================================================================================
 use MODULE;
 ================================================================================
 use strict;
+use List::Util 1.23;
 --------------------------------------------------------------------------------
 
 (source_file
-  (use_statement (package)))
+  (use_statement module: (package))
+  (use_statement module: (package) version: (number)))
+================================================================================
+package;
+================================================================================
+package AAA;
+package BBB 1.23;
+package CCC { }
+package DDD 4.56 { }
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_statement (package))
+  (package_statement (package) (number))
+  (package_statement (package) (block))
+  (package_statement (package) (number) (block)))

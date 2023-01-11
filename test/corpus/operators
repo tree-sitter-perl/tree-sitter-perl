@@ -27,6 +27,32 @@ EXPR, EXPR
   (expression_statement (list_expression (number) (number)))
   (expression_statement (list_expression (number) (number))))
 ================================================================================
+EXPR eq EXPR
+================================================================================
+12 eq 34;
+12 cmp 34;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement (equality_expression (number) (number)))
+  (expression_statement (equality_expression (number) (number))))
+================================================================================
+EXPR < EXPR
+================================================================================
+12 < 34;
+12 > 34;
+12 <= 34;
+12 >= 34;
+12 isa 34;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement (relational_expression (number) (number)))
+  (expression_statement (relational_expression (number) (number)))
+  (expression_statement (relational_expression (number) (number)))
+  (expression_statement (relational_expression (number) (number)))
+  (expression_statement (relational_expression (number) (number))))
+================================================================================
 EXPR << EXPR
 ================================================================================
 1 << 2;
@@ -99,3 +125,31 @@ EXPR ? EXPR : EXPR
           condition: (number)
           consequent: (number)
           alternative: (number)))))
+================================================================================
+++EXPR
+================================================================================
+++$var;
+--$var;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement (preinc_expression (scalar)))
+  (expression_statement (preinc_expression (scalar))))
+================================================================================
+EXPR++
+================================================================================
+$var++;
+$var--;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement (postinc_expression (scalar)))
+  (expression_statement (postinc_expression (scalar))))
+================================================================================
+\EXPR
+================================================================================
+\123;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement (refgen_expression (number))))

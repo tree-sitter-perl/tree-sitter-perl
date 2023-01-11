@@ -25,8 +25,9 @@ const TERMPREC = {
   MATCHOP: 20,
   UMINUS: 21,
   POWOP: 22,
-  ARROW: 23,
-  PAREN: 24,
+  PREINC: 23, POSTINC: 23,
+  ARROW: 24,
+  PAREN: 25,
 };
 
 /* perl.y defines a `stmtseq` rule, which can match empty. tree-sitter does
@@ -51,6 +52,9 @@ module.exports = grammar({
     /\s|\\\r?\n/,
     $.comment,
   ],
+  conflicts: $ => [
+    [ $.preinc_expression, $.postinc_expression ],
+  ],
   rules: {
     source_file: $ => stmtseq($),
     /****
@@ -63,7 +67,7 @@ module.exports = grammar({
 
     _barestmt: $ => choice(
       /* TODO: sub */
-      /* TODO: package */
+      $.package_statement,
       $.use_version_statement,
       $.use_statement,
       $.if_statement,
@@ -71,13 +75,23 @@ module.exports = grammar({
       /* TODO: given/when/default */
       $.while_statement,
       $.until_statement,
-      /* TODO: C-style  for(_expr;_expr;_expr) {BLOCK} */
+      $.cstyle_for_statement,
       $.for_statement,
       seq($.expression_statement, ';'),
       seq(';'),
     ),
-    use_version_statement: $ => seq($._KW_USE, field('version', $.version), ';'),
-    use_statement: $ => seq($._KW_USE, field('module', $.package), optional($._listexpr), ';'),
+    package_statement: $ => choice(
+      seq('package', field('name', $.package), optional(field('version', $._version)), ';'),
+      seq('package', field('name', $.package), optional(field('version', $._version)), $.block),
+    ),
+    use_version_statement: $ => seq($._KW_USE, field('version', $._version), ';'),
+    use_statement: $ => seq(
+      $._KW_USE,
+      field('module', $.package),
+      optional(field('version', $._version)),
+      optional($._listexpr),
+      ';'
+    ),
     if_statement: $ =>
       seq('if', '(', field('condition', $._expr), ')',
         field('block', $.block),
@@ -96,8 +110,17 @@ module.exports = grammar({
       seq('until', '(', field('condition', $._expr), ')',
         field('block', $.block),
       ),
+    cstyle_for_statement: $ =>
+      seq($._KW_FOR,
+        '(',
+          field('initialiser', optional($._expr)), ';',
+          field('condition',   optional($._expr)), ';',
+          field('iterator',    optional($._expr)),
+        ')',
+        $.block
+      ),
     for_statement: $ =>
-      seq($._for,
+      seq($._KW_FOR,
         optional(choice(
           seq('my', field('my_var', $.scalar)),
           field('var', $.scalar)
@@ -119,7 +142,7 @@ module.exports = grammar({
     postfix_unless_expression: $ => seq($._expr, 'unless', field('condition', $._expr)),
     postfix_while_expression:  $ => seq($._expr, 'while',  field('condition', $._expr)),
     postfix_until_expression:  $ => seq($._expr, 'until',  field('condition', $._expr)),
-    postfix_for_expression:    $ => seq($._expr, $._for,   field('list', $._expr)),
+    postfix_for_expression:    $ => seq($._expr, $._KW_FOR, field('list', $._expr)),
 
     _else: $ => choice($.else, $.elsif),
     else: $ => seq('else', field('block', $.block)),
@@ -143,10 +166,45 @@ module.exports = grammar({
     * list, while permitting multiple internal commas and an optional trailing one */
     list_expression: $ => seq($._term, ',', repeat(seq(optional($._term), ',')), optional($._term)),
 
+    _subscripted: $ => choice(
+      /* TODO:
+       * gelem { expr ; }
+       */
+      $.array_element_expression,
+      $.hash_element_expression,
+      /* term -> ( )
+       * term -> ( expr )
+       * subscripted -> ( )
+       * subscripted -> ( expr )
+       */
+      $.slice_expression,
+    ),
+
+    array_element_expression: $ => choice(
+      // perly.y matches scalar '[' expr ']' here but that would yield a scalar var node
+      seq(field('array', seq('$', $._indirob)),        '[', $._expr, ']'),
+      prec.left(TERMPREC.ARROW, seq($._term, $._ARROW, '[', $._expr, ']')),
+      seq($._subscripted,                              '[', $._expr, ']'),
+    ),
+    hash_element_expression: $ => choice(
+      // perly.y matches scalar '{' expr '}' here but that would yield a scalar var node
+      seq(field('hash', seq('$', $._indirob)),         '{', $._expr, '}'),
+      prec.left(TERMPREC.ARROW, seq($._term, $._ARROW, '{', $._expr, '}')),
+      seq($._subscripted,                              '{', $._expr, '}'),
+    ),
+    slice_expression: $ => choice(
+      seq('(', optional(field('list', $._expr)), ')', '[', $._expr, ']'),
+      // TODO: QWLIST
+    ),
+
     _term: $ => choice(
       $.assignment_expression,
       $.binary_expression,
+      $.equality_expression,
+      $.relational_expression,
       $.unary_expression,
+      $.preinc_expression,
+      $.postinc_expression,
       $.anonymous_array_expression,
       $.anonymous_hash_expression,
       /* TODO:
@@ -154,20 +212,19 @@ module.exports = grammar({
        */
       $.do_expression,
       $.conditional_expression,
-      /* REFGEN term
-       * KW_LOCAL
+      $.refgen_expression,
+      /* KW_LOCAL
        */
       seq('(', $._expr, ')'),
-      /* QWLIST
-       * '(' ')'
-       */
+      /* QWLIST */
+      $.stub_expression,
       $.scalar,
       $.glob,
       $.hash,
       $.array,
       $.arraylen,
-      /* subscripted
-       * sliceme '[' expr ']'
+      $._subscripted,
+      /* sliceme '[' expr ']'
        * kvslice '[' expr ']'
        * sliceme '{' expr '}'
        * kvslice '{' expr '}'
@@ -176,19 +233,21 @@ module.exports = grammar({
        * amper '(' ')'
        * amper '(' expr ')'
        * NOAMP -- wtf even is this thing?
-       * term '->' '$' '*'
-       * term '->' '@' '*'
-       * term '->' '%' '*'
-       * term '->' '&' '*'
-       * term '->' '*' '*'
-       * LOOPEX (term?)
-       * NOTOP listexpr
+       */
+      $.scalar_deref_expression,
+      $.array_deref_expression,
+      $.hash_deref_expression,
+      $.amper_deref_expression,
+      $.glob_deref_expression,
+      $.loopex_expression,
+      $.goto_expression,
+      /* NOTOP listexpr
        * UNIOP
        * UNIOP block
        * UNIOP term
-       * KW_REQUIRE
-       * KW_REQUIRE term
-       * UNIOPSUB
+       */
+      $.require_expression,
+      /* UNIOPSUB
        * UNIOPSUB term
        * FUNC0
        * FUNC0 '(' ')'
@@ -197,9 +256,15 @@ module.exports = grammar({
        * FUNC1 '(' ')'
        * FUNC1 '(' expr ')'
        * PMFUNC
-       * BAREWORD
-       * listop
        */
+      $.bareword,
+      /* listop
+       */
+
+      /* perly.y doesn't know about `my` because that is handled weirdly in
+       * toke.c but we'll have to do it differently here
+       */
+      $.variable_declaration,
 
       // legacy
       $.primitive,
@@ -220,21 +285,41 @@ module.exports = grammar({
       prec.left(TERMPREC.MULOP,    binop($._MULOP, $._term)),
       // prec.left(10, MATCHOP,
       prec.right(TERMPREC.POWOP,   binop($._POWOP, $._term)),
-      /* TODO: termrelop, termeqop */
+    ),
+
+    // perl.y calls this `termeqop`
+    equality_expression: $ =>
+      prec.left(TERMPREC.CHEQOP, choice(
+        seq($._term, $._CHEQOP, $._term), // TODO: chaining
+        seq($._term, $._NCEQOP, $._term),
+      )
+    ),
+
+    // perly.y calls this `termrelop`
+    relational_expression: $ =>
+      prec.left(TERMPREC.CHRELOP, choice(
+        seq($._term, $._CHRELOP, $._term), // TODO: chaining
+        seq($._term, $._NCRELOP, $._term),
+      )
     ),
 
     // perly.y calls this `termunop`
     unary_expression: $ => choice(
-      unop_pre('-', $._term),
-      unop_pre('+', $._term),
-      unop_pre('~', $._term), // TODO: also ~. when enabled
-      unop_pre('!', $._term),
-      // TODO: prefix and postfix ++ and --
+      prec(TERMPREC.UMINUS, unop_pre('-', $._term)),
+      prec(TERMPREC.UMINUS, unop_pre('+', $._term)),
+      prec(TERMPREC.UMINUS, unop_pre('~', $._term)), // TODO: also ~. when enabled
+      prec(TERMPREC.UMINUS, unop_pre('!', $._term)),
     ),
+    preinc_expression: $ =>
+      prec(TERMPREC.PREINC, unop_pre(choice('++', '--'), $._term)),
+    postinc_expression: $ =>
+      prec(TERMPREC.POSTINC, unop_post(choice('++', '--'), $._term)),
 
     conditional_expression: $ => prec.right(TERMPREC.QUESTION_MARK, seq(
       field('condition', $._term), '?', field('consequent', $._term), ':', field('alternative', $._term)
     )),
+
+    refgen_expression: $ => seq($._REFGEN, $._term),
 
     anonymous_array_expression: $ => seq(
       '[', optional($._expr), ']'
@@ -248,6 +333,38 @@ module.exports = grammar({
       /* TODO: do FILENAME */
       seq('do', $.block),
     ),
+
+    variable_declaration: $ =>
+      seq('my', choice(
+        field('variable', $.scalar),
+        field('variable', $.array),
+        field('variable', $.hash),
+        field('variables', $._paren_list_of_variables))),
+    _variable: $ => choice($.scalar, $.array, $.hash),
+    // TODO: permit undef in a var list
+    _paren_list_of_variables: $ =>
+      seq('(', repeat(seq(optional($._variable), ',')), optional($._variable), ')'),
+
+    stub_expression: $ => seq('(', ')'),
+
+    scalar_deref_expression: $ =>
+      prec.left(TERMPREC.ARROW, seq($._term, $._ARROW, '$', '*')),
+    array_deref_expression: $ =>
+      prec.left(TERMPREC.ARROW, seq($._term, $._ARROW, '@', '*')),
+    hash_deref_expression: $ =>
+      prec.left(TERMPREC.ARROW, seq($._term, $._ARROW, '%', '*')),
+    amper_deref_expression: $ =>
+      prec.left(TERMPREC.ARROW, seq($._term, $._ARROW, '&', '*')),
+    glob_deref_expression: $ =>
+      prec.left(TERMPREC.ARROW, seq($._term, $._ARROW, '*', '*')),
+
+    require_expression: $ =>
+      prec.left(TERMPREC.REQUIRE, seq('require', optional($._term))),
+
+    loopex_expression: $ =>
+      prec.left(TERMPREC.LOOPEX, seq(field('loopex', $._LOOPEX), optional($._term))),
+    goto_expression: $ =>
+      prec.left(TERMPREC.LOOPEX, seq('goto', $._term)),
 
     scalar:   $ => seq('$',  $._indirob),
     array:    $ => seq('@',  $._indirob),
@@ -263,12 +380,21 @@ module.exports = grammar({
       /* TODO: privateref */
     ),
 
+    bareword: $ => $._bareword,
     _bareword: $ => /[a-zA-Z_]\w*(?:::[a-zA-Z_]\w*)*/,  // TODO: unicode
 
     /****
      * Token types defined by toke.c
      */
-    _ASSIGNOP: $ => choice('='), // TODO: +=, -=, etc...
+    _ASSIGNOP: $ => choice(
+      '=', '**=',
+      '+=', '-=', '.=',
+      '*=', '/=', '%=', 'x=',
+      '&=', '|=', '^=',
+      // TODO: Also &.= |.= ^.= when enabled
+      '<<=', '>>=',
+      '&&=', '||=', '//=',
+    ),
     _OROR_DORDOR: $ => choice('||', '//'),
     _ANDAND: $ => '&&',
     _BITOROP: $ => '|', // TODO also |. when enabled
@@ -277,8 +403,16 @@ module.exports = grammar({
     _ADDOP: $ => choice('+', '-', '.'),
     _MULOP: $ => choice('*', '/', '%', 'x'),
     _POWOP: $ => '**',
+    _CHEQOP: $ => choice('==', '!=', 'eq', 'ne'),
+    _CHRELOP: $ => choice('<', '<=', '>=', '>', 'lt', 'le', 'ge', 'gt'),
+    _NCEQOP: $ => choice('<=>', 'cmp', '~~'),
+    _NCRELOP: $ => choice('isa'),
+    _ARROW: $ => '->',
+    _REFGEN: $ => '\\',
 
     _KW_USE: $ => choice('use', 'no'),
+    _KW_FOR: $ => choice('for', 'foreach'),
+    _LOOPEX: $ => choice('last', 'next', 'redo'),
 
     /****
      * Misc bits
@@ -287,9 +421,8 @@ module.exports = grammar({
     ...primitives,
     _identifier: $ => /[a-zA-Z_]\w*/,
 
-    _for: $ => choice('for', 'foreach'),
-
     package: $ => $._bareword,
+    _version: $ => prec(1, choice($.number, $.version)),
     version: $ => /v[0-9]+(?:\.[0-9]+)*/,
   }
 })
