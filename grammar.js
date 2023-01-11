@@ -53,6 +53,8 @@ module.exports = grammar({
     $._q_string_begin,
     $._qq_string_begin,
     $._qw_list_begin,
+    /* non-ident tokens */
+    $._PERLY_SEMICOLON,
     /* immediates */
     $._quotelike_end,
     $._q_string_content,
@@ -90,20 +92,20 @@ module.exports = grammar({
       $.until_statement,
       $.cstyle_for_statement,
       $.for_statement,
-      seq($.expression_statement, ';'),
-      seq(';'),
+      seq($.expression_statement, $._PERLY_SEMICOLON),
+      ';', // this is not _PERLY_SEMICOLON so as not to generate an infinite stream of them
     ),
     package_statement: $ => choice(
-      seq('package', field('name', $.package), optional(field('version', $._version)), ';'),
+      seq('package', field('name', $.package), optional(field('version', $._version)), $._PERLY_SEMICOLON),
       seq('package', field('name', $.package), optional(field('version', $._version)), $.block),
     ),
-    use_version_statement: $ => seq($._KW_USE, field('version', $._version), ';'),
+    use_version_statement: $ => seq($._KW_USE, field('version', $._version), $._PERLY_SEMICOLON),
     use_statement: $ => seq(
       $._KW_USE,
       field('module', $.package),
       optional(field('version', $._version)),
       optional($._listexpr),
-      ';'
+      $._PERLY_SEMICOLON
     ),
     if_statement: $ =>
       seq('if', '(', field('condition', $._expr), ')',

@@ -21,6 +21,8 @@ enum TokenType {
   TOKEN_Q_STRING_BEGIN,
   TOKEN_QQ_STRING_BEGIN,
   TOKEN_QW_LIST_BEGIN,
+  /* non-ident tokens */
+  PERLY_SEMICOLON,
   /* immediates */
   TOKEN_QUOTELIKE_END,
   TOKEN_Q_STRING_CONTENT,
@@ -162,10 +164,24 @@ bool tree_sitter_perl_external_scanner_scan(
       break;
     }
 
-  if(allow_identalike);
+  if(allow_identalike || valid_symbols[PERLY_SEMICOLON]);
     skip_whitespace(lexer);
 
   int c = lexer->lookahead;
+
+  if(valid_symbols[PERLY_SEMICOLON]) {
+    if(c == ';') {
+      lexer->advance(lexer, false);
+
+      TOKEN(PERLY_SEMICOLON);
+    }
+    if(c == '}' || lexer->eof(lexer)) {
+      DEBUG("Fake PERLY_SEMICOLON at end-of-scope\n", 0);
+      // no advance
+
+      TOKEN(PERLY_SEMICOLON);
+    }
+  }
 
   int ident_len = 0;
   char ident[MAX_IDENT_LEN+1];

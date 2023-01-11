@@ -2,9 +2,14 @@
 do { STMT; }
 ================================================================================
 do { 1; 2; };
+do { 3; 4 };
 --------------------------------------------------------------------------------
 
 (source_file
+  (expression_statement (do_expression
+    (block
+      (expression_statement (number))
+      (expression_statement (number)))))
   (expression_statement (do_expression
     (block
       (expression_statement (number))
