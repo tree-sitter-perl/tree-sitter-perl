@@ -58,3 +58,41 @@ q(a (string) here);
   (expression_statement (string_literal))
   (expression_statement (string_literal))
   (expression_statement (string_literal)))
+================================================================================
+"" strings
+================================================================================
+"hello";
+"a\"string";
+"a\\string";
+"a string w/ a final \\";
+"a string with\nlinefeed";
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement (interpolated_string_literal))
+  (expression_statement (interpolated_string_literal (escape_sequence)))
+  (expression_statement (interpolated_string_literal (escape_sequence)))
+  (expression_statement (interpolated_string_literal (escape_sequence)))
+  (expression_statement (interpolated_string_literal (escape_sequence))))
+================================================================================
+qq() strings
+================================================================================
+qq(hello);
+qq(a 'string');
+qq(a (string) here);
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement (interpolated_string_literal))
+  (expression_statement (interpolated_string_literal))
+  (expression_statement (interpolated_string_literal)))
+================================================================================
+Interpolation in "" strings
+================================================================================
+"with $scalar";
+"with @array";
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement (interpolated_string_literal (scalar)))
+  (expression_statement (interpolated_string_literal (array))))

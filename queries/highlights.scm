@@ -22,6 +22,7 @@
 (version) @number
 
 (string_literal) @string
+(interpolated_string_literal) @string
 (escape_sequence) @string.special
 
 [(scalar) (array) (hash)] @variable

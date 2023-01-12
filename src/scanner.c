@@ -17,9 +17,11 @@
 enum TokenType {
   /* ident-alikes */
   TOKEN_Q_STRING_BEGIN,
+  TOKEN_QQ_STRING_BEGIN,
   /* immediates */
   TOKEN_QUOTELIKE_END,
   TOKEN_Q_STRING_CONTENT,
+  TOKEN_QQ_STRING_CONTENT,
   TOKEN_ESCAPE_SEQUENCE,
 };
 
@@ -184,7 +186,9 @@ bool tree_sitter_perl_external_scanner_scan(
   }
 
   if(valid_symbols[TOKEN_Q_STRING_BEGIN]) {
-    if(ident_len == 1 && streq(ident, "q")) {
+    /* Always expecting TOKEN_QQ_STRING_BEGIN as well */
+    if(ident_len == 1 && streq(ident, "q") ||
+        ident_len == 2 && streq(ident, "qq")) {
       skip_whitespace(lexer);
 
       int delim_close = close_for_open(lexer->lookahead);
@@ -202,7 +206,10 @@ bool tree_sitter_perl_external_scanner_scan(
 
       DEBUG("Generic QSTRING open='%c' close='%c'\n", state->delim_open, state->delim_close);
 
-      TOKEN(TOKEN_Q_STRING_BEGIN);
+      if(ident_len == 1)
+        TOKEN(TOKEN_Q_STRING_BEGIN);
+      else
+        TOKEN(TOKEN_QQ_STRING_BEGIN);
     }
     if(lexer->lookahead == '\'') {
       lexer->advance(lexer, false);
@@ -212,6 +219,15 @@ bool tree_sitter_perl_external_scanner_scan(
       state->delim_count = 0;
 
       TOKEN(TOKEN_Q_STRING_BEGIN);
+    }
+    if(lexer->lookahead == '"') {
+      lexer->advance(lexer, false);
+
+      state->delim_open = 0;
+      state->delim_close = '"';
+      state->delim_count = 0;
+
+      TOKEN(TOKEN_QQ_STRING_BEGIN);
     }
   }
 
@@ -261,7 +277,8 @@ bool tree_sitter_perl_external_scanner_scan(
     }
   }
 
-  if(valid_symbols[TOKEN_Q_STRING_CONTENT]) {
+  if(valid_symbols[TOKEN_Q_STRING_CONTENT] || valid_symbols[TOKEN_QQ_STRING_CONTENT]) {
+    bool is_qq = valid_symbols[TOKEN_QQ_STRING_CONTENT];
     bool valid = false;
 
     int c;
@@ -276,13 +293,19 @@ bool tree_sitter_perl_external_scanner_scan(
         else
           break;
       }
+      else if(is_qq && (c == '$' || c == '@'))
+        break;
 
       valid = true;
       lexer->advance(lexer, false);
     }
 
-    if(valid)
-      TOKEN(TOKEN_Q_STRING_CONTENT);
+    if(valid) {
+      if(is_qq)
+        TOKEN(TOKEN_QQ_STRING_CONTENT);
+      else
+        TOKEN(TOKEN_Q_STRING_CONTENT);
+    }
   }
 
   if(valid_symbols[TOKEN_QUOTELIKE_END]) {
