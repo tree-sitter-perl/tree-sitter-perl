@@ -7,7 +7,7 @@ module.exports = {
     'standard'
   ],
   globals: [
-    'choice', 'seq', 'grammar', 'repeat', 'token', 'optional', 'prec', 'field'
+    'choice', 'seq', 'grammar', 'repeat', 'token', 'optional', 'prec', 'field', 'alias'
   ].reduce((acc, x) => ({ ...acc, [x]: 'readonly' }), {}),
   parserOptions: {
     ecmaVersion: 'latest',
