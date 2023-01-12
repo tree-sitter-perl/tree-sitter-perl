@@ -182,15 +182,15 @@ module.exports = grammar({
 
     array_element_expression: $ => choice(
       // perly.y matches scalar '[' expr ']' here but that would yield a scalar var node
-      seq(field('array', seq('$', $._indirob)),        '[', $._expr, ']'),
-      prec.left(TERMPREC.ARROW, seq($._term, $._ARROW, '[', $._expr, ']')),
-      seq($._subscripted,                              '[', $._expr, ']'),
+      seq(field('array', seq('$', $._indirob)),    '[', field('index', $._expr), ']'),
+      prec.left(TERMPREC.ARROW, seq($._term, '->', '[', field('index', $._expr), ']')),
+      seq($._subscripted,                          '[', field('index', $._expr), ']'),
     ),
     hash_element_expression: $ => choice(
       // perly.y matches scalar '{' expr '}' here but that would yield a scalar var node
-      seq(field('hash', seq('$', $._indirob)),         '{', $._expr, '}'),
-      prec.left(TERMPREC.ARROW, seq($._term, $._ARROW, '{', $._expr, '}')),
-      seq($._subscripted,                              '{', $._expr, '}'),
+      seq(field('hash', seq('$', $._indirob)),     '{', field('key', $._expr), '}'),
+      prec.left(TERMPREC.ARROW, seq($._term, '->', '{', field('key', $._expr), '}')),
+      seq($._subscripted,                          '{', field('key', $._expr), '}'),
     ),
     slice_expression: $ => choice(
       seq('(', optional(field('list', $._expr)), ')', '[', $._expr, ']'),
@@ -348,15 +348,15 @@ module.exports = grammar({
     stub_expression: $ => seq('(', ')'),
 
     scalar_deref_expression: $ =>
-      prec.left(TERMPREC.ARROW, seq($._term, $._ARROW, '$', '*')),
+      prec.left(TERMPREC.ARROW, seq($._term, '->', '$', '*')),
     array_deref_expression: $ =>
-      prec.left(TERMPREC.ARROW, seq($._term, $._ARROW, '@', '*')),
+      prec.left(TERMPREC.ARROW, seq($._term, '->', '@', '*')),
     hash_deref_expression: $ =>
-      prec.left(TERMPREC.ARROW, seq($._term, $._ARROW, '%', '*')),
+      prec.left(TERMPREC.ARROW, seq($._term, '->', '%', '*')),
     amper_deref_expression: $ =>
-      prec.left(TERMPREC.ARROW, seq($._term, $._ARROW, '&', '*')),
+      prec.left(TERMPREC.ARROW, seq($._term, '->', '&', '*')),
     glob_deref_expression: $ =>
-      prec.left(TERMPREC.ARROW, seq($._term, $._ARROW, '*', '*')),
+      prec.left(TERMPREC.ARROW, seq($._term, '->', '*', '*')),
 
     require_expression: $ =>
       prec.left(TERMPREC.REQUIRE, seq('require', optional($._term))),
@@ -407,7 +407,6 @@ module.exports = grammar({
     _CHRELOP: $ => choice('<', '<=', '>=', '>', 'lt', 'le', 'ge', 'gt'),
     _NCEQOP: $ => choice('<=>', 'cmp', '~~'),
     _NCRELOP: $ => choice('isa'),
-    _ARROW: $ => '->',
     _REFGEN: $ => '\\',
 
     _KW_USE: $ => choice('use', 'no'),
