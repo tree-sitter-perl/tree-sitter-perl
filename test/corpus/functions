@@ -25,3 +25,49 @@ foo(12, 34);
 (source_file
   (expression_statement
     (function_call_expression (function) (list_expression (number) (number)))))
+================================================================================
+Method call (no parens)
+================================================================================
+$obj->meth;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (method_call_expression
+      invocant: (scalar)
+      method:   (method))))
+================================================================================
+Method call (0 args)
+================================================================================
+$obj->meth();
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (method_call_expression
+      invocant: (scalar)
+      method:   (method))))
+================================================================================
+Method call (1 arg)
+================================================================================
+$obj->meth(123);
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (method_call_expression
+      invocant:  (scalar)
+      method:    (method)
+      arguments: (number))))
+================================================================================
+Method call (2 args)
+================================================================================
+$obj->meth(12, 34);
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (method_call_expression
+      invocant:  (scalar)
+      method:    (method)
+      arguments: (list_expression (number) (number)))))

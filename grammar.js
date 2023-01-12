@@ -43,6 +43,8 @@ const unop_post = (op, term) =>
 const binop = (op, term) =>
   seq(field('left', term), field('operator', op), field('right', term));
 
+const optseq = (...terms) => optional(seq(...terms));
+
 module.exports = grammar({
   name: 'perl',
   supertypes: $ => [
@@ -392,9 +394,9 @@ module.exports = grammar({
       /* TODO:
        * LSTOP indirob listexpr
        * FUNC '(' indirob expr ')'
-       * term '->' methodname '(' optexpr ')'
-       * term '->' methodname
-       * METHCALL0 indirob optlistexpr
+       */
+      $.method_call_expression,
+      /* METHCALL0 indirob optlistexpr
        * METHCALL indirb '(' optexpr ')'
        * LSTOP optlistexpr
        * LSTOPSUB block optlistexpr
@@ -405,6 +407,14 @@ module.exports = grammar({
     function_call_expression: $ =>
       seq(field('function', $.function), '(', optional(field('arguments', $._expr)), ')'),
     function: $ => $._FUNC,
+
+    method_call_expression: $ => prec.left(TERMPREC.ARROW, seq(
+      field('invocant', $._term),
+      '->',
+      field('method', $.method),
+      optseq('(', optional(field('arguments', $._expr)), ')')
+    )),
+    method: $ => choice($._METHCALL0, $.scalar),
 
     scalar:   $ => seq('$',  $._indirob),
     array:    $ => seq('@',  $._indirob),
@@ -423,8 +433,9 @@ module.exports = grammar({
     bareword: $ => $._bareword,
     _bareword: $ => /[a-zA-Z_]\w*(?:::[a-zA-Z_]\w*)*/,  // TODO: unicode
 
-    // TODO: FUNC is rediculously complicated in toke.c
+    // TODO: These are rediculously complicated in toke.c
     _FUNC: $ => $._bareword,
+    _METHCALL0: $ => $._bareword,
 
     /****
      * Token types defined by toke.c
