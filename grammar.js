@@ -234,11 +234,11 @@ module.exports = grammar({
        * amper '(' expr ')'
        * NOAMP -- wtf even is this thing?
        */
-      $.scalar_deref_expression,
-      $.array_deref_expression,
-      $.hash_deref_expression,
+      alias($.scalar_deref_expression, $.scalar),
+      alias($.array_deref_expression, $.array),
+      alias($.hash_deref_expression, $.hash),
       $.amper_deref_expression,
-      $.glob_deref_expression,
+      alias($.glob_deref_expression, $.glob),
       $.loopex_expression,
       $.goto_expression,
       /* NOTOP listexpr

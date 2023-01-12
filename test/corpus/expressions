@@ -67,9 +67,8 @@ $sref->$*;
 --------------------------------------------------------------------------------
 
 (source_file
-  ; TODO: It'd be nice to see if we can get these two to parse the same
   (expression_statement (scalar (scalar)))
-  (expression_statement (scalar_deref_expression (scalar))))
+  (expression_statement (scalar (scalar))))
 ================================================================================
 Array deref
 ================================================================================
@@ -78,9 +77,8 @@ $aref->@*;
 --------------------------------------------------------------------------------
 
 (source_file
-  ; TODO: It'd be nice to see if we can get these two to parse the same
   (expression_statement (array (scalar)))
-  (expression_statement (array_deref_expression (scalar))))
+  (expression_statement (array (scalar))))
 ================================================================================
 Hash deref
 ================================================================================
@@ -89,9 +87,8 @@ $href->%*;
 --------------------------------------------------------------------------------
 
 (source_file
-  ; TODO: It'd be nice to see if we can get these two to parse the same
   (expression_statement (hash (scalar)))
-  (expression_statement (hash_deref_expression (scalar))))
+  (expression_statement (hash (scalar))))
 ================================================================================
 Amper deref
 ================================================================================
@@ -108,9 +105,8 @@ $gref->**;
 --------------------------------------------------------------------------------
 
 (source_file
-  ; TODO: It'd be nice to see if we can get these two to parse the same
   (expression_statement (glob (scalar)))
-  (expression_statement (glob_deref_expression (scalar))))
+  (expression_statement (glob (scalar))))
 ================================================================================
 require EXPR
 ================================================================================
