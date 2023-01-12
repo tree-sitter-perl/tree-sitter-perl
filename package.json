@@ -18,5 +18,15 @@
     "eslint-plugin-n": "^15.2.4",
     "eslint-plugin-promise": "^6.0.0",
     "tree-sitter-cli": "^0.20.6"
-  }
+  },
+  "tree-sitter": [
+    {
+      "scope": "source.pm",
+      "file-types": [
+        "pm",
+        "pl"
+      ],
+      "first-line-regex": "#!.*\\bperl\\b"
+    }
+  ]
 }
