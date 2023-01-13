@@ -28,16 +28,16 @@ $aref->[ 123 ];
 #    ^^^ variable
 #        ^^^ number
 #            ^ variable
-$hash{ 123 };
+$hash{ key };
 # <- variable
 # ^^^ variable
 #    ^ variable
-#      ^^^ number
+#      ^^^ string.special
 #          ^ variable
-$href->{ 123 };
+$href->{ key };
 # <- variable
 #    ^^^ variable
-#        ^^^ number
+#        ^^^ string.special
 #            ^ variable
 $aref->[ 123 ]{ 456 }[ 789 ];
 # <- variable

@@ -35,6 +35,8 @@
 (array_element_expression [array:(_) "->" "[" "]"] @variable)
 (hash_element_expression [hash:(_) "->" "{" "}"] @variable)
 
+(hash_element_expression key: (bareword) @string.special)
+
 (use_statement (package) @type)
 (package_statement (package) @type)
 (require_expression (bareword) @type)
