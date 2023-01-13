@@ -30,6 +30,8 @@
 (scalar_deref_expression ["->" "$" "*"] @variable)
 (array_deref_expression ["->" "@" "*"] @variable)
 (hash_deref_expression ["->" "%" "*"] @variable)
+(array_element_expression [array:(_) "->" "[" "]"] @variable)
+(hash_element_expression [hash:(_) "->" "{" "}"] @variable)
 
 (use_statement (package) @type)
 (package_statement (package) @type)
