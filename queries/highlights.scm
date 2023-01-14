@@ -21,6 +21,11 @@
 (number) @number
 (version) @number
 
+(string_literal) @string
+(interpolated_string_literal) @string
+(quoted_word_list) @string
+[(escape_sequence) (escaped_delimiter)] @string.special
+
 [(scalar) (array) (hash)] @variable
 (scalar_deref_expression ["->" "$" "*"] @variable)
 (array_deref_expression ["->" "@" "*"] @variable)

@@ -48,6 +48,21 @@ module.exports = grammar({
   supertypes: $ => [
     $.primitive
   ],
+  externals: $ => [
+    /* ident-alikes */
+    $._q_string_begin,
+    $._qq_string_begin,
+    $._qw_list_begin,
+    /* non-ident tokens */
+    $._PERLY_SEMICOLON,
+    /* immediates */
+    $._quotelike_end,
+    $._q_string_content,
+    $._qq_string_content,
+    $._qw_list_content,
+    $.escape_sequence,
+    $.escaped_delimiter,
+  ],
   extras: $ => [
     /\s|\\\r?\n/,
     $.comment,
@@ -77,20 +92,20 @@ module.exports = grammar({
       $.until_statement,
       $.cstyle_for_statement,
       $.for_statement,
-      seq($.expression_statement, ';'),
-      seq(';'),
+      seq($.expression_statement, $._PERLY_SEMICOLON),
+      ';', // this is not _PERLY_SEMICOLON so as not to generate an infinite stream of them
     ),
     package_statement: $ => choice(
-      seq('package', field('name', $.package), optional(field('version', $._version)), ';'),
+      seq('package', field('name', $.package), optional(field('version', $._version)), $._PERLY_SEMICOLON),
       seq('package', field('name', $.package), optional(field('version', $._version)), $.block),
     ),
-    use_version_statement: $ => seq($._KW_USE, field('version', $._version), ';'),
+    use_version_statement: $ => seq($._KW_USE, field('version', $._version), $._PERLY_SEMICOLON),
     use_statement: $ => seq(
       $._KW_USE,
       field('module', $.package),
       optional(field('version', $._version)),
       optional($._listexpr),
-      ';'
+      $._PERLY_SEMICOLON
     ),
     if_statement: $ =>
       seq('if', '(', field('condition', $._expr), ')',
@@ -194,7 +209,7 @@ module.exports = grammar({
     ),
     slice_expression: $ => choice(
       seq('(', optional(field('list', $._expr)), ')', '[', $._expr, ']'),
-      // TODO: QWLIST
+      seq(field('list', $.quoted_word_list), '[', $._expr, ']'),
     ),
 
     _term: $ => choice(
@@ -216,7 +231,7 @@ module.exports = grammar({
       /* KW_LOCAL
        */
       seq('(', $._expr, ')'),
-      /* QWLIST */
+      $.quoted_word_list,
       $.stub_expression,
       $.scalar,
       $.glob,
@@ -268,6 +283,8 @@ module.exports = grammar({
 
       // legacy
       $.primitive,
+
+      $._literal,
     ),
 
     assignment_expression: $ =>
@@ -419,6 +436,44 @@ module.exports = grammar({
     comment: $ => token(/#.*/),
     ...primitives,
     _identifier: $ => /[a-zA-Z_]\w*/,
+
+    // toke.c calls this a THING and that is such a generic unhelpful word,
+    // we'll call it this instead
+    _literal: $ => choice(
+      $.string_literal,
+      $.interpolated_string_literal,
+    ),
+
+    string_literal: $ => choice($._q_string),
+    _q_string: $ => seq(
+      $._q_string_begin,
+      repeat(choice(
+        $._q_string_content,
+        $.escape_sequence,
+        $.escaped_delimiter,
+      )),
+      $._quotelike_end
+    ),
+    interpolated_string_literal: $ => seq(
+      $._qq_string_begin,
+      repeat(choice(
+        $._qq_string_content,
+        $.escape_sequence,
+        $.escaped_delimiter,
+
+        /* interpolations */
+        $.scalar,
+        $.array,
+        // TODO: $arr[123], $hash{key}, ${expr}, @{expr}, ...
+      )),
+      $._quotelike_end
+    ),
+
+    quoted_word_list: $ => seq(
+      $._qw_list_begin,
+      repeat(choice($._qw_list_content, $.escape_sequence, $.escaped_delimiter)),
+      $._quotelike_end
+    ),
 
     package: $ => $._bareword,
     _version: $ => prec(1, choice($.number, $.version)),
