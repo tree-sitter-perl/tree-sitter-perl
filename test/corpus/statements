@@ -214,3 +214,25 @@ package DDD 4.56 { }
   (package_statement (package) (number))
   (package_statement (package) (block))
   (package_statement (package) (number) (block)))
+================================================================================
+Labels
+================================================================================
+FOO: 123;
+LOOP: foreach (@list) { }
+ITEM: while(@items) { }
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement_label
+    label: (bareword)
+    statement: (expression_statement (number)))
+  (statement_label
+    label: (bareword)
+    statement: (for_statement
+      list: (array)
+      block: (block)))
+  (statement_label
+    label: (bareword)
+    statement: (while_statement
+      condition: (array)
+      block: (block))))

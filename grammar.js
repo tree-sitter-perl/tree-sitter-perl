@@ -77,8 +77,10 @@ module.exports = grammar({
      ****/
     block: $ => seq('{', stmtseq($), '}'),
 
-    _fullstmt: $ => choice($._barestmt, /* TODO $._labfullstmt */),
-    // TODO: labfullstmt
+    _fullstmt: $ => choice($._barestmt, $.statement_label),
+
+    // perly.y calls this labfullstmt
+    statement_label: $ => seq(field('label', $.bareword), ':', field('statement', $._fullstmt)),
 
     _barestmt: $ => choice(
       /* TODO: sub */
