@@ -26,6 +26,8 @@
 (quoted_word_list) @string
 [(escape_sequence) (escaped_delimiter)] @string.special
 
+(_ (bareword) @string.special . "=>")
+
 [(scalar) (array) (hash)] @variable
 (scalar_deref_expression ["->" "$" "*"] @variable)
 (array_deref_expression ["->" "@" "*"] @variable)
