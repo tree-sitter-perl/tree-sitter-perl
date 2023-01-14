@@ -7,7 +7,7 @@
 # <- string
 'a\'string';
 # <- string
-# ^^ string
+# ^^ string.special
 'a\\string';
 # <- string
 # ^^ string.special
@@ -53,3 +53,21 @@ qq(a (string) here);
 "with @array";
 # <- string
 #     ^^^^^^ variable
+
+### Quoted Word Lists
+qw( a b c );
+# <- string
+qw();
+# <- string
+qw/ 1 2 /;
+# <- string
+qw/ literal\nslash-n /;
+# <- string
+qw/ literal \n slash-n /;
+# <- string
+qw| double escape \\|;
+# <- string
+#                 ^^ string.special
+qw/ hello \/ goodbye /;
+# <- string
+#         ^^ string.special

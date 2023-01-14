@@ -42,7 +42,7 @@ floats
 
 (source_file
   (expression_statement (string_literal))
-  (expression_statement (string_literal))
+  (expression_statement (string_literal (escaped_delimiter)))
   (expression_statement (string_literal (escape_sequence)))
   (expression_statement (string_literal))
   (expression_statement (string_literal (escape_sequence))))
@@ -70,7 +70,7 @@ q(a (string) here);
 
 (source_file
   (expression_statement (interpolated_string_literal))
-  (expression_statement (interpolated_string_literal (escape_sequence)))
+  (expression_statement (interpolated_string_literal (escaped_delimiter)))
   (expression_statement (interpolated_string_literal (escape_sequence)))
   (expression_statement (interpolated_string_literal (escape_sequence)))
   (expression_statement (interpolated_string_literal (escape_sequence))))
@@ -96,3 +96,23 @@ Interpolation in "" strings
 (source_file
   (expression_statement (interpolated_string_literal (scalar)))
   (expression_statement (interpolated_string_literal (array))))
+================================================================================
+qw() lists
+================================================================================
+qw( a b c );
+qw();
+qw/ 1 2 /;
+qw/ literal\nslash-n /;
+qw/ literal \n slash-n /;
+qw| double escape \\|;
+qw/ hello \/ goodbye /;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement (quoted_word_list))
+  (expression_statement (quoted_word_list))
+  (expression_statement (quoted_word_list))
+  (expression_statement (quoted_word_list))
+  (expression_statement (quoted_word_list))
+  (expression_statement (quoted_word_list (escape_sequence)))
+  (expression_statement (quoted_word_list (escaped_delimiter))))
