@@ -37,3 +37,14 @@ wait;
 # <- function.builtin
 time();
 # <- function.builtin
+
+### FUNC1OPs
+defined $x;
+# <- function.builtin
+#       ^ variable.scalar
+int($num);
+# <- function.builtin
+#   ^ variable.scalar
+shift @arr;
+# <- function.builtin
+#     ^ variable.array
