@@ -71,3 +71,15 @@ $obj->meth(12, 34);
       invocant:  (scalar)
       method:    (method)
       arguments: (list_expression (number) (number)))))
+================================================================================
+Method call on class
+================================================================================
+Some::Module->new(1234);
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (method_call_expression
+      invocant:  (bareword)
+      method:    (method)
+      arguments: (number))))

@@ -22,3 +22,7 @@ $obj->meth(12, 34);
 #     ^ function.method
 #          ^ number
 #              ^ number
+Some::Module->new(1234);
+# <- type
+#             ^ function.method
+#                 ^ number

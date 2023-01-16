@@ -50,3 +50,4 @@
 
 (function_call_expression (function) @function)
 (method_call_expression (method) @function.method)
+(method_call_expression invocant: (bareword) @type)
