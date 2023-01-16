@@ -28,12 +28,14 @@
 
 (_ (bareword) @string.special . "=>")
 
-[(scalar) (array) (hash)] @variable
-(scalar_deref_expression ["->" "$" "*"] @variable)
-(array_deref_expression ["->" "@" "*"] @variable)
-(hash_deref_expression ["->" "%" "*"] @variable)
-(array_element_expression [array:(_) "->" "[" "]"] @variable)
-(hash_element_expression [hash:(_) "->" "{" "}"] @variable)
+(scalar) @variable.scalar
+(scalar_deref_expression ["->" "$" "*"] @variable.scalar)
+(array) @variable.array
+(array_deref_expression ["->" "@" "*"] @variable.array)
+(hash) @variable.hash
+(hash_deref_expression ["->" "%" "*"] @variable.hash)
+(array_element_expression [array:(_) "->" "[" "]"] @variable.array)
+(hash_element_expression [hash:(_) "->" "{" "}"] @variable.hash)
 
 (hash_element_expression key: (bareword) @string.special)
 

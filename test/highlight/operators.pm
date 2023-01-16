@@ -11,6 +11,6 @@
 12 isa 34;
 #  ^ operator
 %hash = (foo => "bar");
-# <- variable
+# <- variable.hash
 #        ^^^ string.special
 #               ^^^^^ string

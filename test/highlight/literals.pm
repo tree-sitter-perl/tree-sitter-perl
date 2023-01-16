@@ -49,10 +49,10 @@ qq(a (string) here);
 
 "with $scalar";
 # <- string
-#     ^^^^^^^ variable
+#     ^^^^^^^ variable.scalar
 "with @array";
 # <- string
-#     ^^^^^^ variable
+#     ^^^^^^ variable.array
 
 ### Quoted Word Lists
 qw( a b c );

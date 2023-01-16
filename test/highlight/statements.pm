@@ -26,24 +26,24 @@ foreach (1, 2, 3) { 456; }
 # <- keyword
 for $V (1, 2, 3) { 456; }
 # <- keyword
-#   ^ variable
+#   ^ variable.scalar
 foreach $V (1, 2, 3) { 456; }
 # <- keyword
-#       ^ variable
+#       ^ variable.scalar
 for my $x (1, 2, 3) { 456; }
 # <- keyword
 #   ^ keyword
-#      ^ variable
+#      ^ variable.scalar
 foreach my $x (1, 2, 3) { 456; }
 # <- keyword
 #       ^ keyword
-#          ^ variable
+#          ^ variable.scalar
 for (my $i = 0; $i < 10; $i++) { 123; }
 # <- keyword
 #    ^ keyword
-#       ^ variable
-#               ^ variable
-#                        ^ variable
+#       ^ variable.scalar
+#               ^ variable.scalar
+#                        ^ variable.scalar
 use 5.014;
 # <- keyword
 #   ^ number
