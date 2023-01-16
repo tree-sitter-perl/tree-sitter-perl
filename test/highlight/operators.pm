@@ -10,3 +10,7 @@
 #  ^ operator
 12 isa 34;
 #  ^ operator
+%hash = (foo => "bar");
+# <- variable
+#        ^^^ string.special
+#               ^^^^^ string

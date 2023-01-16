@@ -181,7 +181,9 @@ module.exports = grammar({
     ),
     /* ensure that an entire list expression's contents appear in one big flat
     * list, while permitting multiple internal commas and an optional trailing one */
-    list_expression: $ => seq($._term, ',', repeat(seq(optional($._term), ',')), optional($._term)),
+    list_expression: $ => seq(
+      $._term, $._PERLY_COMMA, repeat(seq(optional($._term), $._PERLY_COMMA)), optional($._term)
+    ),
 
     _subscripted: $ => choice(
       /* TODO:
@@ -429,6 +431,8 @@ module.exports = grammar({
     _NCEQOP: $ => choice('<=>', 'cmp', '~~'),
     _NCRELOP: $ => choice('isa'),
     _REFGEN: $ => '\\',
+
+    _PERLY_COMMA: $ => choice(',', '=>'),
 
     _KW_USE: $ => choice('use', 'no'),
     _KW_FOR: $ => choice('for', 'foreach'),
