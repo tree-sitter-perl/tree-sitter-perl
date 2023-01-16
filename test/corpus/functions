@@ -98,3 +98,26 @@ time();
     (func0op_call_expression (func0op)))
   (expression_statement
     (func0op_call_expression (func0op))))
+================================================================================
+Func1 Ops
+================================================================================
+defined $x;
+int($num);
+int;
+int $x, int $y;
+shift @arr;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (func1op_call_expression (func1op) (scalar)))
+  (expression_statement
+    (func1op_call_expression (func1op) (scalar)))
+  (expression_statement
+    (func1op_call_expression (func1op)))
+  (expression_statement
+    (list_expression
+      (func1op_call_expression (func1op) (scalar))
+      (func1op_call_expression (func1op) (scalar))))
+  (expression_statement
+    (func1op_call_expression (func1op) (array))))
