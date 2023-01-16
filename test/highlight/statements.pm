@@ -71,3 +71,23 @@ package DDD 4.56 { }
 # <- keyword
 #       ^ type
 #           ^ number
+FOO: 123;
+# <- label
+#    ^^^ number
+LOOP: foreach(@list) {
+# <- label
+#     ^ keyword
+   next LOOP;
+#  ^ keyword
+#       ^ label
+}
+ITEM: while(@items) {
+# <- label
+#     ^ keyword
+   last ITEM;
+#  ^ keyword
+#       ^ label
+}
+goto FOO;
+# <- keyword
+#    ^ label

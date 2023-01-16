@@ -34,3 +34,8 @@
 (use_statement (package) @type)
 (package_statement (package) @type)
 (require_expression (bareword) @type)
+
+(goto_expression (bareword) @label)
+(loopex_expression (bareword) @label)
+
+(statement_label label: (bareword) @label)
