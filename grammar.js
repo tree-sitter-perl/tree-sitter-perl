@@ -199,13 +199,13 @@ module.exports = grammar({
 
     array_element_expression: $ => choice(
       // perly.y matches scalar '[' expr ']' here but that would yield a scalar var node
-      seq(field('array', seq('$', $._indirob)),    '[', field('index', $._expr), ']'),
+      seq(field('array', $.container_variable),    '[', field('index', $._expr), ']'),
       prec.left(TERMPREC.ARROW, seq($._term, '->', '[', field('index', $._expr), ']')),
       seq($._subscripted,                          '[', field('index', $._expr), ']'),
     ),
     hash_element_expression: $ => choice(
       // perly.y matches scalar '{' expr '}' here but that would yield a scalar var node
-      seq(field('hash', seq('$', $._indirob)),     '{', field('key', $._expr), '}'),
+      seq(field('hash', $.container_variable),     '{', field('key', $._expr), '}'),
       prec.left(TERMPREC.ARROW, seq($._term, '->', '{', field('key', $._expr), '}')),
       seq($._subscripted,                          '{', field('key', $._expr), '}'),
     ),
@@ -213,6 +213,8 @@ module.exports = grammar({
       seq('(', optional(field('list', $._expr)), ')', '[', $._expr, ']'),
       seq(field('list', $.quoted_word_list), '[', $._expr, ']'),
     ),
+    // this needs to be a named node so highlights.scm can capture it
+    container_variable: $ => seq('$', $._indirob),
 
     _term: $ => choice(
       $.assignment_expression,

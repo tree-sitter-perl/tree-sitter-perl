@@ -57,11 +57,21 @@ $a[1][2][3];
 --------------------------------------------------------------------------------
 (source_file
   (expression_statement
-    (array_element_expression (number)))
+    (array_element_expression
+      array: (container_variable)
+      index: (number)))
   (expression_statement
-    (array_element_expression (scalar) (number)))
+    (array_element_expression
+      (scalar)
+      index: (number)))
   (expression_statement
-    (array_element_expression (array_element_expression (array_element_expression (number)) (number)) (number))))
+    (array_element_expression
+      (array_element_expression
+        (array_element_expression
+          array: (container_variable)
+          index: (number))
+        index: (number))
+      index: (number))))
 ================================================================================
 hash elements
 ================================================================================
@@ -71,8 +81,18 @@ $h{1}{2}{3};
 --------------------------------------------------------------------------------
 (source_file
   (expression_statement
-    (hash_element_expression (number)))
+    (hash_element_expression
+      hash: (container_variable)
+      key: (number)))
   (expression_statement
-    (hash_element_expression (scalar) (number)))
+    (hash_element_expression
+      (scalar)
+      key: (number)))
   (expression_statement
-    (hash_element_expression (hash_element_expression (hash_element_expression (number)) (number)) (number))))
+    (hash_element_expression
+      (hash_element_expression
+        (hash_element_expression
+          hash: (container_variable)
+          key: (number))
+        key: (number))
+      key: (number))))
