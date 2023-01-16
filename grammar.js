@@ -303,9 +303,8 @@ module.exports = grammar({
       /* UNIOPSUB
        * UNIOPSUB term */
       $.func0op_call_expression,
-      /* FUNC1 '(' ')'
-       * FUNC1 '(' expr ') 
-       * PMFUNC */
+      $.func1op_call_expression,
+      /* PMFUNC */
       $.bareword,
       $._listop,
 
@@ -436,6 +435,12 @@ module.exports = grammar({
     func0op_call_expression: $ =>
       seq(field('function', $.func0op), optseq('(', ')')),
 
+    func1op_call_expression: $ =>
+      prec.left(TERMPREC.UNOP, seq(
+        field('function', $.func1op),
+        choice(optseq('(', optional($._expr), ')'), $._term),
+      )),
+
     loopex_expression: $ =>
       prec.left(TERMPREC.LOOPEX, seq(field('loopex', $._LOOPEX), optional($._term))),
     goto_expression: $ =>
@@ -547,6 +552,23 @@ module.exports = grammar({
       '__FILE__', '__LINE__', '__PACKAGE__', '__SUB__',
       'break', 'fork', 'getppid', 'time', 'times', 'wait', 'wantarray',
       /* TODO: all the end*ent, get*ent, set*ent, etc... */
+    ),
+
+    // Anything toke.c calls FUN1 or UNIOP; the distinction does not matter to us
+    func1op: $ => choice(
+      // UNI
+      'abs', 'alarm', 'chop', 'chdir', 'close', 'closedir', 'caller', 'chomp',
+      'chr', 'cos', 'chroot', 'defined', 'delete', 'dbmclose', 'exists', 'exit',
+      'eof', 'exp', 'each', 'fc', 'fileno', 'gmtime', 'getc', 'getpgrp',
+      'getprotobyname', 'getpwname', 'getpwuid', 'getpeername', 'getnetbyname',
+      'getsockname', 'getgrnam', 'getgrgid', 'hex', 'int', 'keys', 'lc',
+      'lcfirst', 'length', 'localtime', 'log', 'lock', 'lstat', 'oct', 'ord',
+      'prototype', 'pop', 'pos', 'quotemeta', 'reset', 'rand', 'rmdir',
+      'readdir', 'readline', 'readpipe', 'rewinddir', 'readlink', 'ref',
+      'scalar', 'shift', 'sin', 'sleep', 'sqrt', 'srand', 'stat', 'study',
+      'tell', 'telldir', 'tied', 'uc', 'ucfirst', 'untie', 'undef', 'umask',
+      'values', 'write',
+      /* TODO: all the set*ent */
     ),
 
     /****
