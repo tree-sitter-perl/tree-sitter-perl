@@ -418,7 +418,7 @@ module.exports = grammar({
       '<<=', '>>=',
       '&&=', '||=', '//=',
     ),
-    _OROR_DORDOR: $ => choice('||', '//'),
+    _OROR_DORDOR: $ => choice('||', '\/\/'),
     _ANDAND: $ => '&&',
     _BITOROP: $ => '|', // TODO also |. when enabled
     _BITANDOP: $ => '&', // TODO: also &. when enabled

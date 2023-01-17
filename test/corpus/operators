@@ -29,6 +29,18 @@ EXPR, EXPR
   (expression_statement (list_expression (number) (number)))
   (expression_statement (list_expression (number) (number))))
 ================================================================================
+EXPR || EXPR
+================================================================================
+12 || 34;
+12 // 34;
+12 && 34;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement (binary_expression (number) (number)))
+  (expression_statement (binary_expression (number) (number)))
+  (expression_statement (binary_expression (number) (number))))
+================================================================================
 EXPR eq EXPR
 ================================================================================
 12 eq 34;
