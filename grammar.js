@@ -365,8 +365,7 @@ module.exports = grammar({
         field('variable', $.array),
         field('variable', $.hash),
         field('variables', $._paren_list_of_variables))),
-    _variable: $ => choice($.scalar, $.array, $.hash),
-    // TODO: permit undef in a var list
+    _variable: $ => choice($.scalar, $.array, $.hash, $.undef_expression),
     _paren_list_of_variables: $ =>
       seq('(', repeat(seq(optional($._variable), ',')), optional($._variable), ')'),
 

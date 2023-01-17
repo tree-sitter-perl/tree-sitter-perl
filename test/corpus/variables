@@ -35,6 +35,13 @@ my ($S, @A, %h);
   (expression_statement (variable_declaration (hash)))
   (expression_statement (variable_declaration (scalar) (array) (hash))))
 ================================================================================
+variable declarations including undef
+================================================================================
+my ($x, undef, $z);
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement (variable_declaration (scalar) (undef_expression) (scalar))))
+================================================================================
 variable declarations with initialiser
 ================================================================================
 my $s = 123;
