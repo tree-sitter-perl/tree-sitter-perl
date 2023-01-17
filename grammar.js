@@ -43,6 +43,8 @@ const unop_post = (op, term) =>
 const binop = (op, term) =>
   seq(field('left', term), field('operator', op), field('right', term));
 
+const optseq = (...terms) => optional(seq(...terms));
+
 module.exports = grammar({
   name: 'perl',
   supertypes: $ => [
@@ -279,8 +281,7 @@ module.exports = grammar({
        * PMFUNC
        */
       $.bareword,
-      /* listop
-       */
+      $._listop,
 
       /* perly.y doesn't know about `my` because that is handled weirdly in
        * toke.c but we'll have to do it differently here
@@ -389,6 +390,32 @@ module.exports = grammar({
     goto_expression: $ =>
       prec.left(TERMPREC.LOOPEX, seq('goto', $._term)),
 
+    _listop: $ => choice(
+      /* TODO:
+       * LSTOP indirob listexpr
+       * FUNC '(' indirob expr ')'
+       */
+      $.method_call_expression,
+      /* METHCALL0 indirob optlistexpr
+       * METHCALL indirb '(' optexpr ')'
+       * LSTOP optlistexpr
+       * LSTOPSUB block optlistexpr
+       */
+      $.function_call_expression,
+    ),
+
+    function_call_expression: $ =>
+      seq(field('function', $.function), '(', optional(field('arguments', $._expr)), ')'),
+    function: $ => $._FUNC,
+
+    method_call_expression: $ => prec.left(TERMPREC.ARROW, seq(
+      field('invocant', $._term),
+      '->',
+      field('method', $.method),
+      optseq('(', optional(field('arguments', $._expr)), ')')
+    )),
+    method: $ => choice($._METHCALL0, $.scalar),
+
     scalar:   $ => seq('$',  $._indirob),
     array:    $ => seq('@',  $._indirob),
     hash:     $ => seq('%',  $._indirob),
@@ -405,6 +432,10 @@ module.exports = grammar({
 
     bareword: $ => $._bareword,
     _bareword: $ => /[a-zA-Z_]\w*(?:::[a-zA-Z_]\w*)*/,  // TODO: unicode
+
+    // TODO: These are rediculously complicated in toke.c
+    _FUNC: $ => $._bareword,
+    _METHCALL0: $ => $._bareword,
 
     /****
      * Token types defined by toke.c
