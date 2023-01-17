@@ -152,3 +152,11 @@ undef $var;
 (source_file
   (expression_statement (undef_expression))
   (expression_statement (undef_expression (scalar))))
+================================================================================
+local
+================================================================================
+local $var;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement (localization_expression (scalar))))

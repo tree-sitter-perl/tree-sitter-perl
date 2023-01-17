@@ -288,6 +288,7 @@ module.exports = grammar({
        * toke.c but we'll have to do it differently here
        */
       $.variable_declaration,
+      $.localization_expression,
 
       // legacy
       $.primitive,
@@ -361,6 +362,12 @@ module.exports = grammar({
 
     variable_declaration: $ =>
       seq(choice('my', 'our'), choice(
+        field('variable', $.scalar),
+        field('variable', $.array),
+        field('variable', $.hash),
+        field('variables', $._paren_list_of_variables))),
+    localization_expression: $ =>
+      seq('local', choice(
         field('variable', $.scalar),
         field('variable', $.array),
         field('variable', $.hash),
