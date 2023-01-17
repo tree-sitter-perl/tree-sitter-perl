@@ -8,6 +8,11 @@ $one + $two;
 my $var;
 # <- keyword
 #  ^ variable.scalar
+my ($x, undef, $z);
+# <- keyword
+#   ^ variable.scalar
+#       ^ keyword
+#              ^ variable.scalar
 $sref->$*;
 # <- variable.scalar
 #    ^^^^ variable.scalar
