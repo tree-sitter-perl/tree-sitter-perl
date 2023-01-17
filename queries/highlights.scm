@@ -8,6 +8,7 @@
   "my"
   "require"
   "last" "next" "redo" "goto"
+  "undef"
 ] @keyword
 
 [

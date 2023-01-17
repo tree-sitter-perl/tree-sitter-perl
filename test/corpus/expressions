@@ -142,3 +142,13 @@ goto LABEL;
 
 (source_file
   (expression_statement (goto_expression (bareword))))
+================================================================================
+undef
+================================================================================
+undef;
+undef $var;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement (undef_expression))
+  (expression_statement (undef_expression (scalar))))

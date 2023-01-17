@@ -14,3 +14,8 @@ redo;
 # <- keyword
 goto LABEL;
 # <- keyword
+undef;
+# <- keyword
+undef $var;
+# <- keyword
+#     ^ variable.scalar
