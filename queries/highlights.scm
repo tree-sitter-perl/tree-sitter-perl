@@ -5,7 +5,7 @@
   "while" "until"
   "for" "foreach"
   "do"
-  "my"
+  "my" "our" "local"
   "require"
   "last" "next" "redo" "goto"
   "undef"
