@@ -13,6 +13,9 @@ my ($x, undef, $z);
 #   ^ variable.scalar
 #       ^ keyword
 #              ^ variable.scalar
+our $PackageVar;
+# <- keyword
+#   ^ variable.scalar
 $sref->$*;
 # <- variable.scalar
 #    ^^^^ variable.scalar

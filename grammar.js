@@ -360,7 +360,7 @@ module.exports = grammar({
     ),
 
     variable_declaration: $ =>
-      seq('my', choice(
+      seq(choice('my', 'our'), choice(
         field('variable', $.scalar),
         field('variable', $.array),
         field('variable', $.hash),
