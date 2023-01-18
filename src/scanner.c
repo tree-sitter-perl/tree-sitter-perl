@@ -30,12 +30,27 @@ enum TokenType {
   TOKEN_QW_LIST_CONTENT,
   TOKEN_ESCAPE_SEQUENCE,
   TOKEN_ESCAPED_DELIMITER,
+  TOKEN_POD,
 };
 
 struct LexerState {
   int delim_open, delim_close;  /* codepoints */
   int delim_count;
 };
+
+#define ADVANCE \
+  do {                                         \
+    if(lexer->lookahead == '\r')               \
+      DEBUG("> advance U+%04X = \\r\n",        \
+          lexer->lookahead);                   \
+    else if(lexer->lookahead == '\n')          \
+      DEBUG("> advance U+%04X = \\n\n",        \
+          lexer->lookahead);                   \
+    else                                       \
+      DEBUG("> advance U+%04X = '%c'\n",       \
+          lexer->lookahead, lexer->lookahead); \
+    lexer->advance(lexer, false);              \
+  } while(0)
 
 #define TOKEN(type) \
   do {                            \
@@ -64,7 +79,7 @@ static void _skip_chars(TSLexer *lexer, int maxlen, const char *allow)
     if(!lexer->lookahead)
       return;
     else if(strchr(allow, lexer->lookahead)) {
-      lexer->advance(lexer, false);
+      ADVANCE;
       if(maxlen > 0)
         maxlen--;
     }
@@ -80,11 +95,11 @@ static void skip_braced(TSLexer *lexer)
   if(lexer->lookahead != '{')
     return;
 
-  lexer->advance(lexer, false);
+  ADVANCE;
   while(lexer->lookahead && lexer->lookahead != '}')
-    lexer->advance(lexer, false);
+    ADVANCE;
 
-  lexer->advance(lexer, false);
+  ADVANCE;
 }
 
 static int close_for_open(int c)
@@ -171,7 +186,7 @@ bool tree_sitter_perl_external_scanner_scan(
 
   if(valid_symbols[PERLY_SEMICOLON]) {
     if(c == ';') {
-      lexer->advance(lexer, false);
+      ADVANCE;
 
       TOKEN(PERLY_SEMICOLON);
     }
@@ -190,7 +205,7 @@ bool tree_sitter_perl_external_scanner_scan(
     ident[0] = c;
     ident[1] = 0;
     ident_len++;
-    lexer->advance(lexer, false);
+    ADVANCE;
 
     while((c = lexer->lookahead) && isidcont(c)) {
       if(ident_len < MAX_IDENT_LEN) {
@@ -198,7 +213,7 @@ bool tree_sitter_perl_external_scanner_scan(
         ident[ident_len+1] = 0;
       }
 
-      lexer->advance(lexer, false);
+      ADVANCE;
       ident_len++;
     }
     if(ident_len) {
@@ -217,7 +232,7 @@ bool tree_sitter_perl_external_scanner_scan(
        valid_symbols[TOKEN_ESCAPED_DELIMITER] ||
        valid_symbols[TOKEN_QW_LIST_CONTENT])
   ) {
-    lexer->advance(lexer, false);
+    ADVANCE;
 
     c = lexer->lookahead;
   }
@@ -239,7 +254,7 @@ bool tree_sitter_perl_external_scanner_scan(
       }
       state->delim_count = 0;
 
-      lexer->advance(lexer, false);
+      ADVANCE;
 
       DEBUG("Generic QSTRING open='%c' close='%c'\n", state->delim_open, state->delim_close);
 
@@ -249,7 +264,7 @@ bool tree_sitter_perl_external_scanner_scan(
         TOKEN(TOKEN_QQ_STRING_BEGIN);
     }
     if(lexer->lookahead == '\'') {
-      lexer->advance(lexer, false);
+      ADVANCE;
 
       state->delim_open = 0;
       state->delim_close = '\'';
@@ -258,7 +273,7 @@ bool tree_sitter_perl_external_scanner_scan(
       TOKEN(TOKEN_Q_STRING_BEGIN);
     }
     if(lexer->lookahead == '"') {
-      lexer->advance(lexer, false);
+      ADVANCE;
 
       state->delim_open = 0;
       state->delim_close = '"';
@@ -282,7 +297,7 @@ bool tree_sitter_perl_external_scanner_scan(
       }
       state->delim_count = 0;
 
-      lexer->advance(lexer, false);
+      ADVANCE;
 
       DEBUG("QW LIST open='%c' close='%c'\n", state->delim_open, state->delim_close);
 
@@ -292,13 +307,13 @@ bool tree_sitter_perl_external_scanner_scan(
 
   if(valid_symbols[TOKEN_ESCAPED_DELIMITER] && begins_backslash) {
     if(c == state->delim_open || c == state->delim_close) {
-      lexer->advance(lexer, false);
+      ADVANCE;
       TOKEN(TOKEN_ESCAPED_DELIMITER);
     }
   }
 
   if(valid_symbols[TOKEN_ESCAPE_SEQUENCE] && begins_backslash) {
-    lexer->advance(lexer, false);
+    ADVANCE;
 
     // Inside any kind of string, \\ is always an escape sequence
     if(c == '\\')
@@ -361,7 +376,7 @@ bool tree_sitter_perl_external_scanner_scan(
         break;
 
       valid = true;
-      lexer->advance(lexer, false);
+      ADVANCE;
     }
 
     if(valid) {
@@ -390,12 +405,12 @@ bool tree_sitter_perl_external_scanner_scan(
          * counts as just '('. We need to handle this carefully
          */
         lexer->mark_end(lexer);
-        lexer->advance(lexer, false);
+        ADVANCE;
 
         c = lexer->lookahead;
 qwlist_started_backslash:
         if(c == state->delim_open || c == state->delim_close) {
-          lexer->advance(lexer, false);
+          ADVANCE;
           lexer->mark_end(lexer);
           TOKEN(TOKEN_QW_LIST_CONTENT);
         }
@@ -411,7 +426,7 @@ qwlist_started_backslash:
           break;
       }
 
-      lexer->advance(lexer, false);
+      ADVANCE;
       lexer->mark_end(lexer);
       valid = true;
     }
@@ -422,9 +437,51 @@ qwlist_started_backslash:
 
   if(valid_symbols[TOKEN_QUOTELIKE_END]) {
     if(c == state->delim_close && !state->delim_count) {
-      lexer->advance(lexer, false);
+      ADVANCE;
 
       TOKEN(TOKEN_QUOTELIKE_END);
+    }
+  }
+
+  if(valid_symbols[TOKEN_POD]) {
+    int column = lexer->get_column(lexer);
+    if(column == 0 && c == '=') {
+      DEBUG("POD started...\n", 0);
+
+      /* Keep going until the linefeed after a line beginning `=cut` */
+      static const char *cut_marker = "=cut";
+      int stage = -1;
+
+      while(!lexer->eof(lexer)) {
+        if(c == '\r')
+          ; /* ignore */
+        else if(stage < 1 && c == '\n')
+          stage = 0;
+        else if(stage >= 0 && stage < 4 && c == cut_marker[stage])
+          stage++;
+        else if(stage == 4 && (c == ' ' || c == '\t'))
+          stage = 5;
+        else if(stage == 4 && c == '\n')
+          stage = 6;
+        else
+          stage = -1;
+
+        if(stage > 4)
+          break;
+
+        ADVANCE;
+        c = lexer->lookahead;
+      }
+      if(stage < 6)
+        while(!lexer->eof(lexer)) {
+          if(c == '\n')
+            break;
+
+          ADVANCE;
+          c = lexer->lookahead;
+        }
+      /* If we got this far then either we reached stage 6, or we're at EOF */
+      TOKEN(TOKEN_POD);
     }
   }
 
