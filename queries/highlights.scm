@@ -19,6 +19,8 @@
 
 (comment) @comment
 
+(pod) @text
+
 (number) @number
 (version) @number
 
