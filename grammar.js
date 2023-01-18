@@ -64,10 +64,12 @@ module.exports = grammar({
     $._qw_list_content,
     $.escape_sequence,
     $.escaped_delimiter,
+    $.pod,
   ],
   extras: $ => [
     /\s|\\\r?\n/,
     $.comment,
+    $.pod,
   ],
   conflicts: $ => [
     [ $.preinc_expression, $.postinc_expression ],
