@@ -95,7 +95,7 @@ module.exports = grammar({
       $.package_statement,
       $.use_version_statement,
       $.use_statement,
-      /* TODO: sub */
+      $.subroutine_declaration_statement,
       $.phaser_statement,
       $.if_statement,
       $.unless_statement,
@@ -118,6 +118,14 @@ module.exports = grammar({
       optional(field('version', $._version)),
       optional($._listexpr),
       $._PERLY_SEMICOLON
+    ),
+
+    subroutine_declaration_statement: $ => seq(
+      'sub',
+      field('name', $.bareword),
+      // TODO: optional attrs
+      // TODO: optional signature-or-prototype
+      field('body', $.block),
     ),
 
     // perly.y's grammar just considers a phaser to be a `sub` with a special
