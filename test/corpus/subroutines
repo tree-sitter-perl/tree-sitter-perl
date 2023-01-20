@@ -70,10 +70,20 @@ sub : {};
 Attributes with values
 ================================================================================
 sub abc :title(Boo!) { }
+sub def :title(Boo(here)) { }
+sub ghi :title(Boo\(is fine) { }
 
 sub :title(Boo!) { }
 --------------------------------------------------------------------------------
 (source_file
+  (subroutine_declaration_statement
+    (bareword)
+    (attrlist (attribute (attribute_name) (attribute_value)))
+    (block))
+  (subroutine_declaration_statement
+    (bareword)
+    (attrlist (attribute (attribute_name) (attribute_value)))
+    (block))
   (subroutine_declaration_statement
     (bareword)
     (attrlist (attribute (attribute_name) (attribute_value)))

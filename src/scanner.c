@@ -506,7 +506,11 @@ qwlist_started_backslash:
 
       int delimcount = 0;
       while(!lexer->eof(lexer)) {
-        if(c == '(')
+        if(c == '\\') {
+          ADVANCE;
+          /* ignore the next char */
+        }
+        else if(c == '(')
           delimcount++;
         else if(c == ')') {
           if(delimcount)
