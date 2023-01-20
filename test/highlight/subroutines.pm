@@ -5,3 +5,7 @@ sub foo
    123;
 #  ^ number
 }
+
+sub { $x++ };
+# <- keyword
+#     ^ variable.scalar

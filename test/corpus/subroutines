@@ -11,3 +11,13 @@ sub foo
     name: (bareword)
     body: (block
       (expression_statement (number)))))
+================================================================================
+Small anonymous
+================================================================================
+sub { $x };
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement
+    (anonymous_subroutine_expression
+      (block
+        (expression_statement (scalar))))))

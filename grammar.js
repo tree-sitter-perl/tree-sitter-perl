@@ -252,9 +252,7 @@ module.exports = grammar({
       $.postinc_expression,
       $.anonymous_array_expression,
       $.anonymous_hash_expression,
-      /* TODO:
-       * anonymous sub
-       */
+      $.anonymous_subroutine_expression,
       $.do_expression,
       $.conditional_expression,
       $.refgen_expression,
@@ -375,6 +373,13 @@ module.exports = grammar({
 
     anonymous_hash_expression: $ => seq(
       '{', optional($._expr), '}'
+    ),
+
+    anonymous_subroutine_expression: $ => seq(
+      'sub',
+      // TODO: optional attrs
+      // TODO: optional signature-or-prototype
+      field('body', $.block),
     ),
 
     do_expression: $ => choice(
