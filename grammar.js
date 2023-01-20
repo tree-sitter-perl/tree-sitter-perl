@@ -123,7 +123,7 @@ module.exports = grammar({
     subroutine_declaration_statement: $ => seq(
       'sub',
       field('name', $.bareword),
-      // TODO: optional attrs
+      optseq(':', optional(field('attributes', $.attrlist))),
       // TODO: optional signature-or-prototype
       field('body', $.block),
     ),
@@ -377,7 +377,7 @@ module.exports = grammar({
 
     anonymous_subroutine_expression: $ => seq(
       'sub',
-      // TODO: optional attrs
+      optseq(':', optional(field('attributes', $.attrlist))),
       // TODO: optional signature-or-prototype
       field('body', $.block),
     ),
@@ -471,6 +471,13 @@ module.exports = grammar({
 
     bareword: $ => $._bareword,
     _bareword: $ => /[a-zA-Z_]\w*(?:::[a-zA-Z_]\w*)*/,  // TODO: unicode
+
+    attrlist: $ => seq(
+      $.attribute,
+      repeat(seq(optional(':'), $.attribute))
+    ),
+    // TODO: should be external
+    attribute: $ => $._bareword,
 
     // TODO: These are rediculously complicated in toke.c
     _FUNC: $ => $._bareword,

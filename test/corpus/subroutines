@@ -21,3 +21,41 @@ sub { $x };
     (anonymous_subroutine_expression
       (block
         (expression_statement (scalar))))))
+================================================================================
+Attributes on named subs
+================================================================================
+sub abc :lvalue { }
+sub def :lvalue const { }
+sub ghi :lvalue :const { }
+sub jkl : { }
+--------------------------------------------------------------------------------
+(source_file
+  (subroutine_declaration_statement
+    (bareword) (attrlist (attribute)) (block))
+  (subroutine_declaration_statement
+    (bareword) (attrlist (attribute) (attribute)) (block))
+  (subroutine_declaration_statement
+    (bareword) (attrlist (attribute) (attribute)) (block))
+  (subroutine_declaration_statement
+    (bareword) (block)))
+================================================================================
+Attributes on anonymous subs
+================================================================================
+sub :lvalue {};
+sub :lvalue const {};
+sub :lvalue :const {};
+sub : {};
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement
+    (anonymous_subroutine_expression
+      (attrlist (attribute)) (block)))
+  (expression_statement
+    (anonymous_subroutine_expression
+      (attrlist (attribute) (attribute)) (block)))
+  (expression_statement
+    (anonymous_subroutine_expression
+      (attrlist (attribute) (attribute)) (block)))
+  (expression_statement
+    (anonymous_subroutine_expression
+      (block))))

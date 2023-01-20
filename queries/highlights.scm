@@ -53,6 +53,7 @@
 (require_expression (bareword) @type)
 
 (subroutine_declaration_statement name: (_) @function)
+(attrlist (attribute) @decorator)
 
 (goto_expression (bareword) @label)
 (loopex_expression (bareword) @label)

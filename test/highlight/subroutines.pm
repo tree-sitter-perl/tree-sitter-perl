@@ -9,3 +9,15 @@ sub foo
 sub { $x++ };
 # <- keyword
 #     ^ variable.scalar
+
+sub abc :lvalue { }
+# <- keyword
+#        ^ decorator
+sub def :lvalue const {}
+# <- keyword
+#        ^ decorator
+#               ^ decorator
+sub ghi :lvalue :const { }
+# <- keyword
+#        ^ decorator
+#                ^ decorator
