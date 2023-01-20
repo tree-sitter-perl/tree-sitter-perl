@@ -87,10 +87,11 @@ module.exports = grammar({
     statement_label: $ => seq(field('label', $.bareword), ':', field('statement', $._fullstmt)),
 
     _barestmt: $ => choice(
-      /* TODO: sub */
       $.package_statement,
       $.use_version_statement,
       $.use_statement,
+      /* TODO: sub */
+      $.phaser_statement,
       $.if_statement,
       $.unless_statement,
       /* TODO: given/when/default */
@@ -113,6 +114,12 @@ module.exports = grammar({
       optional($._listexpr),
       $._PERLY_SEMICOLON
     ),
+
+    // perly.y's grammar just considers a phaser to be a `sub` with a special
+    // name and lacking the `sub` keyword, but most tree consumers are likely
+    // to care about distinguishing it
+    phaser_statement: $ => seq(field('phase', $._PHASE_NAME), $.block),
+
     if_statement: $ =>
       seq('if', '(', field('condition', $._expr), ')',
         field('block', $.block),
@@ -482,6 +489,8 @@ module.exports = grammar({
     _KW_USE: $ => choice('use', 'no'),
     _KW_FOR: $ => choice('for', 'foreach'),
     _LOOPEX: $ => choice('last', 'next', 'redo'),
+
+    _PHASE_NAME: $ => choice('BEGIN', 'INIT', 'CHECK', 'UNITCHECK', 'END'),
 
     /****
      * Misc bits

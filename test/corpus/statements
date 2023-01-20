@@ -236,3 +236,15 @@ ITEM: while(@items) { }
     statement: (while_statement
       condition: (array)
       block: (block))))
+================================================================================
+phasers
+================================================================================
+BEGIN { 123; }
+END { 456; }
+--------------------------------------------------------------------------------
+
+(source_file
+  (phaser_statement
+    (block (expression_statement (number))))
+  (phaser_statement
+    (block (expression_statement (number)))))

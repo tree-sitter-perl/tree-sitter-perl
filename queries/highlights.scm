@@ -11,6 +11,8 @@
   "undef"
 ] @keyword
 
+[ "BEGIN" "INIT" "CHECK" "UNITCHECK" "END" ] @keyword.phaser
+
 [
   "or" "and"
   "eq" "ne" "cmp" "lt" "le" "ge" "gt"

@@ -91,3 +91,9 @@ ITEM: while(@items) {
 goto FOO;
 # <- keyword
 #    ^ label
+BEGIN { 123; }
+# <- keyword.phaser
+#       ^ number
+END { 456; }
+# <- keyword.phaser
+#     ^ number
