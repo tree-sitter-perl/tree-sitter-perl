@@ -183,6 +183,41 @@ bool tree_sitter_perl_external_scanner_scan(
     TOKEN(TOKEN_GOBBLED_CONTENT);
   }
 
+  int c = lexer->lookahead;
+
+  if(valid_symbols[TOKEN_ATTRIBUTE_VALUE]) {
+    /* the '(' must be immediate, before any whitespace */
+    if(c == '(') {
+      DEBUG("Attribute value started...\n", 0);
+
+      ADVANCE;
+      c = lexer->lookahead;
+
+      int delimcount = 0;
+      while(!lexer->eof(lexer)) {
+        if(c == '\\') {
+          ADVANCE;
+          /* ignore the next char */
+        }
+        else if(c == '(')
+          delimcount++;
+        else if(c == ')') {
+          if(delimcount)
+            delimcount--;
+          else {
+            ADVANCE;
+            break;
+          }
+        }
+
+        ADVANCE;
+        c = lexer->lookahead;
+      }
+
+      TOKEN(TOKEN_ATTRIBUTE_VALUE);
+    }
+  }
+
   bool allow_identalike = false;
   for(int sym = 0; sym <= TOKEN_Q_STRING_BEGIN; sym++)
     if(valid_symbols[sym]) {
@@ -193,7 +228,7 @@ bool tree_sitter_perl_external_scanner_scan(
   if(allow_identalike || valid_symbols[PERLY_SEMICOLON]);
     skip_whitespace(lexer);
 
-  int c = lexer->lookahead;
+  c = lexer->lookahead;
 
   if(valid_symbols[PERLY_SEMICOLON]) {
     if(c == ';') {
@@ -493,39 +528,6 @@ qwlist_started_backslash:
         }
       /* If we got this far then either we reached stage 6, or we're at EOF */
       TOKEN(TOKEN_POD);
-    }
-  }
-
-  if(valid_symbols[TOKEN_ATTRIBUTE_VALUE]) {
-    /* the '(' must be immediate, before any whitespace */
-    if(c == '(') {
-      DEBUG("Attribute value started...\n", 0);
-
-      ADVANCE;
-      c = lexer->lookahead;
-
-      int delimcount = 0;
-      while(!lexer->eof(lexer)) {
-        if(c == '\\') {
-          ADVANCE;
-          /* ignore the next char */
-        }
-        else if(c == '(')
-          delimcount++;
-        else if(c == ')') {
-          if(delimcount)
-            delimcount--;
-          else {
-            ADVANCE;
-            break;
-          }
-        }
-
-        ADVANCE;
-        c = lexer->lookahead;
-      }
-
-      TOKEN(TOKEN_ATTRIBUTE_VALUE);
     }
   }
 
