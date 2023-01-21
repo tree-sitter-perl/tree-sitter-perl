@@ -48,3 +48,29 @@ You can see a reference of the grammar's DSL [here](https://tree-sitter.github.i
 For subtle points in the grammar implementation, PLEASE leave comments. The extra bytes
 spent on the comments in dev will go a long way in the big picture.
 
+
+## Using these bindings
+
+### Neovim
+
+You can install these bindings in neovim by using the following snippet. Hopefully soon
+we'll get upstreamed + you won't need this patchery.
+
+```lua
+local parser_config = require "nvim-treesitter.parsers".get_parser_configs()
+parser_config.perl = {
+  install_info = {
+    url = 'https://github.com/tree-sitter-perl/tree-sitter-perl',
+    revision = 'release',
+    files = { "src/parser.c", "src/scanner.c" },
+  }
+}
+```
+
+Then you just `:TSInstall perl`. You'll need to copy the queries in the `queries`
+directory of this repo into a `queries/perl` directory somewhere in you `rtp`.
+
+### In General
+
+You can get the built files off of the `release` branch in this repo. If you have specific
+instructions for a particular editor, PRs are welcome.
