@@ -500,7 +500,7 @@ module.exports = grammar({
     comment: $ => token(/#.*/),
     ...primitives,
     data_section: $ => seq(
-      field('marker', choice('__DATA__', '__END__')),
+      field('marker', choice('__DATA__', '__END__', '\x04', '\x1a')),
       $._gobbled_content
     ),
     _identifier: $ => /[a-zA-Z_]\w*/,
