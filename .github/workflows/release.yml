@@ -9,7 +9,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
+  test-and-release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -24,4 +24,4 @@ jobs:
           git config --global user.name 'GH Actions'
       - run: git commit -m'yet another release'
       - name: Push to the release branch
-        run: git push origin master:release
+        run: git push -f origin master:release
