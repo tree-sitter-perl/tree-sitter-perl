@@ -65,11 +65,13 @@ module.exports = grammar({
     $.escape_sequence,
     $.escaped_delimiter,
     $.pod,
+    $._gobbled_content
   ],
   extras: $ => [
     /\s|\\\r?\n/,
     $.comment,
     $.pod,
+    $.data_section
   ],
   conflicts: $ => [
     [ $.preinc_expression, $.postinc_expression ],
@@ -497,6 +499,10 @@ module.exports = grammar({
      */
     comment: $ => token(/#.*/),
     ...primitives,
+    data_section: $ => seq(
+      field('marker', choice('__DATA__', '__END__')),
+      $._gobbled_content
+    ),
     _identifier: $ => /[a-zA-Z_]\w*/,
 
     // toke.c calls this a THING and that is such a generic unhelpful word,

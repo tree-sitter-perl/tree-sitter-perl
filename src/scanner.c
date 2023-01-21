@@ -31,6 +31,7 @@ enum TokenType {
   TOKEN_ESCAPE_SEQUENCE,
   TOKEN_ESCAPED_DELIMITER,
   TOKEN_POD,
+  TOKEN_GOBBLED_CONTENT
 };
 
 struct LexerState {
@@ -167,6 +168,12 @@ bool tree_sitter_perl_external_scanner_scan(
 ) {
   struct LexerState *state = payload;
 
+  if(valid_symbols[TOKEN_GOBBLED_CONTENT]) {
+    while (!lexer->eof(lexer)) 
+      ADVANCE;
+
+    TOKEN(TOKEN_GOBBLED_CONTENT);
+  }
   // The only time we'd ever be looking for both BEGIN and END is during an error
   // condition. Abort in that case
   if(valid_symbols[TOKEN_Q_STRING_BEGIN] && valid_symbols[TOKEN_QUOTELIKE_END])
