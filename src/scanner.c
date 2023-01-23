@@ -6,7 +6,7 @@
 /* for debug */
 #ifdef DEBUGGING
 #  include <stdio.h>
-#  define DEBUG(fmt,...)  fprintf(stderr, "scanner.c DEBUG: " fmt, __VA_ARGS__)
+#  define DEBUG(fmt,...)  fprintf(stderr, "scanner.c:%d DEBUG: " fmt, __LINE__, __VA_ARGS__)
 #else
 #  define DEBUG(fmt,...)
 #endif
@@ -176,8 +176,10 @@ bool tree_sitter_perl_external_scanner_scan(
   }
   // The only time we'd ever be looking for both BEGIN and END is during an error
   // condition. Abort in that case
-  if(valid_symbols[TOKEN_Q_STRING_BEGIN] && valid_symbols[TOKEN_QUOTELIKE_END])
+  if(valid_symbols[TOKEN_Q_STRING_BEGIN] && valid_symbols[TOKEN_QUOTELIKE_END]) {
+    DEBUG("Abort on ERROR\n", 0);
     return false;
+  }
 
   bool allow_identalike = false;
   for(int sym = 0; sym <= TOKEN_Q_STRING_BEGIN; sym++)

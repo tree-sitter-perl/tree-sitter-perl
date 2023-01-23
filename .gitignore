@@ -12,3 +12,4 @@ bindings/c/*.h
 /Cargo.toml
 src/*
 tree-sitter-perl.wasm
+binding.gyp
