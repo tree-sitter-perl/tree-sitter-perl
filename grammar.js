@@ -46,11 +46,12 @@ const binop = (op, term) =>
 const optseq = (...terms) => optional(seq(...terms));
 
 const ending_tokens = [ '__DATA__', '__END__', '\x04', ] // '\x1a' (ctrl-z) is borken on windoze
-const ending_token_name = token => token
+const ending_token_name = token => `_${token}`
 const ending_token_rule = token => ({
   [ending_token_name(token)]: $ => seq(
-    alias(token, $.data_section),
-    $._gobbled_content
+    alias(token, $.eof_marker),
+    /.*/,
+    token.length > 1 ? alias($._gobbled_content, $.data_section) : $._gobbled_content
   )
 })
 
