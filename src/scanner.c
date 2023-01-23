@@ -169,8 +169,10 @@ bool tree_sitter_perl_external_scanner_scan(
 
   // The only time we'd ever be looking for both BEGIN and END is during an error
   // condition. Abort in that case
-  if(valid_symbols[TOKEN_Q_STRING_BEGIN] && valid_symbols[TOKEN_QUOTELIKE_END])
+  if(valid_symbols[TOKEN_Q_STRING_BEGIN] && valid_symbols[TOKEN_QUOTELIKE_END]) {
+    DEBUG("Abort on ERROR\n", 0);
     return false;
+  }
 
   bool allow_identalike = false;
   for(int sym = 0; sym <= TOKEN_Q_STRING_BEGIN; sym++)
