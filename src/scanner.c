@@ -6,7 +6,7 @@
 /* for debug */
 #ifdef DEBUGGING
 #  include <stdio.h>
-#  define DEBUG(fmt,...)  fprintf(stderr, "scanner.c DEBUG: " fmt, __VA_ARGS__)
+#  define DEBUG(fmt,...)  fprintf(stderr, "scanner.c:%d DEBUG: " fmt, __LINE__, __VA_ARGS__)
 #else
 #  define DEBUG(fmt,...)
 #endif
