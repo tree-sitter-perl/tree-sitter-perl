@@ -45,7 +45,14 @@ const binop = (op, term) =>
 
 const optseq = (...terms) => optional(seq(...terms));
 
-const ending_tokens = [ '__DATA__', '__END__', '\x04', '\x1a' ]
+const ending_tokens = [ '__DATA__', '__END__', '\x04', ] // '\x1a' (ctrl-z) is borken on windoze
+const ending_token_name = token => `ending_token${token}`
+const ending_token_rule = token => ({
+  [ending_token_name(token)]: $ => seq(
+    token,
+    $._gobbled_content
+  )
+})
 
 module.exports = grammar({
   name: 'perl',
@@ -67,13 +74,13 @@ module.exports = grammar({
     $.escape_sequence,
     $.escaped_delimiter,
     $.pod,
-    $._gobbled_content
+    $._gobbled_content,
   ],
   extras: $ => [
     /\s|\\\r?\n/,
     $.comment,
     $.pod,
-    ...ending_tokens.map(token => $[token])
+    ...ending_tokens.map(token => $[ending_token_name(token)])
   ],
   conflicts: $ => [
     [ $.preinc_expression, $.postinc_expression ],
@@ -501,13 +508,7 @@ module.exports = grammar({
      */
     comment: $ => token(/#.*/),
     ...primitives,
-    ...ending_tokens.reduce((acc, token) => ({
-      ...acc,
-      [token]: $ => seq(
-        alias(token, $.data_section),
-        $._gobbled_content
-      )
-    }), {}),
+    ...ending_tokens.reduce((acc, token) => ({ ...acc, ...ending_token_rule(token) }), {}),
     _identifier: $ => /[a-zA-Z_]\w*/,
 
     // toke.c calls this a THING and that is such a generic unhelpful word,
