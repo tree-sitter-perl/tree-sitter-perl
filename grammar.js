@@ -45,6 +45,8 @@ const binop = (op, term) =>
 
 const optseq = (...terms) => optional(seq(...terms));
 
+const ending_tokens = [ '__DATA__', '__END__', '\x04', '\x1a' ]
+
 module.exports = grammar({
   name: 'perl',
   supertypes: $ => [
@@ -71,7 +73,7 @@ module.exports = grammar({
     /\s|\\\r?\n/,
     $.comment,
     $.pod,
-    $.data_section
+    ...ending_tokens.map(token => $[token])
   ],
   conflicts: $ => [
     [ $.preinc_expression, $.postinc_expression ],
@@ -499,10 +501,13 @@ module.exports = grammar({
      */
     comment: $ => token(/#.*/),
     ...primitives,
-    data_section: $ => seq(
-      field('marker', choice('__DATA__', '__END__', '\x04', '\x1a')),
-      $._gobbled_content
-    ),
+    ...ending_tokens.reduce((acc, token) => ({
+      ...acc,
+      [token]: $ => seq(
+        alias(token, $.data_section),
+        $._gobbled_content
+      )
+    }), {}),
     _identifier: $ => /[a-zA-Z_]\w*/,
 
     // toke.c calls this a THING and that is such a generic unhelpful word,
