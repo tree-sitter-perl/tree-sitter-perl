@@ -21,6 +21,9 @@
 
 (comment) @comment
 
+(eof_marker) @preproc
+(data_section) @comment
+
 (pod) @text
 
 (number) @number

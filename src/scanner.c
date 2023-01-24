@@ -31,6 +31,7 @@ enum TokenType {
   TOKEN_ESCAPE_SEQUENCE,
   TOKEN_ESCAPED_DELIMITER,
   TOKEN_POD,
+  TOKEN_GOBBLED_CONTENT,
 };
 
 struct LexerState {
@@ -172,6 +173,13 @@ bool tree_sitter_perl_external_scanner_scan(
   if(valid_symbols[TOKEN_Q_STRING_BEGIN] && valid_symbols[TOKEN_QUOTELIKE_END]) {
     DEBUG("Abort on ERROR\n", 0);
     return false;
+  }
+  
+  if(valid_symbols[TOKEN_GOBBLED_CONTENT]) {
+    while (!lexer->eof(lexer)) 
+      ADVANCE;
+
+    TOKEN(TOKEN_GOBBLED_CONTENT);
   }
 
   bool allow_identalike = false;

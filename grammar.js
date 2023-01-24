@@ -65,11 +65,16 @@ module.exports = grammar({
     $.escape_sequence,
     $.escaped_delimiter,
     $.pod,
+    $._gobbled_content,
   ],
   extras: $ => [
     /\s|\\\r?\n/,
     $.comment,
     $.pod,
+    $.__DATA__,
+    $.__END__,
+    $._CTRL_D,
+    // $._CTRL_Z // borken on windoze, sigh
   ],
   conflicts: $ => [
     [ $.preinc_expression, $.postinc_expression ],
@@ -497,6 +502,30 @@ module.exports = grammar({
      */
     comment: $ => token(/#.*/),
     ...primitives,
+    // NOTE - not sure if this is a bug in tree-sitter, but choice here doesn't work, it
+    // won't bother looking at the second choice. So we instead make one invisible node +
+    // name the children appropriately
+    __DATA__: $ => seq(
+      alias('__DATA__', $.eof_marker),
+      /.*/, // ignore til end of line - not part of the DATA filehandle
+      alias($._gobbled_content, $.data_section)
+    ),
+    __END__: $ => seq(
+      alias('__END__', $.eof_marker),
+      /.*/, // ignore til end of line
+      alias($._gobbled_content, $.data_section)
+    ),
+    _CTRL_D: $ => seq(
+      alias('\x04', $.eof_marker),
+      $._gobbled_content
+    ),
+    /* borken on windoze b/c visual studio ends the input on the literal ctrl-z in
+     * parser.c -- a tree-sitter bug?
+    _CTRL_Z: seq(
+      alias('\x1a', $.eof_marker),
+      $._gobbled_content
+    ),
+    */
     _identifier: $ => /[a-zA-Z_]\w*/,
 
     // toke.c calls this a THING and that is such a generic unhelpful word,
