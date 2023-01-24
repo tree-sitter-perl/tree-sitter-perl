@@ -45,16 +45,6 @@ const binop = (op, term) =>
 
 const optseq = (...terms) => optional(seq(...terms));
 
-const ending_tokens = [ '__DATA__', '__END__', '\x04', ] // '\x1a' (ctrl-z) is borken on windoze
-const ending_token_name = token => `_${token}`
-const ending_token_rule = token => ({
-  [ending_token_name(token)]: $ => seq(
-    alias(token, $.eof_marker),
-    /.*/,
-    token.length > 1 ? alias($._gobbled_content, $.data_section) : $._gobbled_content
-  )
-})
-
 module.exports = grammar({
   name: 'perl',
   supertypes: $ => [
@@ -81,7 +71,10 @@ module.exports = grammar({
     /\s|\\\r?\n/,
     $.comment,
     $.pod,
-    ...ending_tokens.map(token => $[ending_token_name(token)])
+    $.__DATA__,
+    $.__END__,
+    $._CTRL_D,
+    // $._CTRL_Z // borken on windoze, sigh
   ],
   conflicts: $ => [
     [ $.preinc_expression, $.postinc_expression ],
@@ -509,7 +502,30 @@ module.exports = grammar({
      */
     comment: $ => token(/#.*/),
     ...primitives,
-    ...ending_tokens.reduce((acc, token) => ({ ...acc, ...ending_token_rule(token) }), {}),
+    // NOTE - not sure if this is a bug in tree-sitter, but choice here doesn't work, it
+    // won't bother looking at the second choice. So we instead make one invisible node +
+    // name the children appropriately
+    __DATA__: $ => seq(
+      alias('__DATA__', $.eof_marker),
+      /.*/, // ignore til end of line - not part of the DATA filehandle
+      alias($._gobbled_content, $.data_section)
+    ),
+    __END__: $ => seq(
+      alias('__END__', $.eof_marker),
+      /.*/, // ignore til end of line
+      alias($._gobbled_content, $.data_section)
+    ),
+    _CTRL_D: $ => seq(
+      alias('\x04', $.eof_marker),
+      $._gobbled_content
+    ),
+    /* borken on windoze b/c visual studio ends the input on the literal ctrl-z in
+     * parser.c -- a tree-sitter bug?
+    _CTRL_Z: seq(
+      alias('\x1a', $.eof_marker),
+      $._gobbled_content
+    ),
+    */
     _identifier: $ => /[a-zA-Z_]\w*/,
 
     // toke.c calls this a THING and that is such a generic unhelpful word,
