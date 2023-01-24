@@ -21,6 +21,9 @@
 
 (comment) @comment
 
+(eof_token) @comment
+(data_section) @comment
+
 (pod) @text
 
 (number) @number
