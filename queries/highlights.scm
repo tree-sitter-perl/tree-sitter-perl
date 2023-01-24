@@ -21,7 +21,7 @@
 
 (comment) @comment
 
-(eof_token) @comment
+(eof_marker) @preproc
 (data_section) @comment
 
 (pod) @text
