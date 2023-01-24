@@ -66,6 +66,7 @@ module.exports = grammar({
     $.escaped_delimiter,
     $.pod,
     $._gobbled_content,
+    $.attribute_value,
   ],
   extras: $ => [
     /\s|\\\r?\n/,
@@ -476,8 +477,11 @@ module.exports = grammar({
       $.attribute,
       repeat(seq(optional(':'), $.attribute))
     ),
-    // TODO: should be external
-    attribute: $ => $._bareword,
+    attribute: $ => seq(
+      field('name', $.attribute_name),
+      field('value', optional($.attribute_value))
+    ),
+    attribute_name: $ => $._bareword,
 
     // TODO: These are rediculously complicated in toke.c
     _FUNC: $ => $._bareword,

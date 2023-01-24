@@ -32,6 +32,7 @@ enum TokenType {
   TOKEN_ESCAPED_DELIMITER,
   TOKEN_POD,
   TOKEN_GOBBLED_CONTENT,
+  TOKEN_ATTRIBUTE_VALUE,
 };
 
 struct LexerState {
@@ -492,6 +493,35 @@ qwlist_started_backslash:
         }
       /* If we got this far then either we reached stage 6, or we're at EOF */
       TOKEN(TOKEN_POD);
+    }
+  }
+
+  if(valid_symbols[TOKEN_ATTRIBUTE_VALUE]) {
+    /* the '(' must be immediate, before any whitespace */
+    if(c == '(') {
+      DEBUG("Attribute value started...\n", 0);
+
+      ADVANCE;
+      c = lexer->lookahead;
+
+      int delimcount = 0;
+      while(!lexer->eof(lexer)) {
+        if(c == '(')
+          delimcount++;
+        else if(c == ')') {
+          if(delimcount)
+            delimcount--;
+          else {
+            ADVANCE;
+            break;
+          }
+        }
+
+        ADVANCE;
+        c = lexer->lookahead;
+      }
+
+      TOKEN(TOKEN_ATTRIBUTE_VALUE);
     }
   }
 

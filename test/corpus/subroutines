@@ -31,13 +31,20 @@ sub jkl : { }
 --------------------------------------------------------------------------------
 (source_file
   (subroutine_declaration_statement
-    (bareword) (attrlist (attribute)) (block))
+    (bareword)
+    (attrlist (attribute (attribute_name)))
+    (block))
   (subroutine_declaration_statement
-    (bareword) (attrlist (attribute) (attribute)) (block))
+    (bareword)
+    (attrlist (attribute (attribute_name)) (attribute (attribute_name)))
+    (block))
   (subroutine_declaration_statement
-    (bareword) (attrlist (attribute) (attribute)) (block))
+    (bareword)
+    (attrlist (attribute (attribute_name)) (attribute (attribute_name)))
+    (block))
   (subroutine_declaration_statement
-    (bareword) (block)))
+    (bareword)
+    (block)))
 ================================================================================
 Attributes on anonymous subs
 ================================================================================
@@ -49,13 +56,29 @@ sub : {};
 (source_file
   (expression_statement
     (anonymous_subroutine_expression
-      (attrlist (attribute)) (block)))
+      (attrlist (attribute (attribute_name))) (block)))
   (expression_statement
     (anonymous_subroutine_expression
-      (attrlist (attribute) (attribute)) (block)))
+      (attrlist (attribute (attribute_name)) (attribute (attribute_name))) (block)))
   (expression_statement
     (anonymous_subroutine_expression
-      (attrlist (attribute) (attribute)) (block)))
+      (attrlist (attribute (attribute_name)) (attribute (attribute_name))) (block)))
   (expression_statement
     (anonymous_subroutine_expression
+      (block))))
+================================================================================
+Attributes with values
+================================================================================
+sub abc :title(Boo!) { }
+
+sub :title(Boo!) { }
+--------------------------------------------------------------------------------
+(source_file
+  (subroutine_declaration_statement
+    (bareword)
+    (attrlist (attribute (attribute_name) (attribute_value)))
+    (block))
+  (expression_statement
+    (anonymous_subroutine_expression
+      (attrlist (attribute (attribute_name) (attribute_value)))
       (block))))
