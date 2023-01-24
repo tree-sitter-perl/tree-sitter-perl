@@ -67,6 +67,7 @@ module.exports = grammar({
     $.pod,
     $._gobbled_content,
     $.attribute_value,
+    $.prototype_or_signature,
   ],
   extras: $ => [
     /\s|\\\r?\n/,
@@ -125,7 +126,7 @@ module.exports = grammar({
       'sub',
       field('name', $.bareword),
       optseq(':', optional(field('attributes', $.attrlist))),
-      // TODO: optional signature-or-prototype
+      optional($.prototype_or_signature),
       field('body', $.block),
     ),
 
@@ -379,7 +380,7 @@ module.exports = grammar({
     anonymous_subroutine_expression: $ => seq(
       'sub',
       optseq(':', optional(field('attributes', $.attrlist))),
-      // TODO: optional signature-or-prototype
+      optional($.prototype_or_signature),
       field('body', $.block),
     ),
 
