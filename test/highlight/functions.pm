@@ -26,3 +26,14 @@ Some::Module->new(1234);
 # <- type
 #             ^ function.method
 #                 ^ number
+
+### FUNC0OPs
+# no need to test them all, just do a few
+__FILE__;
+# <- function.builtin
+__LINE__;
+# <- function.builtin
+wait;
+# <- function.builtin
+time();
+# <- function.builtin
