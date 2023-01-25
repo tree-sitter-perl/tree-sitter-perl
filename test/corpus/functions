@@ -83,3 +83,18 @@ Some::Module->new(1234);
       invocant:  (bareword)
       method:    (method)
       arguments: (number))))
+================================================================================
+Func0 Ops
+================================================================================
+__FILE__;
+wait;
+time();
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (func0op_call_expression (func0op)))
+  (expression_statement
+    (func0op_call_expression (func0op)))
+  (expression_statement
+    (func0op_call_expression (func0op))))

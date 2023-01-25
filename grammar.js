@@ -301,15 +301,11 @@ module.exports = grammar({
        */
       $.require_expression,
       /* UNIOPSUB
-       * UNIOPSUB term
-       * FUNC0
-       * FUNC0 '(' ')'
-       * FUNC0OP
-       * FUNC0OP '(' ')'
-       * FUNC1 '(' ')'
-       * FUNC1 '(' expr ')'
-       * PMFUNC
-       */
+       * UNIOPSUB term */
+      $.func0op_call_expression,
+      /* FUNC1 '(' ')'
+       * FUNC1 '(' expr ') 
+       * PMFUNC */
       $.bareword,
       $._listop,
 
@@ -437,6 +433,9 @@ module.exports = grammar({
     require_expression: $ =>
       prec.left(TERMPREC.REQUIRE, seq('require', optional($._term))),
 
+    func0op_call_expression: $ =>
+      seq(field('function', $.func0op), optseq('(', ')')),
+
     loopex_expression: $ =>
       prec.left(TERMPREC.LOOPEX, seq(field('loopex', $._LOOPEX), optional($._term))),
     goto_expression: $ =>
@@ -542,6 +541,13 @@ module.exports = grammar({
     _LOOPEX: $ => choice('last', 'next', 'redo'),
 
     _PHASE_NAME: $ => choice('BEGIN', 'INIT', 'CHECK', 'UNITCHECK', 'END'),
+
+    // Anything toke.c calls FUN0 or FUN0OP; the distinction does not matter to us
+    func0op: $ => choice(
+      '__FILE__', '__LINE__', '__PACKAGE__', '__SUB__',
+      'break', 'fork', 'getppid', 'time', 'times', 'wait', 'wantarray',
+      /* TODO: all the end*ent, get*ent, set*ent, etc... */
+    ),
 
     /****
      * Misc bits
