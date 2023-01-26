@@ -525,7 +525,11 @@ module.exports = grammar({
     /****
      * Misc bits
      */
-    comment: $ => token(/#.*/),
+
+    // Would like to write  repeat1(token(/#.*/))  but we can't because of
+    //   https://github.com/tree-sitter/tree-sitter/issues/1910
+    comment: $ => token(/#.*(\r?\n\s*#.*)*/),
+
     ...primitives,
     // NOTE - not sure if this is a bug in tree-sitter, but choice here doesn't work, it
     // won't bother looking at the second choice. So we instead make one invisible node +
