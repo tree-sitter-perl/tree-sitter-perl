@@ -57,6 +57,8 @@ module.exports = grammar({
     $._qw_list_begin,
     /* non-ident tokens */
     $._PERLY_SEMICOLON,
+    $._PERLY_BRACE_OPEN,
+    $._HASHBRACK,
     /* immediates */
     $._quotelike_end,
     $._q_string_content,
@@ -86,7 +88,7 @@ module.exports = grammar({
     /****
      * Main grammar rules taken from perly.y.
      ****/
-    block: $ => seq('{', stmtseq($), '}'),
+    block: $ => seq($._PERLY_BRACE_OPEN, stmtseq($), '}'),
 
     _fullstmt: $ => choice($._barestmt, $.statement_label),
 
@@ -106,6 +108,7 @@ module.exports = grammar({
       $.until_statement,
       $.cstyle_for_statement,
       $.for_statement,
+      $.block,
       seq($.expression_statement, $._PERLY_SEMICOLON),
       ';', // this is not _PERLY_SEMICOLON so as not to generate an infinite stream of them
     ),
@@ -374,7 +377,7 @@ module.exports = grammar({
     ),
 
     anonymous_hash_expression: $ => seq(
-      '{', optional($._expr), '}'
+      $._HASHBRACK, optional($._expr), '}'
     ),
 
     anonymous_subroutine_expression: $ => seq(
