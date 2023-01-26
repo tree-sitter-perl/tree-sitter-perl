@@ -167,3 +167,16 @@ $var--;
 
 (source_file
   (expression_statement (refgen_expression (number))))
+
+================================================================================
+range ops
+================================================================================
+10 .. 20;
+13 ... 14;
+13 .. (1 .. 4);
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement (binary_expression (number) (number)))
+  (expression_statement (binary_expression (number) (number)))
+  (expression_statement (binary_expression (number) (binary_expression (number) (number))))
+  )
