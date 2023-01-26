@@ -1,6 +1,7 @@
 [
   "use" "no"
   "package"
+  "sub"
   "if" "elsif" "else" "unless"
   "while" "until"
   "for" "foreach"
@@ -50,6 +51,9 @@
 (use_statement (package) @type)
 (package_statement (package) @type)
 (require_expression (bareword) @type)
+
+(subroutine_declaration_statement name: (_) @function)
+(attrlist (attribute) @decorator)
 
 (goto_expression (bareword) @label)
 (loopex_expression (bareword) @label)

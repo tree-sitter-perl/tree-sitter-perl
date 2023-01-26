@@ -32,6 +32,8 @@ enum TokenType {
   TOKEN_ESCAPED_DELIMITER,
   TOKEN_POD,
   TOKEN_GOBBLED_CONTENT,
+  TOKEN_ATTRIBUTE_VALUE,
+  TOKEN_PROTOTYPE_OR_SIGNATURE,
 };
 
 struct LexerState {
@@ -182,6 +184,41 @@ bool tree_sitter_perl_external_scanner_scan(
     TOKEN(TOKEN_GOBBLED_CONTENT);
   }
 
+  int c = lexer->lookahead;
+
+  if(valid_symbols[TOKEN_ATTRIBUTE_VALUE]) {
+    /* the '(' must be immediate, before any whitespace */
+    if(c == '(') {
+      DEBUG("Attribute value started...\n", 0);
+
+      ADVANCE;
+      c = lexer->lookahead;
+
+      int delimcount = 0;
+      while(!lexer->eof(lexer)) {
+        if(c == '\\') {
+          ADVANCE;
+          /* ignore the next char */
+        }
+        else if(c == '(')
+          delimcount++;
+        else if(c == ')') {
+          if(delimcount)
+            delimcount--;
+          else {
+            ADVANCE;
+            break;
+          }
+        }
+
+        ADVANCE;
+        c = lexer->lookahead;
+      }
+
+      TOKEN(TOKEN_ATTRIBUTE_VALUE);
+    }
+  }
+
   bool allow_identalike = false;
   for(int sym = 0; sym <= TOKEN_Q_STRING_BEGIN; sym++)
     if(valid_symbols[sym]) {
@@ -192,7 +229,7 @@ bool tree_sitter_perl_external_scanner_scan(
   if(allow_identalike || valid_symbols[PERLY_SEMICOLON]);
     skip_whitespace(lexer);
 
-  int c = lexer->lookahead;
+  c = lexer->lookahead;
 
   if(valid_symbols[PERLY_SEMICOLON]) {
     if(c == ';') {
@@ -493,6 +530,42 @@ qwlist_started_backslash:
       /* If we got this far then either we reached stage 6, or we're at EOF */
       TOKEN(TOKEN_POD);
     }
+  }
+
+  if(valid_symbols[TOKEN_PROTOTYPE_OR_SIGNATURE] && c == '(') {
+    /* Distinguishing prototypes from signatures is impossible without a way
+     * to track what `use VERSION` or `use feature ...` is in scope at this
+     * point in the file. The best we can do without that is to claim this is
+     * just one of either, while accepting that it will not perfectly parse
+     * all possible code. It counts parens so it is likely to get most code
+     * about right, but it will get confused with a signature like
+     *
+     *    ($open = "(")
+     *
+     * and there's basically nothing we can do about that here.
+     */
+    DEBUG("prototype or signature\n", 0);
+
+    ADVANCE;
+    c = lexer->lookahead;
+
+    int count = 0;
+
+    while(!lexer->eof(lexer)) {
+      if(c == ')' && !count) {
+        ADVANCE;
+        break;
+      }
+      else if(c == ')')
+        count--;
+      else if(c == '(')
+        count++;
+
+      ADVANCE;
+      c = lexer->lookahead;
+    }
+
+    TOKEN(TOKEN_PROTOTYPE_OR_SIGNATURE);
   }
 
   return false;

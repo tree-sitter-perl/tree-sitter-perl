@@ -66,6 +66,8 @@ module.exports = grammar({
     $.escaped_delimiter,
     $.pod,
     $._gobbled_content,
+    $.attribute_value,
+    $.prototype_or_signature,
   ],
   extras: $ => [
     /\s|\\\r?\n/,
@@ -95,7 +97,7 @@ module.exports = grammar({
       $.package_statement,
       $.use_version_statement,
       $.use_statement,
-      /* TODO: sub */
+      $.subroutine_declaration_statement,
       $.phaser_statement,
       $.if_statement,
       $.unless_statement,
@@ -118,6 +120,14 @@ module.exports = grammar({
       optional(field('version', $._version)),
       optional($._listexpr),
       $._PERLY_SEMICOLON
+    ),
+
+    subroutine_declaration_statement: $ => seq(
+      'sub',
+      field('name', $.bareword),
+      optseq(':', optional(field('attributes', $.attrlist))),
+      optional($.prototype_or_signature),
+      field('body', $.block),
     ),
 
     // perly.y's grammar just considers a phaser to be a `sub` with a special
@@ -244,9 +254,7 @@ module.exports = grammar({
       $.postinc_expression,
       $.anonymous_array_expression,
       $.anonymous_hash_expression,
-      /* TODO:
-       * anonymous sub
-       */
+      $.anonymous_subroutine_expression,
       $.do_expression,
       $.conditional_expression,
       $.refgen_expression,
@@ -369,6 +377,13 @@ module.exports = grammar({
       '{', optional($._expr), '}'
     ),
 
+    anonymous_subroutine_expression: $ => seq(
+      'sub',
+      optseq(':', optional(field('attributes', $.attrlist))),
+      optional($.prototype_or_signature),
+      field('body', $.block),
+    ),
+
     do_expression: $ => choice(
       /* TODO: do FILENAME */
       seq('do', $.block),
@@ -458,6 +473,16 @@ module.exports = grammar({
 
     bareword: $ => $._bareword,
     _bareword: $ => /[a-zA-Z_]\w*(?:::[a-zA-Z_]\w*)*/,  // TODO: unicode
+
+    attrlist: $ => seq(
+      $.attribute,
+      repeat(seq(optional(':'), $.attribute))
+    ),
+    attribute: $ => seq(
+      field('name', $.attribute_name),
+      field('value', optional($.attribute_value))
+    ),
+    attribute_name: $ => $._bareword,
 
     // TODO: These are rediculously complicated in toke.c
     _FUNC: $ => $._bareword,
