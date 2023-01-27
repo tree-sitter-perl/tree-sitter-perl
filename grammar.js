@@ -43,9 +43,6 @@ const unop_post = (op, term) =>
 const binop = (op, term) =>
   seq(field('left', term), field('operator', op), field('right', term));
 
-const nonassoc = (nonassoc_token, op, term) =>
-  seq(field('left', term), field('operator', op), nonassoc_token, field('right', term));
-
 const optseq = (...terms) => optional(seq(...terms));
 
 module.exports = grammar({
