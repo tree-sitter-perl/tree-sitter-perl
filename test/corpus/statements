@@ -248,3 +248,15 @@ END { 456; }
     (block (expression_statement (number))))
   (phaser_statement
     (block (expression_statement (number)))))
+================================================================================
+bare blocks
+================================================================================
+{ 123; }
+{ 456; }
+{ { 789; } }
+--------------------------------------------------------------------------------
+
+(source_file
+  (block (expression_statement (number)))
+  (block (expression_statement (number)))
+  (block (block (expression_statement (number)))))

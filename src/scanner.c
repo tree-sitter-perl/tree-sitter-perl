@@ -23,6 +23,8 @@ enum TokenType {
   TOKEN_QW_LIST_BEGIN,
   /* non-ident tokens */
   PERLY_SEMICOLON,
+  PERLY_BRACE_OPEN,
+  TOKEN_HASHBRACK,
   /* immediates */
   TOKEN_QUOTELIKE_END,
   TOKEN_Q_STRING_CONTENT,
@@ -242,6 +244,20 @@ bool tree_sitter_perl_external_scanner_scan(
       // no advance
 
       TOKEN(PERLY_SEMICOLON);
+    }
+  }
+
+  if((valid_symbols[PERLY_BRACE_OPEN] || valid_symbols[TOKEN_HASHBRACK]) && c == '{') {
+    /* Encountered '{' while at least one of theabove was valid */
+    ADVANCE;
+
+    /* PERLY_BRACE_OPEN is only valid during the start of a statement; if
+     * that's valid here then we prefer that over HASHBRACK */
+    if(valid_symbols[PERLY_BRACE_OPEN]) {
+      TOKEN(PERLY_BRACE_OPEN);
+    }
+    else {
+      TOKEN(TOKEN_HASHBRACK);
     }
   }
 

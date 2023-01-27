@@ -57,6 +57,8 @@ module.exports = grammar({
     $._qw_list_begin,
     /* non-ident tokens */
     $._PERLY_SEMICOLON,
+    $._PERLY_BRACE_OPEN,
+    $._HASHBRACK,
     /* immediates */
     $._quotelike_end,
     $._q_string_content,
@@ -87,7 +89,7 @@ module.exports = grammar({
     /****
      * Main grammar rules taken from perly.y.
      ****/
-    block: $ => seq('{', stmtseq($), '}'),
+    block: $ => seq($._PERLY_BRACE_OPEN, stmtseq($), '}'),
 
     _fullstmt: $ => choice($._barestmt, $.statement_label),
 
@@ -107,6 +109,7 @@ module.exports = grammar({
       $.until_statement,
       $.cstyle_for_statement,
       $.for_statement,
+      $.block,
       seq($.expression_statement, $._PERLY_SEMICOLON),
       ';', // this is not _PERLY_SEMICOLON so as not to generate an infinite stream of them
     ),
@@ -382,7 +385,7 @@ module.exports = grammar({
     ),
 
     anonymous_hash_expression: $ => seq(
-      '{', optional($._expr), '}'
+      $._HASHBRACK, optional($._expr), '}'
     ),
 
     anonymous_subroutine_expression: $ => seq(
@@ -534,7 +537,11 @@ module.exports = grammar({
     /****
      * Misc bits
      */
-    comment: $ => token(/#.*/),
+
+    // Would like to write  repeat1(token(/#.*/))  but we can't because of
+    //   https://github.com/tree-sitter/tree-sitter/issues/1910
+    comment: $ => token(/#.*(\r?\n\s*#.*)*/),
+
     ...primitives,
     // NOTE - not sure if this is a bug in tree-sitter, but choice here doesn't work, it
     // won't bother looking at the second choice. So we instead make one invisible node +
