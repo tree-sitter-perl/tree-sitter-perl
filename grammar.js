@@ -70,6 +70,8 @@ module.exports = grammar({
     $._gobbled_content,
     $.attribute_value,
     $.prototype_or_signature,
+    /* error condition must always be last; we don't use this in the grammar */
+    $._ERROR
   ],
   extras: $ => [
     /\s|\\\r?\n/,
@@ -477,13 +479,17 @@ module.exports = grammar({
 
     _indirob: $ => choice(
       $._bareword,
+      // toke.c has weird code in S_scan_ident to handle the $<digits> and
+      // other single-character punctuation vars like $!
+      $._ident_special,
       $.scalar,
       $.block,
-      /* TODO: privateref */
     ),
 
     bareword: $ => $._bareword,
     _bareword: $ => /[a-zA-Z_]\w*(?:::[a-zA-Z_]\w*)*/,  // TODO: unicode
+
+    _ident_special: $ => /[0-9]+|\^[A-Z]|./,
 
     attrlist: $ => seq(
       $.attribute,
