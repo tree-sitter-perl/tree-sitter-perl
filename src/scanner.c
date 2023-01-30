@@ -174,12 +174,9 @@ bool tree_sitter_perl_external_scanner_scan(
 
   // The only time we'd ever be looking for both BEGIN and END is during an error
   // condition. Abort in that case
-  if(valid_symbols[TOKEN_Q_STRING_BEGIN] && valid_symbols[TOKEN_QUOTELIKE_END]) {
-    DEBUG("Abort on ERROR\n", 0);
-    return false;
-  }
-  
-  if(valid_symbols[TOKEN_GOBBLED_CONTENT]) {
+  bool is_ERROR = valid_symbols[TOKEN_Q_STRING_BEGIN] && valid_symbols[TOKEN_QUOTELIKE_END];
+
+  if(!is_ERROR && valid_symbols[TOKEN_GOBBLED_CONTENT]) {
     while (!lexer->eof(lexer)) 
       ADVANCE;
 
@@ -368,6 +365,53 @@ bool tree_sitter_perl_external_scanner_scan(
     }
   }
 
+  if(valid_symbols[TOKEN_POD]) {
+    int column = lexer->get_column(lexer);
+    if(column == 0 && c == '=') {
+      DEBUG("POD started...\n", 0);
+
+      /* Keep going until the linefeed after a line beginning `=cut` */
+      static const char *cut_marker = "=cut";
+      int stage = -1;
+
+      while(!lexer->eof(lexer)) {
+        if(c == '\r')
+          ; /* ignore */
+        else if(stage < 1 && c == '\n')
+          stage = 0;
+        else if(stage >= 0 && stage < 4 && c == cut_marker[stage])
+          stage++;
+        else if(stage == 4 && (c == ' ' || c == '\t'))
+          stage = 5;
+        else if(stage == 4 && c == '\n')
+          stage = 6;
+        else
+          stage = -1;
+
+        if(stage > 4)
+          break;
+
+        ADVANCE;
+        c = lexer->lookahead;
+      }
+      if(stage < 6)
+        while(!lexer->eof(lexer)) {
+          if(c == '\n')
+            break;
+
+          ADVANCE;
+          c = lexer->lookahead;
+        }
+      /* If we got this far then either we reached stage 6, or we're at EOF */
+      TOKEN(TOKEN_POD);
+    }
+  }
+
+  /* By now if we haven't recognised the token we shouldn't attempt to look
+   * for the remaining ones when in an error condition */
+  if(is_ERROR)
+    return false;
+
   if(valid_symbols[TOKEN_ESCAPED_DELIMITER] && begins_backslash) {
     if(c == state->delim_open || c == state->delim_close) {
       ADVANCE;
@@ -503,48 +547,6 @@ qwlist_started_backslash:
       ADVANCE;
 
       TOKEN(TOKEN_QUOTELIKE_END);
-    }
-  }
-
-  if(valid_symbols[TOKEN_POD]) {
-    int column = lexer->get_column(lexer);
-    if(column == 0 && c == '=') {
-      DEBUG("POD started...\n", 0);
-
-      /* Keep going until the linefeed after a line beginning `=cut` */
-      static const char *cut_marker = "=cut";
-      int stage = -1;
-
-      while(!lexer->eof(lexer)) {
-        if(c == '\r')
-          ; /* ignore */
-        else if(stage < 1 && c == '\n')
-          stage = 0;
-        else if(stage >= 0 && stage < 4 && c == cut_marker[stage])
-          stage++;
-        else if(stage == 4 && (c == ' ' || c == '\t'))
-          stage = 5;
-        else if(stage == 4 && c == '\n')
-          stage = 6;
-        else
-          stage = -1;
-
-        if(stage > 4)
-          break;
-
-        ADVANCE;
-        c = lexer->lookahead;
-      }
-      if(stage < 6)
-        while(!lexer->eof(lexer)) {
-          if(c == '\n')
-            break;
-
-          ADVANCE;
-          c = lexer->lookahead;
-        }
-      /* If we got this far then either we reached stage 6, or we're at EOF */
-      TOKEN(TOKEN_POD);
     }
   }
 
