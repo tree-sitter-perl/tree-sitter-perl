@@ -48,3 +48,6 @@ int($num);
 shift @arr;
 # <- function.builtin
 #     ^ variable.array
+keys %hash
+# <- function.builtin
+#    ^ variable.hash

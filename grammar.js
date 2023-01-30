@@ -59,6 +59,8 @@ module.exports = grammar({
     $._PERLY_SEMICOLON,
     $._PERLY_BRACE_OPEN,
     $._HASHBRACK,
+    $._PERLY_PERCENT,
+    $._MULOP,
     /* immediates */
     $._quotelike_end,
     $._q_string_content,
@@ -475,7 +477,7 @@ module.exports = grammar({
 
     scalar:   $ => seq('$',  $._indirob),
     array:    $ => seq('@',  $._indirob),
-    hash:     $ => seq('%',  $._indirob),
+    hash:     $ => seq($._PERLY_PERCENT, $._indirob),
     arraylen: $ => seq('$#', $._indirob),
     // perly.y calls this `star`
     glob:     $ => seq('*',  $._indirob),
@@ -527,7 +529,9 @@ module.exports = grammar({
     _BITANDOP: $ => '&', // TODO: also &. when enabled
     _SHIFTOP: $ => choice('<<', '>>'),
     _ADDOP: $ => choice('+', '-', '.'),
-    _MULOP: $ => choice('*', '/', '%', 'x'),
+    /* _MULOP is external; is roughly choice('*', '/', '%', 'x')
+     * but with logic to distinguish '%' here from %hash
+     */
     _POWOP: $ => '**',
     _CHEQOP: $ => choice('==', '!=', 'eq', 'ne'),
     _CHRELOP: $ => choice('<', '<=', '>=', '>', 'lt', 'le', 'ge', 'gt'),

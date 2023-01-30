@@ -25,6 +25,8 @@ enum TokenType {
   PERLY_SEMICOLON,
   PERLY_BRACE_OPEN,
   TOKEN_HASHBRACK,
+  PERLY_PERCENT,
+  TOKEN_MULOP,
   /* immediates */
   TOKEN_QUOTELIKE_END,
   TOKEN_Q_STRING_CONTENT,
@@ -225,7 +227,7 @@ bool tree_sitter_perl_external_scanner_scan(
       break;
     }
 
-  if(allow_identalike || valid_symbols[PERLY_SEMICOLON]);
+  if(allow_identalike || valid_symbols[PERLY_SEMICOLON] || valid_symbols[TOKEN_MULOP]);
     skip_whitespace(lexer);
 
   c = lexer->lookahead;
@@ -255,6 +257,50 @@ bool tree_sitter_perl_external_scanner_scan(
     }
     else {
       TOKEN(TOKEN_HASHBRACK);
+    }
+  }
+
+  /* Check PERLY_PERCENT before TOKEN_MULOP so that e.g.
+   *    keys %hash
+   * parses as    FUNC1OP (HASH = PERLY_PERCENT BAREWORD)
+   * rather than  FUNC1OP  MULOP  BAREWORD
+   */
+  if(valid_symbols[PERLY_PERCENT]) {
+    if(c == '%') {
+      lexer->advance(lexer, false);
+      TOKEN(PERLY_PERCENT);
+    }
+  }
+
+  if(valid_symbols[TOKEN_MULOP]) {
+    switch(c) {
+      case '*':
+        lexer->advance(lexer, false);
+        if(lexer->lookahead == '*')
+          /* `**` is not a MULOP */
+          return false;
+        lexer->advance(lexer, false);
+
+        TOKEN(TOKEN_MULOP);
+
+      case '/':
+        lexer->advance(lexer, false);
+        if(lexer->lookahead == '/')
+          /* `//` is not a MULOP */
+          return false;
+        lexer->advance(lexer, false);
+
+        TOKEN(TOKEN_MULOP);
+
+      case 'x':
+        lexer->advance(lexer, false);
+
+        TOKEN(TOKEN_MULOP);
+
+      case '%':
+        lexer->advance(lexer, false);
+
+        TOKEN(TOKEN_MULOP);
     }
   }
 
