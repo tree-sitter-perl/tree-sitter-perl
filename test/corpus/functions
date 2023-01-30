@@ -107,6 +107,7 @@ int;
 int();
 int $x, int $y;
 shift @arr;
+keys %hash;
 --------------------------------------------------------------------------------
 
 (source_file
@@ -123,4 +124,6 @@ shift @arr;
       (func1op_call_expression (func1op) (scalar))
       (func1op_call_expression (func1op) (scalar))))
   (expression_statement
-    (func1op_call_expression (func1op) (array))))
+    (func1op_call_expression (func1op) (array)))
+  (expression_statement
+    (func1op_call_expression (func1op) (hash))))

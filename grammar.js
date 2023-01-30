@@ -479,7 +479,7 @@ module.exports = grammar({
 
     scalar:   $ => seq('$',  $._indirob),
     array:    $ => seq('@',  $._indirob),
-    hash:     $ => seq('%',  $._indirob),
+    hash:     $ => seq(token(prec(2, '%')), $._indirob),
     arraylen: $ => seq('$#', $._indirob),
     // perly.y calls this `star`
     glob:     $ => seq('*',  $._indirob),
