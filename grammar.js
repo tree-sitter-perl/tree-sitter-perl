@@ -70,6 +70,8 @@ module.exports = grammar({
     $._gobbled_content,
     $.attribute_value,
     $.prototype_or_signature,
+    /* error condition must always be last; we don't use this in the grammar */
+    $._ERROR
   ],
   extras: $ => [
     /\s|\\\r?\n/,
