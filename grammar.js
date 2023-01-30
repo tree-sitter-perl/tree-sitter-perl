@@ -473,7 +473,6 @@ module.exports = grammar({
       $._bareword,
       $.scalar,
       $.block,
-      /* TODO: privateref */
     ),
 
     bareword: $ => $._bareword,
