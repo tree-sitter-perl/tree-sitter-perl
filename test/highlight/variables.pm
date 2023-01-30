@@ -58,3 +58,9 @@ $aref->[ 123 ]{ 456 }[ 789 ];
 #                    ^ variable.array
 #                      ^^^ number
 #                          ^ variable.array
+$1;
+# <- variable.scalar
+$^X;
+# <- variable.scalar
+$!;
+# <- variable.scalar
