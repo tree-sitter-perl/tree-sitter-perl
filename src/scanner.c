@@ -36,6 +36,8 @@ enum TokenType {
   TOKEN_GOBBLED_CONTENT,
   TOKEN_ATTRIBUTE_VALUE,
   TOKEN_PROTOTYPE_OR_SIGNATURE,
+  /* error condition is always last */
+  TOKEN_ERROR
 };
 
 struct LexerState {
@@ -172,9 +174,7 @@ bool tree_sitter_perl_external_scanner_scan(
 ) {
   struct LexerState *state = payload;
 
-  // The only time we'd ever be looking for both BEGIN and END is during an error
-  // condition. Abort in that case
-  bool is_ERROR = valid_symbols[TOKEN_Q_STRING_BEGIN] && valid_symbols[TOKEN_QUOTELIKE_END];
+  bool is_ERROR = valid_symbols[TOKEN_ERROR];
 
   if(!is_ERROR && valid_symbols[TOKEN_GOBBLED_CONTENT]) {
     while (!lexer->eof(lexer)) 
