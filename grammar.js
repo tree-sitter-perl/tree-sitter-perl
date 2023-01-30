@@ -84,7 +84,6 @@ module.exports = grammar({
   ],
   conflicts: $ => [
     [ $.preinc_expression, $.postinc_expression ],
-    [ $._range_expression ],
   ],
   rules: {
     source_file: $ => stmtseq($),
@@ -345,7 +344,7 @@ module.exports = grammar({
     // TODO - get support for prec.nonassoc upstream b/c it really doesn't work to emulate
     // it
     _range_expression: $ => 
-      prec(TERMPREC.DOTDOT,        binop($._DOTDOT, $._term)),
+      prec.left(TERMPREC.DOTDOT,        binop($._DOTDOT, $._term)),
 
 
     // perl.y calls this `termeqop`
