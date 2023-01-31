@@ -185,12 +185,14 @@ module.exports = grammar({
       $.postfix_while_expression,
       $.postfix_until_expression,
       $.postfix_for_expression,
+      $.yadayada,
     ),
     postfix_if_expression:     $ => seq($._expr, 'if',     field('condition', $._expr)),
     postfix_unless_expression: $ => seq($._expr, 'unless', field('condition', $._expr)),
     postfix_while_expression:  $ => seq($._expr, 'while',  field('condition', $._expr)),
     postfix_until_expression:  $ => seq($._expr, 'until',  field('condition', $._expr)),
     postfix_for_expression:    $ => seq($._expr, $._KW_FOR, field('list', $._expr)),
+    yadayada: $ => '...',
 
     _else: $ => choice($.else, $.elsif),
     else: $ => seq('else', field('block', $.block)),
@@ -328,7 +330,7 @@ module.exports = grammar({
 
     // perly.y calls this `termbinop`
     binary_expression: $ => choice(
-      // prec(2, DOTDOT,
+      $._range_expression,
       prec.left(TERMPREC.OROR,     binop($._OROR_DORDOR, $._term)),
       prec.left(TERMPREC.ANDAND,   binop($._ANDAND, $._term)),
       prec.left(TERMPREC.BITOROP,  binop($._BITOROP, $._term)),
@@ -339,6 +341,11 @@ module.exports = grammar({
       // prec.left(10, MATCHOP,
       prec.right(TERMPREC.POWOP,   binop($._POWOP, $._term)),
     ),
+    // TODO - get support for prec.nonassoc upstream b/c it really doesn't work to emulate
+    // it
+    _range_expression: $ => 
+      prec.left(TERMPREC.DOTDOT,        binop($._DOTDOT, $._term)),
+
 
     // perl.y calls this `termeqop`
     equality_expression: $ =>
@@ -509,6 +516,7 @@ module.exports = grammar({
       '<<=', '>>=',
       '&&=', '||=', '//=',
     ),
+    _DOTDOT: $ => choice('..', '...'),
     _OROR_DORDOR: $ => choice('||', '\/\/'),
     _ANDAND: $ => '&&',
     _BITOROP: $ => '|', // TODO also |. when enabled
