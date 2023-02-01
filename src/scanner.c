@@ -323,7 +323,7 @@ bool tree_sitter_perl_external_scanner_scan(
       else
         TOKEN(TOKEN_QQ_STRING_BEGIN);
     }
-    if(lexer->lookahead == '\'') {
+    if(ident_len == 0 && lexer->lookahead == '\'') {
       ADVANCE;
 
       state->delim_open = 0;
@@ -332,7 +332,7 @@ bool tree_sitter_perl_external_scanner_scan(
 
       TOKEN(TOKEN_Q_STRING_BEGIN);
     }
-    if(lexer->lookahead == '"') {
+    if(ident_len == 0 && lexer->lookahead == '"') {
       ADVANCE;
 
       state->delim_open = 0;
@@ -586,5 +586,6 @@ qwlist_started_backslash:
     TOKEN(TOKEN_PROTOTYPE_OR_SIGNATURE);
   }
 
+  DEBUG("Did not lex any token\n", 0);
   return false;
 }
