@@ -59,8 +59,6 @@ module.exports = grammar({
     $._PERLY_SEMICOLON,
     $._PERLY_BRACE_OPEN,
     $._HASHBRACK,
-    $._PERLY_PERCENT,
-    $._MULOPOly,
     /* immediates */
     $._quotelike_end,
     $._q_string_content,
