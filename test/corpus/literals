@@ -82,7 +82,8 @@ BAREWORD"string"
 --------------------------------------------------------------------------------
 
 (source_file
-  (ERROR) (expression_statement (interpolated_string_literal)))
+  (ERROR)
+  (expression_statement (interpolated_string_literal)))
 ================================================================================
 qq() strings
 ================================================================================

@@ -53,8 +53,8 @@ module.exports = grammar({
   externals: $ => [
     /* ident-alikes */
     /* non-ident tokens */
-    $._saw_apostrophe,
-    $._saw_double_quote,
+    $._apostrophe,
+    $._double_quote,
     $._PERLY_SEMICOLON,
     $._PERLY_BRACE_OPEN,
     $._HASHBRACK,
@@ -585,7 +585,7 @@ module.exports = grammar({
     _q_string: $ => seq(
       choice(
         seq('q', $._quotelike_begin),
-        seq("'", $._saw_apostrophe)
+        $._apostrophe
       ),
       repeat(choice(
         $._q_string_content,
@@ -597,7 +597,7 @@ module.exports = grammar({
     interpolated_string_literal: $ => seq(
       choice(
         seq('qq', $._quotelike_begin),
-        seq('"', $._saw_double_quote)
+        $._double_quote
       ),
       repeat(choice(
         $._qq_string_content,
