@@ -75,6 +75,15 @@ q(a (string) here);
   (expression_statement (interpolated_string_literal (escape_sequence)))
   (expression_statement (interpolated_string_literal (escape_sequence))))
 ================================================================================
+"" strings - no runaway barewords (fix when ambiguous funcs hit)
+================================================================================
+BAREWORD"string"
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (ERROR) (expression_statement (interpolated_string_literal)))
+================================================================================
 qq() strings
 ================================================================================
 qq(hello);
