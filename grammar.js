@@ -52,14 +52,14 @@ module.exports = grammar({
   ],
   externals: $ => [
     /* ident-alikes */
-    $._q_string_begin,
-    $._qq_string_begin,
-    $._qw_list_begin,
     /* non-ident tokens */
+    $._saw_apostrophe,
+    $._saw_double_quote,
     $._PERLY_SEMICOLON,
     $._PERLY_BRACE_OPEN,
     $._HASHBRACK,
     /* immediates */
+    $._quotelike_begin,
     $._quotelike_end,
     $._q_string_content,
     $._qq_string_content,
@@ -583,7 +583,10 @@ module.exports = grammar({
 
     string_literal: $ => choice($._q_string),
     _q_string: $ => seq(
-      $._q_string_begin,
+      choice(
+        seq('q', $._quotelike_begin),
+        seq("'", $._saw_apostrophe)
+      ),
       repeat(choice(
         $._q_string_content,
         $.escape_sequence,
@@ -592,7 +595,10 @@ module.exports = grammar({
       $._quotelike_end
     ),
     interpolated_string_literal: $ => seq(
-      $._qq_string_begin,
+      choice(
+        seq('qq', $._quotelike_begin),
+        seq('"', $._saw_double_quote)
+      ),
       repeat(choice(
         $._qq_string_content,
         $.escape_sequence,
@@ -607,7 +613,8 @@ module.exports = grammar({
     ),
 
     quoted_word_list: $ => seq(
-      $._qw_list_begin,
+      'qw',
+      $._quotelike_begin,
       repeat(choice($._qw_list_content, $.escape_sequence, $.escaped_delimiter)),
       $._quotelike_end
     ),
