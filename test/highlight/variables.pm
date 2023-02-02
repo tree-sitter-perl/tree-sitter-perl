@@ -16,6 +16,9 @@ my ($x, undef, $z);
 our $PackageVar;
 # <- keyword
 #   ^ variable.scalar
+my $var :lock;
+# <- keyword
+#        ^ decorator
 $sref->$*;
 # <- variable.scalar
 #    ^^^^ variable.scalar
