@@ -58,6 +58,20 @@ my %h = (6, 7);
   (expression_statement
     (assignment_expression (variable_declaration (hash)) (list_expression (number) (number)))))
 ================================================================================
+variable declarations with attributes
+================================================================================
+my $s :shared;
+my @a :lock;
+my ($S, @A, %h) :MyAttr(foo);
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement
+    (variable_declaration (scalar) (attrlist (attribute (attribute_name)))))
+  (expression_statement
+    (variable_declaration (array) (attrlist (attribute (attribute_name)))))
+  (expression_statement
+    (variable_declaration (scalar) (array) (hash) (attrlist (attribute (attribute_name) (attribute_value))))))
+================================================================================
 array elements
 ================================================================================
 $a[123];

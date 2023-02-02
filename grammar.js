@@ -401,12 +401,16 @@ module.exports = grammar({
       seq('do', $.block),
     ),
 
-    variable_declaration: $ =>
-      seq(choice('my', 'our'), choice(
-        field('variable', $.scalar),
-        field('variable', $.array),
-        field('variable', $.hash),
-        field('variables', $._paren_list_of_variables))),
+    variable_declaration: $ => prec.left(TERMPREC.QUESTION_MARK+1,
+      seq(
+        choice('my', 'our'),
+        choice(
+          field('variable', $.scalar),
+          field('variable', $.array),
+          field('variable', $.hash),
+          field('variables', $._paren_list_of_variables)),
+        optseq(':', optional(field('attributes', $.attrlist))))
+    ),
     localization_expression: $ =>
       seq('local', choice(
         field('variable', $.scalar),
@@ -490,10 +494,10 @@ module.exports = grammar({
 
     _ident_special: $ => /[0-9]+|\^[A-Z]|./,
 
-    attrlist: $ => seq(
+    attrlist: $ => prec.left(0, seq(
       $.attribute,
       repeat(seq(optional(':'), $.attribute))
-    ),
+    )),
     attribute: $ => seq(
       field('name', $.attribute_name),
       field('value', optional($.attribute_value))
