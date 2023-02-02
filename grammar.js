@@ -301,15 +301,10 @@ module.exports = grammar({
        */
       $.require_expression,
       /* UNIOPSUB
-       * UNIOPSUB term
-       * FUNC0
-       * FUNC0 '(' ')'
-       * FUNC0OP
-       * FUNC0OP '(' ')'
-       * FUNC1 '(' ')'
-       * FUNC1 '(' expr ')'
-       * PMFUNC
-       */
+       * UNIOPSUB term */
+      $.func0op_call_expression,
+      $.func1op_call_expression,
+      /* PMFUNC */
       $.bareword,
       $._listop,
 
@@ -433,6 +428,15 @@ module.exports = grammar({
     require_expression: $ =>
       prec.left(TERMPREC.REQUIRE, seq('require', optional($._term))),
 
+    func0op_call_expression: $ =>
+      seq(field('function', $.func0op), optseq('(', ')')),
+
+    func1op_call_expression: $ =>
+      prec.left(TERMPREC.UNOP, seq(
+        field('function', $.func1op),
+        choice(optseq('(', optional($._expr), ')'), $._term),
+      )),
+
     loopex_expression: $ =>
       prec.left(TERMPREC.LOOPEX, seq(field('loopex', $._LOOPEX), optional($._term))),
     goto_expression: $ =>
@@ -471,7 +475,7 @@ module.exports = grammar({
 
     scalar:   $ => seq('$',  $._indirob),
     array:    $ => seq('@',  $._indirob),
-    hash:     $ => seq('%',  $._indirob),
+    hash:     $ => seq(token(prec(2, '%')), $._indirob),
     arraylen: $ => seq('$#', $._indirob),
     // perly.y calls this `star`
     glob:     $ => seq('*',  $._indirob),
@@ -484,11 +488,6 @@ module.exports = grammar({
       $.scalar,
       $.block,
     ),
-
-    bareword: $ => $._bareword,
-    _bareword: $ => /[a-zA-Z_]\w*(?:::[a-zA-Z_]\w*)*/,  // TODO: unicode
-
-    _ident_special: $ => /[0-9]+|\^[A-Z]|./,
 
     attrlist: $ => seq(
       $.attribute,
@@ -538,6 +537,30 @@ module.exports = grammar({
     _LOOPEX: $ => choice('last', 'next', 'redo'),
 
     _PHASE_NAME: $ => choice('BEGIN', 'INIT', 'CHECK', 'UNITCHECK', 'END'),
+
+    // Anything toke.c calls FUN0 or FUN0OP; the distinction does not matter to us
+    func0op: $ => choice(
+      '__FILE__', '__LINE__', '__PACKAGE__', '__SUB__',
+      'break', 'fork', 'getppid', 'time', 'times', 'wait', 'wantarray',
+      /* TODO: all the end*ent, get*ent, set*ent, etc... */
+    ),
+
+    // Anything toke.c calls FUN1 or UNIOP; the distinction does not matter to us
+    func1op: $ => choice(
+      // UNI
+      'abs', 'alarm', 'chop', 'chdir', 'close', 'closedir', 'caller', 'chomp',
+      'chr', 'cos', 'chroot', 'defined', 'delete', 'dbmclose', 'exists', 'exit',
+      'eof', 'exp', 'each', 'fc', 'fileno', 'gmtime', 'getc', 'getpgrp',
+      'getprotobyname', 'getpwname', 'getpwuid', 'getpeername', 'getnetbyname',
+      'getsockname', 'getgrnam', 'getgrgid', 'hex', 'int', 'keys', 'lc',
+      'lcfirst', 'length', 'localtime', 'log', 'lock', 'lstat', 'oct', 'ord',
+      'prototype', 'pop', 'pos', 'quotemeta', 'reset', 'rand', 'rmdir',
+      'readdir', 'readline', 'readpipe', 'rewinddir', 'readlink', 'ref',
+      'scalar', 'shift', 'sin', 'sleep', 'sqrt', 'srand', 'stat', 'study',
+      'tell', 'telldir', 'tied', 'uc', 'ucfirst', 'untie', 'undef', 'umask',
+      'values', 'write',
+      /* TODO: all the set*ent */
+    ),
 
     /****
      * Misc bits
@@ -615,5 +638,10 @@ module.exports = grammar({
     package: $ => $._bareword,
     _version: $ => prec(1, choice($.number, $.version)),
     version: $ => /v[0-9]+(?:\.[0-9]+)*/,
+    // bareword is at the very end b/c the lexer prefers tokens defined earlier in the grammar 
+    bareword: $ => $._bareword,
+    _bareword: $ => /[a-zA-Z_]\w*(?:::[a-zA-Z_]\w*)*/,  // TODO: unicode
+
+    _ident_special: $ => /[0-9]+|\^[A-Z]|./,
   }
 })
