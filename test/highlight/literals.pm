@@ -71,3 +71,8 @@ qw| double escape \\|;
 qw/ hello \/ goodbye /;
 # <- string
 #         ^^ string.special
+q # this is a comment
+#  ^ comment
+#<- string
+  (string content);
+#  ^ string

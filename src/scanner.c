@@ -174,6 +174,7 @@ bool tree_sitter_perl_external_scanner_scan(
   struct LexerState *state = payload;
 
   bool is_ERROR = valid_symbols[TOKEN_ERROR];
+  bool skipped_whitespace = false;
 
   if(!is_ERROR && valid_symbols[TOKEN_GOBBLED_CONTENT]) {
     while (!lexer->eof(lexer)) 
@@ -226,10 +227,11 @@ bool tree_sitter_perl_external_scanner_scan(
     }
   */
 
-  if(allow_identalike || valid_symbols[PERLY_SEMICOLON]);
+  if (iswspace(c)) {
+    skipped_whitespace = true;
     skip_whitespace(lexer);
-
-  c = lexer->lookahead;
+    c = lexer->lookahead;
+  }
 
   if(valid_symbols[PERLY_SEMICOLON]) {
     if(c == ';') {
@@ -364,7 +366,9 @@ bool tree_sitter_perl_external_scanner_scan(
 
   /* quotelike_begin is a zero-width assert, so it won't help in error recovery */
   if(valid_symbols[TOKEN_QUOTELIKE_BEGIN]) {
-      skip_whitespace(lexer);
+      if (skipped_whitespace && c == '#')
+        return false;
+
       int delim_close = close_for_open(lexer->lookahead);
       if(delim_close) {
         state->delim_open  = lexer->lookahead;
