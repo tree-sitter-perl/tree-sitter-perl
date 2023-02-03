@@ -110,7 +110,7 @@ module.exports = grammar({
       $.until_statement,
       $.cstyle_for_statement,
       $.for_statement,
-      $.block,
+      alias($.block, $.block_statement),
       seq($.expression_statement, $._PERLY_SEMICOLON),
       ';', // this is not _PERLY_SEMICOLON so as not to generate an infinite stream of them
     ),

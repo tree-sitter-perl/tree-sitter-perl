@@ -259,6 +259,6 @@ bare blocks
 --------------------------------------------------------------------------------
 
 (source_file
-  (block (expression_statement (number)))
-  (block (expression_statement (number)))
-  (block (block (expression_statement (number)))))
+  (block_statement (expression_statement (number)))
+  (block_statement (expression_statement (number)))
+  (block_statement (block_statement (expression_statement (number)))))
