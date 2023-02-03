@@ -563,6 +563,8 @@ module.exports = grammar({
       'scalar', 'shift', 'sin', 'sleep', 'sqrt', 'srand', 'stat', 'study',
       'tell', 'telldir', 'tied', 'uc', 'ucfirst', 'untie', 'undef', 'umask',
       'values', 'write',
+      // filetest operators
+      ...("rwxoRWXOezsfdlpSbctugkTBMAC".split("").map(x => "-"+x))
       /* TODO: all the set*ent */
     ),
 

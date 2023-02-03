@@ -127,3 +127,18 @@ keys %hash;
     (func1op_call_expression (func1op) (array)))
   (expression_statement
     (func1op_call_expression (func1op) (hash))))
+================================================================================
+Filetest operators
+================================================================================
+-r "path";
+-w $path;
+-x _;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (func1op_call_expression (func1op) (interpolated_string_literal)))
+  (expression_statement
+    (func1op_call_expression (func1op) (scalar)))
+  (expression_statement
+    (func1op_call_expression (func1op) (bareword))))
