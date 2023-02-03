@@ -11,6 +11,7 @@
  (until_statement)
  (for_statement)
  (cstyle_for_statement)
+ (block_statement)
  (phaser_statement)] @fold
 
 (anonymous_subroutine_expression) @fold
