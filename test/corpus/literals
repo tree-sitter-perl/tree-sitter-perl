@@ -52,9 +52,11 @@ q() strings
 q(hello);
 q(a 'string');
 q(a (string) here);
+q"literal $without interpolation";
 --------------------------------------------------------------------------------
 
 (source_file
+  (expression_statement (string_literal))
   (expression_statement (string_literal))
   (expression_statement (string_literal))
   (expression_statement (string_literal)))
@@ -115,11 +117,13 @@ Interpolation in "" strings
 ================================================================================
 "with $scalar";
 "with @array";
+qq'with $scalar in single-quotes';
 --------------------------------------------------------------------------------
 
 (source_file
   (expression_statement (interpolated_string_literal (scalar)))
-  (expression_statement (interpolated_string_literal (array))))
+  (expression_statement (interpolated_string_literal (array)))
+  (expression_statement (interpolated_string_literal (scalar))))
 ================================================================================
 qw() lists
 ================================================================================
