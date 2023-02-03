@@ -493,11 +493,6 @@ module.exports = grammar({
       $.block,
     ),
 
-    bareword: $ => $._bareword,
-    _bareword: $ => /[a-zA-Z_]\w*(?:::[a-zA-Z_]\w*)*/,  // TODO: unicode
-
-    _ident_special: $ => /[0-9]+|\^[A-Z]|./,
-
     attrlist: $ => prec.left(0, seq(
       $.attribute,
       repeat(seq(optional(':'), $.attribute))
@@ -654,5 +649,10 @@ module.exports = grammar({
     package: $ => $._bareword,
     _version: $ => prec(1, choice($.number, $.version)),
     version: $ => /v[0-9]+(?:\.[0-9]+)*/,
+    // bareword is at the very end b/c the lexer prefers tokens defined earlier in the grammar 
+    bareword: $ => $._bareword,
+    _bareword: $ => /[a-zA-Z_]\w*(?:::[a-zA-Z_]\w*)*/,  // TODO: unicode
+
+    _ident_special: $ => /[0-9]+|\^[A-Z]|./,
   }
 })

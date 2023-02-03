@@ -50,6 +50,9 @@ use 5.014;
 use v5.14;
 # <- keyword
 #   ^ number
+use v5;
+# <- keyword
+#   ^ number
 use strict;
 # <- keyword
 #   ^ type
