@@ -82,7 +82,8 @@ BAREWORD"string"
 --------------------------------------------------------------------------------
 
 (source_file
-  (ERROR) (expression_statement (interpolated_string_literal)))
+  (ERROR)
+  (expression_statement (interpolated_string_literal)))
 ================================================================================
 qq() strings
 ================================================================================
@@ -95,6 +96,20 @@ qq(a (string) here);
   (expression_statement (interpolated_string_literal))
   (expression_statement (interpolated_string_literal))
   (expression_statement (interpolated_string_literal)))
+================================================================================
+quotelike strings - tricky delimeter
+================================================================================
+q#hello#;
+q # this is a comment
+   (hello);
+# another comment so this can fail properly
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement (string_literal))
+  (expression_statement (string_literal (comment)))
+  (comment)
+)
+
 ================================================================================
 Interpolation in "" strings
 ================================================================================

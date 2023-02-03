@@ -17,15 +17,14 @@
 #include <wctype.h>
 
 enum TokenType {
-  /* ident-alikes */
-  TOKEN_Q_STRING_BEGIN,
-  TOKEN_QQ_STRING_BEGIN,
-  TOKEN_QW_LIST_BEGIN,
   /* non-ident tokens */
+  TOKEN_APOSTROPHE,
+  TOKEN_DOUBLE_QUOTE,
   PERLY_SEMICOLON,
   PERLY_BRACE_OPEN,
   TOKEN_HASHBRACK,
   /* immediates */
+  TOKEN_QUOTELIKE_BEGIN,
   TOKEN_QUOTELIKE_END,
   TOKEN_Q_STRING_CONTENT,
   TOKEN_QQ_STRING_CONTENT,
@@ -175,6 +174,7 @@ bool tree_sitter_perl_external_scanner_scan(
   struct LexerState *state = payload;
 
   bool is_ERROR = valid_symbols[TOKEN_ERROR];
+  bool skipped_whitespace = false;
 
   if(!is_ERROR && valid_symbols[TOKEN_GOBBLED_CONTENT]) {
     while (!lexer->eof(lexer)) 
@@ -219,16 +219,19 @@ bool tree_sitter_perl_external_scanner_scan(
   }
 
   bool allow_identalike = false;
+  /* disabling for now, b/c we moved identalikes into the DSL
   for(int sym = 0; sym <= TOKEN_Q_STRING_BEGIN; sym++)
     if(valid_symbols[sym]) {
       allow_identalike = true;
       break;
     }
+  */
 
-  if(allow_identalike || valid_symbols[PERLY_SEMICOLON]);
+  if (iswspace(c)) {
+    skipped_whitespace = true;
     skip_whitespace(lexer);
-
-  c = lexer->lookahead;
+    c = lexer->lookahead;
+  }
 
   if(valid_symbols[PERLY_SEMICOLON]) {
     if(c == ';') {
@@ -297,72 +300,21 @@ bool tree_sitter_perl_external_scanner_scan(
     c = lexer->lookahead;
   }
 
-  if(valid_symbols[TOKEN_Q_STRING_BEGIN]) {
-    /* Always expecting TOKEN_QQ_STRING_BEGIN as well */
-    if(ident_len == 1 && streq(ident, "q") ||
-        ident_len == 2 && streq(ident, "qq")) {
-      skip_whitespace(lexer);
+  if(valid_symbols[TOKEN_APOSTROPHE] && c == '\'') {
+    ADVANCE;
+    state->delim_open = 0;
+    state->delim_close = '\'';
+    state->delim_count = 0;
 
-      int delim_close = close_for_open(lexer->lookahead);
-      if(delim_close) {
-        state->delim_open  = lexer->lookahead;
-        state->delim_close = delim_close;
-      }
-      else {
-        state->delim_open  = 0;
-        state->delim_close = lexer->lookahead;
-      }
-      state->delim_count = 0;
-
-      ADVANCE;
-
-      DEBUG("Generic QSTRING open='%c' close='%c'\n", state->delim_open, state->delim_close);
-
-      if(ident_len == 1)
-        TOKEN(TOKEN_Q_STRING_BEGIN);
-      else
-        TOKEN(TOKEN_QQ_STRING_BEGIN);
-    }
-    if(ident_len == 0 && lexer->lookahead == '\'') {
-      ADVANCE;
-
-      state->delim_open = 0;
-      state->delim_close = '\'';
-      state->delim_count = 0;
-
-      TOKEN(TOKEN_Q_STRING_BEGIN);
-    }
-    if(ident_len == 0 && lexer->lookahead == '"') {
-      ADVANCE;
-
-      state->delim_open = 0;
-      state->delim_close = '"';
-      state->delim_count = 0;
-
-      TOKEN(TOKEN_QQ_STRING_BEGIN);
-    }
+    TOKEN(TOKEN_APOSTROPHE);
   }
-  if(valid_symbols[TOKEN_QW_LIST_BEGIN]) {
-    if(ident_len == 2 && streq(ident, "qw")) {
-      skip_whitespace(lexer);
+  if(valid_symbols[TOKEN_DOUBLE_QUOTE] && c == '"') {
+    ADVANCE;
+    state->delim_open = 0;
+    state->delim_close = '"';
+    state->delim_count = 0;
 
-      int delim_close = close_for_open(lexer->lookahead);
-      if(delim_close) {
-        state->delim_open  = lexer->lookahead;
-        state->delim_close = delim_close;
-      }
-      else {
-        state->delim_open  = 0;
-        state->delim_close = lexer->lookahead;
-      }
-      state->delim_count = 0;
-
-      ADVANCE;
-
-      DEBUG("QW LIST open='%c' close='%c'\n", state->delim_open, state->delim_close);
-
-      TOKEN(TOKEN_QW_LIST_BEGIN);
-    }
+    TOKEN(TOKEN_DOUBLE_QUOTE);
   }
 
   if(valid_symbols[TOKEN_POD]) {
@@ -411,6 +363,28 @@ bool tree_sitter_perl_external_scanner_scan(
    * for the remaining ones when in an error condition */
   if(is_ERROR)
     return false;
+
+  /* quotelike_begin is a zero-width assert, so it won't help in error recovery */
+  if(valid_symbols[TOKEN_QUOTELIKE_BEGIN]) {
+      if (skipped_whitespace && c == '#')
+        return false;
+
+      int delim_close = close_for_open(lexer->lookahead);
+      if(delim_close) {
+        state->delim_open  = lexer->lookahead;
+        state->delim_close = delim_close;
+      }
+      else {
+        state->delim_open  = 0;
+        state->delim_close = lexer->lookahead;
+      }
+      state->delim_count = 0;
+
+      ADVANCE;
+
+      DEBUG("Generic QSTRING open='%c' close='%c'\n", state->delim_open, state->delim_close);
+      TOKEN(TOKEN_QUOTELIKE_BEGIN);
+  }
 
   if(valid_symbols[TOKEN_ESCAPED_DELIMITER] && begins_backslash) {
     if(c == state->delim_open || c == state->delim_close) {
