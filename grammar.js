@@ -43,25 +43,31 @@ const unop_post = (op, term) =>
 const binop = (op, term) =>
   seq(field('left', term), field('operator', op), field('right', term));
 
-binop.nonassoc = (ops, term, error_marker) => 
+// TODO - uhhh, implement?
+const nonassoc_token = (name, rule) => {}
+binop.nonassoc = ($, op_name, term) => 
   seq(
     field('left', term),
-    field('operator', choice(...ops)),
+    field('operator', $[`${op_name}_begin`]),
     field('right', term),
     optseq(
-      token(prec(2, choice(...ops))),
-      error_marker
+      field('operator', $[`${op_name}_continue`]),
+      $._ERROR
     )
   );
 
-binop.listassoc = (ops, term) =>
+// the ordering of these tokens ensures that the continue variant always gets picked first
+const listassoc_token = (name, rule) => ({
+  [`${name}_begin`]: $ => rule,
+  [`${name}_continue`]: $ => prec(2, rule)
+})
+binop.listassoc = ($, op_name, term) =>
   seq(
     field('arg', term),
-    field('operator', choice(...ops)),
+    field('operator', $[`${op_name}_begin`]),
     field('arg', term),
     repeat(seq(
-      // we make each a token b/c otherwise the highlighter can't see them :(
-      field('operator', choice(...ops.map(o => token(prec(2, o))))),
+      field('operator', $[`${op_name}_continue`]),
       field('arg', term))
     ))
 
@@ -347,7 +353,7 @@ module.exports = grammar({
 
     // perly.y calls this `termbinop`
     binary_expression: $ => choice(
-      $._range_expression,
+      prec.right(TERMPREC.DOTDOT,  binop.nonassoc($, '_DOTDOT', $._term)),
       prec.left(TERMPREC.OROR,     binop($._OROR_DORDOR, $._term)),
       prec.left(TERMPREC.ANDAND,   binop($._ANDAND, $._term)),
       prec.left(TERMPREC.BITOROP,  binop($._BITOROP, $._term)),
@@ -358,23 +364,20 @@ module.exports = grammar({
       // prec.left(10, MATCHOP,
       prec.right(TERMPREC.POWOP,   binop($._POWOP, $._term)),
     ),
-    _range_expression: $ => 
-      prec.right(TERMPREC.DOTDOT,        binop.nonassoc(['..', '...'], $._term, $._ERROR)),
-
 
     // perl.y calls this `termeqop`
-    equality_expression: $ =>
+    equality_expression: $ => 
       prec.right(TERMPREC.CHEQOP, choice(
-        binop.listassoc(['==', '!=', 'eq', 'ne'], $._term),
-        binop.nonassoc(['<=>', 'cmp', '~~'], $._term, $._ERROR),
+        binop.listassoc($, '_CHEQOP', $._term),
+        binop.nonassoc($, '_NCEQOP', $._term),
       )
     ),
 
     // perly.y calls this `termrelop`
     relational_expression: $ =>
       prec.right(TERMPREC.CHRELOP, choice(
-        binop.listassoc([ '<', '<=', '>=', '>', 'lt', 'le', 'ge', 'gt' ], $._term),
-        binop.nonassoc(['isa'], $._term, $._ERROR),
+        binop.listassoc($, '_CHRELOP', $._term),
+        binop.nonassoc($, '_NCRELOP', $._term),
       )
     ),
 
@@ -548,11 +551,11 @@ module.exports = grammar({
     _MULOP: $ => choice('*', '/', '%', 'x'),
     _POWOP: $ => '**',
     // these are defined in-place, b/c we need to tweak w/ its precedence
-    // _DOTDOT:
-    // _CHEQOP:
-    // _CHRELOP: $ => 
-    // _NCEQOP:
-    // _NCRELOP: $ => 
+    ...nonassoc_token('_DOTDOT', choice('..', '...')),
+    ...listassoc_token('_CHEQOP', choice('==', '!=', 'eq', 'ne')),
+    ...listassoc_token('_CHRELOP', choice('<', '<=', '>=', '>', 'lt', 'le', 'ge', 'gt')),
+    ...nonassoc_token('_NCEQOP', choice('<=>', 'cmp', '~~')),
+    ...nonassoc_token('_NCRELOP', choice('isa')),
     _REFGEN: $ => '\\',
 
     _PERLY_COMMA: $ => choice(',', '=>'),
