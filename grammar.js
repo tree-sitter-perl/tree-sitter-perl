@@ -43,6 +43,8 @@ const unop_post = (op, term) =>
 const binop = (op, term) =>
   seq(field('left', term), field('operator', op), field('right', term));
 
+binop.nonassoc = (op, term, error_marker) => 
+  seq(field('left', term), field('operator', op), field('right', term), optseq(token(prec(2, op)), error_marker));
 const optseq = (...terms) => optional(seq(...terms));
 
 module.exports = grammar({
@@ -336,10 +338,8 @@ module.exports = grammar({
       // prec.left(10, MATCHOP,
       prec.right(TERMPREC.POWOP,   binop($._POWOP, $._term)),
     ),
-    // TODO - get support for prec.nonassoc upstream b/c it really doesn't work to emulate
-    // it
     _range_expression: $ => 
-      prec.left(TERMPREC.DOTDOT,        binop($._DOTDOT, $._term)),
+      prec.right(TERMPREC.DOTDOT,        binop.nonassoc(choice('..', '...'), $._term, $._ERROR)),
 
 
     // perl.y calls this `termeqop`
@@ -519,7 +519,8 @@ module.exports = grammar({
       '<<=', '>>=',
       '&&=', '||=', '//=',
     ),
-    _DOTDOT: $ => choice('..', '...'),
+    // this is defined in-place, b/c we need to tweak w/ its precedence
+    // _DOTDOT: $ => choice('..', '...'),
     _OROR_DORDOR: $ => choice('||', '\/\/'),
     _ANDAND: $ => '&&',
     _BITOROP: $ => '|', // TODO also |. when enabled

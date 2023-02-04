@@ -180,3 +180,11 @@ range ops
   (expression_statement (binary_expression (number) (number)))
   (expression_statement (binary_expression (number) (binary_expression (number) (number))))
   )
+================================================================================
+range ops - nonassoc
+================================================================================
+1 .. 2 .. 3;
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement (binary_expression (number) (number))) (ERROR (number))
+)
