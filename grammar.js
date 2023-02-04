@@ -43,11 +43,26 @@ const unop_post = (op, term) =>
 const binop = (op, term) =>
   seq(field('left', term), field('operator', op), field('right', term));
 
-binop.nonassoc = (op, term, error_marker) => 
-  seq(field('left', term), field('operator', token(op)), field('right', term), optseq(token(prec(2, op)), error_marker));
+binop.nonassoc = (ops, term, error_marker) => 
+  seq(
+    field('left', term),
+    field('operator', choice(...ops)),
+    field('right', term),
+    optseq(
+      choice(...ops.map(o => token(prec(2, o)))),
+      error_marker
+    )
+  );
 
-binop.listassoc = (op, term) =>
-  seq(field('arg', term), field('operator', token(op)), field('arg', term), repeat(seq(token(prec(2, op)), field('arg', term))))
+binop.listassoc = (ops, term) =>
+  seq(
+    field('arg', term),
+    field('operator', choice(...ops)),
+    field('arg', term),
+    repeat(seq(
+      field('operator', choice(...ops.map(o => token(prec(2, o))))),
+      field('arg', term))
+    ))
 
 const optseq = (...terms) => optional(seq(...terms));
 
@@ -343,22 +358,22 @@ module.exports = grammar({
       prec.right(TERMPREC.POWOP,   binop($._POWOP, $._term)),
     ),
     _range_expression: $ => 
-      prec.right(TERMPREC.DOTDOT,        binop.nonassoc(choice('..', '...'), $._term, $._ERROR)),
+      prec.right(TERMPREC.DOTDOT,        binop.nonassoc(['..', '...'], $._term, $._ERROR)),
 
 
     // perl.y calls this `termeqop`
     equality_expression: $ =>
       prec.right(TERMPREC.CHEQOP, choice(
-        binop.listassoc(choice('==', '!=', 'eq', 'ne'), $._term),
-        binop.nonassoc(choice('<=>', 'cmp', '~~'), $._term, $._ERROR),
+        binop.listassoc(['==', '!=', 'eq', 'ne'], $._term),
+        binop.nonassoc(['<=>', 'cmp', '~~'], $._term, $._ERROR),
       )
     ),
 
     // perly.y calls this `termrelop`
     relational_expression: $ =>
       prec.right(TERMPREC.CHRELOP, choice(
-        binop.listassoc(choice('<', '<=', '>=', '>', 'lt', 'le', 'ge', 'gt'), $._term),
-        binop.nonassoc(choice('isa'), $._term, $._ERROR),
+        binop.listassoc([ '<', '<=', '>=', '>', 'lt', 'le', 'ge', 'gt' ], $._term),
+        binop.nonassoc(['isa'], $._term, $._ERROR),
       )
     ),
 
