@@ -49,7 +49,7 @@ binop.nonassoc = (ops, term, error_marker) =>
     field('operator', choice(...ops)),
     field('right', term),
     optseq(
-      choice(...ops.map(o => token(prec(2, o)))),
+      token(prec(2, choice(...ops))),
       error_marker
     )
   );
@@ -60,6 +60,7 @@ binop.listassoc = (ops, term) =>
     field('operator', choice(...ops)),
     field('arg', term),
     repeat(seq(
+      // we make each a token b/c otherwise the highlighter can't see them :(
       field('operator', choice(...ops.map(o => token(prec(2, o))))),
       field('arg', term))
     ))
