@@ -35,6 +35,8 @@ enum TokenType {
   TOKEN_GOBBLED_CONTENT,
   TOKEN_ATTRIBUTE_VALUE,
   TOKEN_PROTOTYPE_OR_SIGNATURE,
+  /* zero-width */
+  TOKEN_NONASSOC,
   /* error condition is always last */
   TOKEN_ERROR
 };
@@ -363,6 +365,10 @@ bool tree_sitter_perl_external_scanner_scan(
    * for the remaining ones when in an error condition */
   if(is_ERROR)
     return false;
+
+  /* we use this to force tree-sitter to stay on the error branch of a nonassoc operator */
+  if(valid_symbols[TOKEN_NONASSOC])
+    TOKEN(TOKEN_NONASSOC);
 
   /* quotelike_begin is a zero-width assert, so it won't help in error recovery */
   if(valid_symbols[TOKEN_QUOTELIKE_BEGIN]) {

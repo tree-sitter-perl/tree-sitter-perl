@@ -43,8 +43,11 @@ const unop_post = (op, term) =>
 const binop = (op, term) =>
   seq(field('left', term), field('operator', op), field('right', term));
 
-// TODO - uhhh, implement?
-const nonassoc_token = (name, rule) => {}
+// we use normal precedence rules to get TS to try the continue branch first
+const special_assoc_token = (name, rule) => ({
+  [`${name}_begin`]: $ => rule,
+  [`${name}_continue`]: $ => prec(2, rule)
+})
 binop.nonassoc = ($, op_name, term) => 
   seq(
     field('left', term),
@@ -52,15 +55,11 @@ binop.nonassoc = ($, op_name, term) =>
     field('right', term),
     optseq(
       field('operator', $[`${op_name}_continue`]),
+      $._NONASSOC,
       $._ERROR
     )
   );
 
-// the ordering of these tokens ensures that the continue variant always gets picked first
-const listassoc_token = (name, rule) => ({
-  [`${name}_begin`]: $ => rule,
-  [`${name}_continue`]: $ => prec(2, rule)
-})
 binop.listassoc = ($, op_name, term) =>
   seq(
     field('arg', term),
@@ -98,6 +97,8 @@ module.exports = grammar({
     $._gobbled_content,
     $.attribute_value,
     $.prototype_or_signature,
+    /* zero-width */
+    $._NONASSOC,
     /* error condition must always be last; we don't use this in the grammar */
     $._ERROR
   ],
@@ -551,11 +552,11 @@ module.exports = grammar({
     _MULOP: $ => choice('*', '/', '%', 'x'),
     _POWOP: $ => '**',
     // these are defined in-place, b/c we need to tweak w/ its precedence
-    ...nonassoc_token('_DOTDOT', choice('..', '...')),
-    ...listassoc_token('_CHEQOP', choice('==', '!=', 'eq', 'ne')),
-    ...listassoc_token('_CHRELOP', choice('<', '<=', '>=', '>', 'lt', 'le', 'ge', 'gt')),
-    ...nonassoc_token('_NCEQOP', choice('<=>', 'cmp', '~~')),
-    ...nonassoc_token('_NCRELOP', choice('isa')),
+    ...special_assoc_token('_DOTDOT', choice('..', '...')),
+    ...special_assoc_token('_CHEQOP', choice('==', '!=', 'eq', 'ne')),
+    ...special_assoc_token('_CHRELOP', choice('<', '<=', '>=', '>', 'lt', 'le', 'ge', 'gt')),
+    ...special_assoc_token('_NCEQOP', choice('<=>', 'cmp', '~~')),
+    ...special_assoc_token('_NCRELOP', choice('isa')),
     _REFGEN: $ => '\\',
 
     _PERLY_COMMA: $ => choice(',', '=>'),
