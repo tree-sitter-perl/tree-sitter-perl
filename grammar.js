@@ -44,10 +44,10 @@ const binop = (op, term) =>
   seq(field('left', term), field('operator', op), field('right', term));
 
 binop.nonassoc = (op, term, error_marker) => 
-  seq(field('left', term), field('operator', op), field('right', term), optseq(token(prec(2, op)), error_marker));
+  seq(field('left', term), field('operator', token(op)), field('right', term), optseq(token(prec(2, op)), error_marker));
 
 binop.listassoc = (op, term) =>
-  seq(field('arg', term), field('operator', op), field('arg', term), optseq(token(prec(2, op)), field('arg', term)))
+  seq(field('arg', term), field('operator', token(op)), field('arg', term), repeat(seq(token(prec(2, op)), field('arg', term))))
 
 const optseq = (...terms) => optional(seq(...terms));
 
