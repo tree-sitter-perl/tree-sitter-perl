@@ -45,6 +45,10 @@ const binop = (op, term) =>
 
 binop.nonassoc = (op, term, error_marker) => 
   seq(field('left', term), field('operator', op), field('right', term), optseq(token(prec(2, op)), error_marker));
+
+binop.listassoc = (op, term) =>
+  seq(field('arg', term), field('operator', op), field('arg', term), optseq(token(prec(2, op)), field('arg', term)))
+
 const optseq = (...terms) => optional(seq(...terms));
 
 module.exports = grammar({
@@ -344,9 +348,9 @@ module.exports = grammar({
 
     // perl.y calls this `termeqop`
     equality_expression: $ =>
-      prec.left(TERMPREC.CHEQOP, choice(
-        seq($._term, $._CHEQOP, $._term), // TODO: chaining
-        seq($._term, $._NCEQOP, $._term),
+      prec.right(TERMPREC.CHEQOP, choice(
+        binop.listassoc(choice('==', '!=', 'eq', 'ne'), $._term),
+        binop.nonassoc(choice('<=>', 'cmp', '~~'), $._term, $._ERROR),
       )
     ),
 
@@ -529,9 +533,9 @@ module.exports = grammar({
     _ADDOP: $ => choice('+', '-', '.'),
     _MULOP: $ => choice('*', '/', '%', 'x'),
     _POWOP: $ => '**',
-    _CHEQOP: $ => choice('==', '!=', 'eq', 'ne'),
+    // _CHEQOP: $ => 
     _CHRELOP: $ => choice('<', '<=', '>=', '>', 'lt', 'le', 'ge', 'gt'),
-    _NCEQOP: $ => choice('<=>', 'cmp', '~~'),
+    // _NCEQOP: $ => 
     _NCRELOP: $ => choice('isa'),
     _REFGEN: $ => '\\',
 
