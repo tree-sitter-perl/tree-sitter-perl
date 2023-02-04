@@ -54,11 +54,13 @@ EXPR eq EXPR
 EXPR eq EXPR - list/non assoc
 ================================================================================
 12 eq 34 eq 9002;
+12 eq 34 eq 9002 eq 9004;
 12 cmp 34 cmp 56;
 --------------------------------------------------------------------------------
 
 (source_file
   (expression_statement (equality_expression (number) (number) (number)))
+  (expression_statement (equality_expression (number) (number) (number) (number)))
   (expression_statement (equality_expression (number) (number)))
   (ERROR (number))
   )

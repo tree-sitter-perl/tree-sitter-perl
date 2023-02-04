@@ -67,6 +67,7 @@ binop.listassoc = ($, op_name, term) =>
     field('arg', term),
     repeat(seq(
       field('operator', $[`${op_name}_continue`]),
+      $._NONASSOC,
       field('arg', term))
     ))
 
