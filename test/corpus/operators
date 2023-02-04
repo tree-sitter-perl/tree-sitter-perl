@@ -51,13 +51,16 @@ EXPR eq EXPR
   (expression_statement (equality_expression (number) (number)))
   (expression_statement (equality_expression (number) (number))))
 ================================================================================
-EXPR eq EXPR - listassoc
+EXPR eq EXPR - list/non assoc
 ================================================================================
 12 eq 34 eq 9002;
+12 cmp 34 cmp 56;
 --------------------------------------------------------------------------------
 
 (source_file
   (expression_statement (equality_expression (number) (number) (number)))
+  (expression_statement (equality_expression (number) (number)))
+  (ERROR (number))
   )
 ================================================================================
 EXPR < EXPR
@@ -75,6 +78,16 @@ EXPR < EXPR
   (expression_statement (relational_expression (number) (number)))
   (expression_statement (relational_expression (number) (number)))
   (expression_statement (relational_expression (number) (number))))
+================================================================================
+EXPR < EXPR - list/non assoc
+================================================================================
+12 < 34 > 99;
+12 isa 34 isa 56;
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement (relational_expression (number) (number) (number)))
+  (expression_statement (relational_expression (number) (number))) (ERROR (number))
+)
 ================================================================================
 EXPR << EXPR
 ================================================================================

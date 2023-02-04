@@ -356,9 +356,9 @@ module.exports = grammar({
 
     // perly.y calls this `termrelop`
     relational_expression: $ =>
-      prec.left(TERMPREC.CHRELOP, choice(
-        seq($._term, $._CHRELOP, $._term), // TODO: chaining
-        seq($._term, $._NCRELOP, $._term),
+      prec.right(TERMPREC.CHRELOP, choice(
+        binop.listassoc(choice('<', '<=', '>=', '>', 'lt', 'le', 'ge', 'gt'), $._term),
+        binop.nonassoc(choice('isa'), $._term, $._ERROR),
       )
     ),
 
@@ -523,8 +523,6 @@ module.exports = grammar({
       '<<=', '>>=',
       '&&=', '||=', '//=',
     ),
-    // this is defined in-place, b/c we need to tweak w/ its precedence
-    // _DOTDOT: $ => choice('..', '...'),
     _OROR_DORDOR: $ => choice('||', '\/\/'),
     _ANDAND: $ => '&&',
     _BITOROP: $ => '|', // TODO also |. when enabled
@@ -533,10 +531,12 @@ module.exports = grammar({
     _ADDOP: $ => choice('+', '-', '.'),
     _MULOP: $ => choice('*', '/', '%', 'x'),
     _POWOP: $ => '**',
-    // _CHEQOP: $ => 
-    _CHRELOP: $ => choice('<', '<=', '>=', '>', 'lt', 'le', 'ge', 'gt'),
-    // _NCEQOP: $ => 
-    _NCRELOP: $ => choice('isa'),
+    // these are defined in-place, b/c we need to tweak w/ its precedence
+    // _DOTDOT:
+    // _CHEQOP:
+    // _CHRELOP: $ => 
+    // _NCEQOP:
+    // _NCRELOP: $ => 
     _REFGEN: $ => '\\',
 
     _PERLY_COMMA: $ => choice(',', '=>'),
