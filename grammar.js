@@ -48,13 +48,13 @@ const special_assoc_token = (name, rule) => ({
   [`${name}_continue`]: $ => prec(2, rule),
   [`${name}_begin`]: $ => rule,
 })
-binop.nonassoc = ($, op_name, term) => 
+binop.nonassoc = ($, op, term) => 
   seq(
     field('left', term),
-    field('operator', $[`${op_name}_begin`]),
+    field('operator', op),
     field('right', term),
     optseq(
-      field('operator', $[`${op_name}_continue`]),
+      field('operator', op),
       $._NONASSOC,
       $._ERROR
     )
@@ -355,7 +355,7 @@ module.exports = grammar({
 
     // perly.y calls this `termbinop`
     binary_expression: $ => choice(
-      prec.right(TERMPREC.DOTDOT,  binop.nonassoc($, '_DOTDOT', $._term)),
+      prec.right(TERMPREC.DOTDOT,  binop.nonassoc($, $._DOTDOT, $._term)),
       prec.left(TERMPREC.OROR,     binop($._OROR_DORDOR, $._term)),
       prec.left(TERMPREC.ANDAND,   binop($._ANDAND, $._term)),
       prec.left(TERMPREC.BITOROP,  binop($._BITOROP, $._term)),
@@ -371,7 +371,7 @@ module.exports = grammar({
     equality_expression: $ => 
       prec.right(TERMPREC.CHEQOP, choice(
         binop.listassoc($, '_CHEQOP', $._term),
-        binop.nonassoc($, '_NCEQOP', $._term),
+        binop.nonassoc($, $._NCEQOP, $._term),
       )
     ),
 
@@ -379,7 +379,7 @@ module.exports = grammar({
     relational_expression: $ =>
       prec.right(TERMPREC.CHRELOP, choice(
         binop.listassoc($, '_CHRELOP', $._term),
-        binop.nonassoc($, '_NCRELOP', $._term),
+        binop.nonassoc($, $._NCRELOP, $._term),
       )
     ),
 
@@ -553,11 +553,11 @@ module.exports = grammar({
     _MULOP: $ => choice('*', '/', '%', 'x'),
     _POWOP: $ => '**',
     // these are defined in-place, b/c we need to tweak w/ its precedence
-    ...special_assoc_token('_DOTDOT', choice('..', '...')),
     ...special_assoc_token('_CHEQOP', choice('==', '!=', 'eq', 'ne')),
     ...special_assoc_token('_CHRELOP', choice('<', '<=', '>=', '>', 'lt', 'le', 'ge', 'gt')),
-    ...special_assoc_token('_NCEQOP', choice('<=>', 'cmp', '~~')),
-    ...special_assoc_token('_NCRELOP', choice('isa')),
+    _DOTDOT:  $ => choice('..', '...'),
+    _NCEQOP:  $ => choice('<=>', 'cmp', '~~'),
+    _NCRELOP: $ => choice('isa'),
     _REFGEN: $ => '\\',
 
     _PERLY_COMMA: $ => choice(',', '=>'),
