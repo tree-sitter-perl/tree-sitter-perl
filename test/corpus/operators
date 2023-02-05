@@ -44,21 +44,25 @@ EXPR || EXPR
 EXPR eq EXPR
 ================================================================================
 12 eq 34;
+(12 eq 34) eq 55;
+12 eq (34 eq 55);
 12 cmp 34;
 --------------------------------------------------------------------------------
 
 (source_file
   (expression_statement (equality_expression (number) (number)))
+  (expression_statement (equality_expression (equality_expression (number) (number)) (number)))
+  (expression_statement (equality_expression (number) (equality_expression (number) (number))))
   (expression_statement (equality_expression (number) (number))))
 ================================================================================
 EXPR eq EXPR - list/non assoc
 ================================================================================
-12 eq 34 eq 9002;
+12 eq 34 eq 9002 eq 9988;
 12 cmp 34 cmp 56;
 --------------------------------------------------------------------------------
 
 (source_file
-  (expression_statement (equality_expression (number) (number) (number)))
+  (expression_statement (equality_expression (number) (number) (number) (number)))
   (expression_statement (equality_expression (number) (number)))
   (ERROR (number))
   )
