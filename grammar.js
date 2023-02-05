@@ -43,6 +43,28 @@ const unop_post = (op, term) =>
 const binop = (op, term) =>
   seq(field('left', term), field('operator', op), field('right', term));
 
+binop.nonassoc = (ops, term, error_marker) => 
+  seq(
+    field('left', term),
+    field('operator', choice(...ops)),
+    field('right', term),
+    optseq(
+      token(prec(2, choice(...ops))),
+      error_marker
+    )
+  );
+
+binop.listassoc = (ops, term) =>
+  seq(
+    field('arg', term),
+    field('operator', choice(...ops)),
+    field('arg', term),
+    repeat(seq(
+      // we make each a token b/c otherwise the highlighter can't see them :(
+      field('operator', choice(...ops.map(o => token(prec(2, o))))),
+      field('arg', term))
+    ))
+
 const optseq = (...terms) => optional(seq(...terms));
 
 module.exports = grammar({
@@ -336,25 +358,23 @@ module.exports = grammar({
       // prec.left(10, MATCHOP,
       prec.right(TERMPREC.POWOP,   binop($._POWOP, $._term)),
     ),
-    // TODO - get support for prec.nonassoc upstream b/c it really doesn't work to emulate
-    // it
     _range_expression: $ => 
-      prec.left(TERMPREC.DOTDOT,        binop($._DOTDOT, $._term)),
+      prec.right(TERMPREC.DOTDOT,        binop.nonassoc(['..', '...'], $._term, $._ERROR)),
 
 
     // perl.y calls this `termeqop`
     equality_expression: $ =>
-      prec.left(TERMPREC.CHEQOP, choice(
-        seq($._term, $._CHEQOP, $._term), // TODO: chaining
-        seq($._term, $._NCEQOP, $._term),
+      prec.right(TERMPREC.CHEQOP, choice(
+        binop.listassoc(['==', '!=', 'eq', 'ne'], $._term),
+        binop.nonassoc(['<=>', 'cmp', '~~'], $._term, $._ERROR),
       )
     ),
 
     // perly.y calls this `termrelop`
     relational_expression: $ =>
-      prec.left(TERMPREC.CHRELOP, choice(
-        seq($._term, $._CHRELOP, $._term), // TODO: chaining
-        seq($._term, $._NCRELOP, $._term),
+      prec.right(TERMPREC.CHRELOP, choice(
+        binop.listassoc([ '<', '<=', '>=', '>', 'lt', 'le', 'ge', 'gt' ], $._term),
+        binop.nonassoc(['isa'], $._term, $._ERROR),
       )
     ),
 
@@ -519,7 +539,6 @@ module.exports = grammar({
       '<<=', '>>=',
       '&&=', '||=', '//=',
     ),
-    _DOTDOT: $ => choice('..', '...'),
     _OROR_DORDOR: $ => choice('||', '\/\/'),
     _ANDAND: $ => '&&',
     _BITOROP: $ => '|', // TODO also |. when enabled
@@ -528,10 +547,12 @@ module.exports = grammar({
     _ADDOP: $ => choice('+', '-', '.'),
     _MULOP: $ => choice('*', '/', '%', 'x'),
     _POWOP: $ => '**',
-    _CHEQOP: $ => choice('==', '!=', 'eq', 'ne'),
-    _CHRELOP: $ => choice('<', '<=', '>=', '>', 'lt', 'le', 'ge', 'gt'),
-    _NCEQOP: $ => choice('<=>', 'cmp', '~~'),
-    _NCRELOP: $ => choice('isa'),
+    // these are defined in-place, b/c we need to tweak w/ its precedence
+    // _DOTDOT:
+    // _CHEQOP:
+    // _CHRELOP: $ => 
+    // _NCEQOP:
+    // _NCRELOP: $ => 
     _REFGEN: $ => '\\',
 
     _PERLY_COMMA: $ => choice(',', '=>'),

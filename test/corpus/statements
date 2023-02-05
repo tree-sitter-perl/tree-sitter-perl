@@ -177,7 +177,10 @@ for (my $i = 0; $i < 10; $i++) { 123; }
     initialiser: (assignment_expression
       left: (variable_declaration variable: (scalar))
       right: (number))
-    condition: (relational_expression (scalar) (number))
+    condition: (relational_expression
+      arg: (scalar)
+      arg: (number)
+    )
     iterator: (postinc_expression operand: (scalar))
     (block (expression_statement (number)))))
 ================================================================================
