@@ -45,8 +45,8 @@ const binop = (op, term) =>
 
 // we use normal precedence rules to get TS to try the continue branch first
 const special_assoc_token = (name, rule) => ({
+  [`${name}_continue`]: $ => prec(2, rule),
   [`${name}_begin`]: $ => rule,
-  [`${name}_continue`]: $ => prec(2, rule)
 })
 binop.nonassoc = ($, op_name, term) => 
   seq(
@@ -67,9 +67,9 @@ binop.listassoc = ($, op_name, term) =>
     field('arg', term),
     repeat(seq(
       field('operator', $[`${op_name}_continue`]),
-      $._NONASSOC,
-      field('arg', term))
+      field('arg', term),
     ))
+  )
 
 const optseq = (...terms) => optional(seq(...terms));
 
