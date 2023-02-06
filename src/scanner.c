@@ -35,6 +35,9 @@ enum TokenType {
   TOKEN_GOBBLED_CONTENT,
   TOKEN_ATTRIBUTE_VALUE,
   TOKEN_PROTOTYPE_OR_SIGNATURE,
+  /* high priority token operators */
+  TOKEN_CHEQOP_CONT,
+  TOKEN_CHRELOP_CONT,
   /* zero-width */
   TOKEN_NONASSOC,
   /* error condition is always last */
@@ -176,6 +179,7 @@ bool tree_sitter_perl_external_scanner_scan(
   struct LexerState *state = payload;
 
   bool is_ERROR = valid_symbols[TOKEN_ERROR];
+  bool is_continue_op = valid_symbols[TOKEN_CHEQOP_CONT] || valid_symbols[TOKEN_CHRELOP_CONT];
   bool skipped_whitespace = false;
 
   if(!is_ERROR && valid_symbols[TOKEN_GOBBLED_CONTENT]) {
@@ -370,7 +374,7 @@ bool tree_sitter_perl_external_scanner_scan(
   if(valid_symbols[TOKEN_NONASSOC])
     TOKEN(TOKEN_NONASSOC);
 
-  /* quotelike_begin is a zero-width assert, so it won't help in error recovery */
+
   if(valid_symbols[TOKEN_QUOTELIKE_BEGIN]) {
       if (skipped_whitespace && c == '#')
         return false;
@@ -566,6 +570,49 @@ qwlist_started_backslash:
     TOKEN(TOKEN_PROTOTYPE_OR_SIGNATURE);
   }
 
-  DEBUG("Did not lex any token\n", 0);
+  if(is_continue_op){
+    /* we're always gonna need at least one token */
+    ADVANCE;
+    int c2 = lexer->lookahead;
+    bool got_operator = false;
+
+    if (valid_symbols[TOKEN_CHEQOP_CONT]) {
+      if ((c == '=' || c == '!') && c2 == '='){
+        got_operator = true;
+        ADVANCE;
+      } else {
+        if ((c == 'e' && c2 == 'q') || (c == 'n' && c2 == 'e')){
+          got_operator = true;
+          ADVANCE;
+          /* if we're followed by more letters, then don't bother with this parse */
+          if (isidcont(lexer->lookahead))
+            got_operator = false;
+        }
+      }
+      if (got_operator){
+        TOKEN(TOKEN_CHEQOP_CONT);
+      }
+    }
+    if (valid_symbols[TOKEN_CHRELOP_CONT]){
+      if (c == '>' || c == '<'){
+        got_operator = true;
+        if (c2 == '=')
+          ADVANCE;
+        /* exclude <=>, <<, >>, >=>, <=< and other friends */
+        if (lexer->lookahead == '>' || lexer->lookahead == '<')
+          got_operator = false;
+      }
+      if ((c == 'l' || c == 'g') && (c2 == 't' || c2 == 'e')){
+        got_operator = true;
+        ADVANCE;
+        if (isidcont(lexer->lookahead))
+          got_operator = false;
+      }
+      if (got_operator){
+        TOKEN(TOKEN_CHRELOP_CONT);
+      }
+    }
+  }
+
   return false;
 }

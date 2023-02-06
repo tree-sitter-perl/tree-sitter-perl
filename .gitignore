@@ -13,3 +13,4 @@ bindings/c/*.h
 src/*
 tree-sitter-perl.wasm
 binding.gyp
+log.html

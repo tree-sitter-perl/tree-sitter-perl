@@ -43,11 +43,8 @@ const unop_post = (op, term) =>
 const binop = (op, term) =>
   seq(field('left', term), field('operator', op), field('right', term));
 
-// we use normal precedence rules to get TS to try the continue branch first
-const special_assoc_token = (name, rule) => ({
-  [`${name}_continue`]: $ => prec(2, rule),
-  [`${name}_begin`]: $ => rule,
-})
+// nonassoc we can do by forcing tree-sitter down the continue branch via a
+// zero-width external and following it w/ an error token
 binop.nonassoc = ($, op, term) => 
   seq(
     field('left', term),
@@ -60,10 +57,14 @@ binop.nonassoc = ($, op, term) =>
     )
   );
 
+// listassoc we do by using a continuation version of the token for the op.
+// Using tree-sitter directly to make the high prec continuation token is
+// punishing (crashes your computer level), so it has to be manually
+// implemented in the scanner
 binop.listassoc = ($, op_name, term) =>
   seq(
     field('arg', term),
-    field('operator', $[`${op_name}_begin`]),
+    field('operator', $[op_name]),
     field('arg', term),
     repeat(seq(
       field('operator', $[`${op_name}_continue`]),
@@ -98,6 +99,9 @@ module.exports = grammar({
     $._gobbled_content,
     $.attribute_value,
     $.prototype_or_signature,
+    /* high priority token operators */
+    $._CHEQOP_continue,
+    $._CHRELOP_continue,
     /* zero-width */
     $._NONASSOC,
     /* error condition must always be last; we don't use this in the grammar */
@@ -552,9 +556,9 @@ module.exports = grammar({
     _ADDOP: $ => choice('+', '-', '.'),
     _MULOP: $ => choice('*', '/', '%', 'x'),
     _POWOP: $ => '**',
-    // these are defined in-place, b/c we need to tweak w/ its precedence
-    ...special_assoc_token('_CHEQOP', choice('==', '!=', 'eq', 'ne')),
-    ...special_assoc_token('_CHRELOP', choice('<', '<=', '>=', '>', 'lt', 'le', 'ge', 'gt')),
+    // these chaining ops have high precedence versions ALSO defined in the scanner, name _{name}_continue
+    _CHEQOP: $ => choice('==', '!=', 'eq', 'ne'),
+    _CHRELOP: $ => choice('<', '<=', '>=', '>', 'lt', 'le', 'ge', 'gt'),
     _DOTDOT:  $ => choice('..', '...'),
     _NCEQOP:  $ => choice('<=>', 'cmp', '~~'),
     _NCRELOP: $ => choice('isa'),
