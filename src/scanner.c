@@ -35,10 +35,10 @@ enum TokenType {
   TOKEN_GOBBLED_CONTENT,
   TOKEN_ATTRIBUTE_VALUE,
   TOKEN_PROTOTYPE_OR_SIGNATURE,
-  /* high priority token operators */
+  /* zero-width lookahead tokens */
   TOKEN_CHEQOP_CONT,
   TOKEN_CHRELOP_CONT,
-  /* zero-width */
+  /* zero-width high priority token */
   TOKEN_NONASSOC,
   /* error condition is always last */
   TOKEN_ERROR
@@ -571,47 +571,29 @@ qwlist_started_backslash:
   }
 
   if(is_continue_op){
-    /* we're always gonna need at least one token */
+    /* we're going all in on the evil: these are zero-width tokens w/ unbounded lookahead */
+    DEBUG("Starting zero-width lookahead for continue tokean\n", 0);
+    lexer->mark_end(lexer);
+    /* let's get the next lookahead */
     ADVANCE;
     int c2 = lexer->lookahead;
-    bool got_operator = false;
 
-    if (valid_symbols[TOKEN_CHEQOP_CONT]) {
-      if ((c == '=' || c == '!') && c2 == '='){
-        got_operator = true;
-        ADVANCE;
-      } else {
-        if ((c == 'e' && c2 == 'q') || (c == 'n' && c2 == 'e')){
-          got_operator = true;
-          ADVANCE;
-          /* if we're followed by more letters, then don't bother with this parse */
-          if (isidcont(lexer->lookahead))
-            got_operator = false;
-        }
-      }
-      if (got_operator){
+    if ((c == '=' || c == '!') && c2 == '=')
         TOKEN(TOKEN_CHEQOP_CONT);
-      }
-    }
-    if (valid_symbols[TOKEN_CHRELOP_CONT]){
-      if (c == '>' || c == '<'){
-        got_operator = true;
-        if (c2 == '=')
-          ADVANCE;
-        /* exclude <=>, <<, >>, >=>, <=< and other friends */
-        if (lexer->lookahead == '>' || lexer->lookahead == '<')
-          got_operator = false;
-      }
-      if ((c == 'l' || c == 'g') && (c2 == 't' || c2 == 'e')){
-        got_operator = true;
+    if ((c == 'e' && c2 == 'q') || (c == 'n' && c2 == 'e'))
+      TOKEN(TOKEN_CHEQOP_CONT);
+    if (c == '>' || c == '<'){
+      bool got_operator = true;
+      if (c2 == '=')
         ADVANCE;
-        if (isidcont(lexer->lookahead))
-          got_operator = false;
-      }
-      if (got_operator){
+      /* exclude <=>, <<, >>, >=>, <=< and other friends */
+      if (lexer->lookahead == '>' || lexer->lookahead == '<')
+        got_operator = false;
+      if (got_operator)
         TOKEN(TOKEN_CHRELOP_CONT);
-      }
     }
+    if ((c == 'l' || c == 'g') && (c2 == 't' || c2 == 'e'))
+      TOKEN(TOKEN_CHRELOP_CONT);
   }
 
   return false;

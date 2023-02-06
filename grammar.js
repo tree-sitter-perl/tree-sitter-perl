@@ -67,7 +67,8 @@ binop.listassoc = ($, op_name, term) =>
     field('operator', $[op_name]),
     field('arg', term),
     repeat(seq(
-      field('operator', $[`${op_name}_continue`]),
+      $[`${op_name}_continue`],
+      field('operator', $[op_name]),
       field('arg', term),
     ))
   )
@@ -99,10 +100,10 @@ module.exports = grammar({
     $._gobbled_content,
     $.attribute_value,
     $.prototype_or_signature,
-    /* high priority token operators */
+    /* zero-width lookahead tokens */
     $._CHEQOP_continue,
     $._CHRELOP_continue,
-    /* zero-width */
+    /* zero-width high priority token */
     $._NONASSOC,
     /* error condition must always be last; we don't use this in the grammar */
     $._ERROR
