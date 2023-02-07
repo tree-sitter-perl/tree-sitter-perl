@@ -566,10 +566,10 @@ qwlist_started_backslash:
     /* we're going all in on the evil: these are zero-width tokens w/ unbounded lookahead */
     DEBUG("Starting zero-width lookahead for continue token\n", 0);
     lexer->mark_end(lexer);
-    int c1 = lexer->lookahead;
+    int c1 = c;
     /* let's get the next lookahead */
     ADVANCE_C;
-    int c2 = lexer->lookahead;
+    int c2 = c;
 #define EQ2(s)  (c1 == s[0] && c2 == s[1])
 
     if(valid_symbols[TOKEN_CHEQOP_CONT]) {
