@@ -85,6 +85,7 @@ module.exports = grammar({
     /* non-ident tokens */
     $._apostrophe,
     $._double_quote,
+    $._backtick,
     $._PERLY_SEMICOLON,
     $._PERLY_BRACE_OPEN,
     $._HASHBRACK,
@@ -639,6 +640,7 @@ module.exports = grammar({
     _literal: $ => choice(
       $.string_literal,
       $.interpolated_string_literal,
+      $.command_string,
     ),
 
     string_literal: $ => choice($._q_string),
@@ -663,19 +665,35 @@ module.exports = grammar({
         $._qq_string_content,
         $.escape_sequence,
         $.escaped_delimiter,
-
-        /* interpolations */
-        $.scalar,
-        $.array,
-        // TODO: $arr[123], $hash{key}, ${expr}, @{expr}, ...
+        $._interpolated_expression,
       )),
       $._quotelike_end
+    ),
+
+    _interpolated_expression: $ => choice(
+      $.scalar,
+      $.array,
+      // TODO: $arr[123], $hash{key}, ${expr}, @{expr}, ...
     ),
 
     quoted_word_list: $ => seq(
       'qw',
       $._quotelike_begin,
       repeat(choice($._qw_list_content, $.escape_sequence, $.escaped_delimiter)),
+      $._quotelike_end
+    ),
+
+    command_string: $ => seq(
+      choice(
+        seq('qx', $._quotelike_begin),
+        $._backtick
+      ),
+      repeat(choice(
+        $._qq_string_content,
+        $.escape_sequence,
+        $.escaped_delimiter,
+        $._interpolated_expression,
+      )),
       $._quotelike_end
     ),
 

@@ -33,6 +33,7 @@
 (string_literal) @string
 (interpolated_string_literal) @string
 (quoted_word_list) @string
+(command_string) @string
 [(escape_sequence) (escaped_delimiter)] @string.special
 
 (_ (bareword) @string.special . "=>")

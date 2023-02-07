@@ -20,6 +20,7 @@ enum TokenType {
   /* non-ident tokens */
   TOKEN_APOSTROPHE,
   TOKEN_DOUBLE_QUOTE,
+  TOKEN_BACKTICK,
   PERLY_SEMICOLON,
   PERLY_BRACE_OPEN,
   TOKEN_HASHBRACK,
@@ -321,6 +322,14 @@ bool tree_sitter_perl_external_scanner_scan(
     state->delim_count = 0;
 
     TOKEN(TOKEN_DOUBLE_QUOTE);
+  }
+  if(valid_symbols[TOKEN_BACKTICK] && c == '`') {
+    ADVANCE_C;
+    state->delim_open = 0;
+    state->delim_close = '`';
+    state->delim_count = 0;
+
+    TOKEN(TOKEN_BACKTICK);
   }
 
   if(valid_symbols[TOKEN_POD]) {
