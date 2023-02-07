@@ -61,14 +61,14 @@ binop.nonassoc = ($, op, term) =>
 // Using tree-sitter directly to make the high prec continuation token is
 // punishing (crashes your computer level), so it has to be manually
 // implemented in the scanner
-binop.listassoc = ($, op_name, term) =>
+binop.listassoc = ($, op, continue_token, term) =>
   seq(
     field('arg', term),
-    field('operator', $[op_name]),
+    field('operator', op),
     field('arg', term),
     repeat(seq(
-      $[`${op_name}_continue`],
-      field('operator', $[op_name]),
+      continue_token,
+      field('operator', op),
       field('arg', term),
     ))
   )
@@ -375,7 +375,7 @@ module.exports = grammar({
     // perl.y calls this `termeqop`
     equality_expression: $ => 
       prec.right(TERMPREC.CHEQOP, choice(
-        binop.listassoc($, '_CHEQOP', $._term),
+        binop.listassoc($, $._CHEQOP, $._CHEQOP_continue, $._term),
         binop.nonassoc($, $._NCEQOP, $._term),
       )
     ),
@@ -383,7 +383,7 @@ module.exports = grammar({
     // perly.y calls this `termrelop`
     relational_expression: $ =>
       prec.right(TERMPREC.CHRELOP, choice(
-        binop.listassoc($, '_CHRELOP', $._term),
+        binop.listassoc($, $._CHRELOP, $._CHRELOP_continue, $._term),
         binop.nonassoc($, $._NCRELOP, $._term),
       )
     ),
