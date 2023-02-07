@@ -579,16 +579,16 @@ qwlist_started_backslash:
     int c2 = lexer->lookahead;
 #define EQ2(s)  (c1 == s[0] && c2 == s[1])
 
-    if (valid_symbols[TOKEN_CHEQOP_CONT]) {
-      if (EQ2("==") || EQ2("!=") || EQ2("eq") || EQ2("ne"))
+    if(valid_symbols[TOKEN_CHEQOP_CONT]) {
+      if(EQ2("==") || EQ2("!=") || EQ2("eq") || EQ2("ne"))
         TOKEN(TOKEN_CHEQOP_CONT);
     }
 
     if(valid_symbols[TOKEN_CHRELOP_CONT]) {
-      if (EQ2("lt") || EQ2("le") || EQ2("ge") || EQ2("gt"))
+      if(EQ2("lt") || EQ2("le") || EQ2("ge") || EQ2("gt"))
         TOKEN(TOKEN_CHRELOP_CONT);
 
-      if (EQ2(">=") || EQ2("<=")) {
+      if(EQ2(">=") || EQ2("<=")) {
         ADVANCE;
         int c3 = lexer->lookahead;
         /* exclude <=>, >=>, <=< and other friends */
@@ -598,7 +598,7 @@ qwlist_started_backslash:
         TOKEN(TOKEN_CHRELOP_CONT);
       }
 
-      if (c1 == '>' || c1 == '<') {
+      if(c1 == '>' || c1 == '<') {
         /* exclude <<, >> and other friends */
         if(c2 == '<' || c2 == '>')
           return false;
