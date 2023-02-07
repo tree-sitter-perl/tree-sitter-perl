@@ -632,13 +632,15 @@ module.exports = grammar({
         $._qq_string_content,
         $.escape_sequence,
         $.escaped_delimiter,
-
-        /* interpolations */
-        $.scalar,
-        $.array,
-        // TODO: $arr[123], $hash{key}, ${expr}, @{expr}, ...
+        $._interpolated_expression,
       )),
       $._quotelike_end
+    ),
+
+    _interpolated_expression: $ => choice(
+      $.scalar,
+      $.array,
+      // TODO: $arr[123], $hash{key}, ${expr}, @{expr}, ...
     ),
 
     quoted_word_list: $ => seq(
