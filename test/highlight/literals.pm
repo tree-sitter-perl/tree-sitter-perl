@@ -76,3 +76,11 @@ q # this is a comment
 #<- string
   (string content);
 #  ^ string
+
+`command`;
+# <- string
+`command with $scalar`;
+# <- string
+#             ^ variable.scalar
+qx(command);
+# <- string
