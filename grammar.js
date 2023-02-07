@@ -649,11 +649,7 @@ module.exports = grammar({
         seq('q', $._quotelike_begin),
         $._apostrophe
       ),
-      repeat(choice(
-        $._q_string_content,
-        $.escape_sequence,
-        $.escaped_delimiter,
-      )),
+      optional($._noninterpolated_string_content),
       $._quotelike_end
     ),
     interpolated_string_literal: $ => seq(
@@ -661,19 +657,25 @@ module.exports = grammar({
         seq('qq', $._quotelike_begin),
         $._double_quote
       ),
-      repeat(choice(
+      optional($._interpolated_string_content),
+      $._quotelike_end
+    ),
+    _noninterpolated_string_content: $ => repeat1(
+      choice(
+        $._q_string_content,
+        $.escape_sequence,
+        $.escaped_delimiter,
+      )
+    ),
+    _interpolated_string_content: $ => repeat1(
+      choice(
         $._qq_string_content,
         $.escape_sequence,
         $.escaped_delimiter,
-        $._interpolated_expression,
-      )),
-      $._quotelike_end
-    ),
-
-    _interpolated_expression: $ => choice(
-      $.scalar,
-      $.array,
-      // TODO: $arr[123], $hash{key}, ${expr}, @{expr}, ...
+        $.scalar,
+        $.array,
+        // TODO: $arr[123], $hash{key}, ${expr}, @{expr}, ...
+      )
     ),
 
     quoted_word_list: $ => seq(
@@ -691,22 +693,13 @@ module.exports = grammar({
           seq('qx', $._quotelike_begin),
           $._backtick
         ),
-        repeat(choice(
-          $._qq_string_content,
-          $.escape_sequence,
-          $.escaped_delimiter,
-          $._interpolated_expression,
-        )),
+        optional($._interpolated_string_content),
         $._quotelike_end
       ),
       seq(
         'qx',
         $._apostrophe,
-        repeat(choice(
-          $._q_string_content,
-          $.escape_sequence,
-          $.escaped_delimiter,
-        )),
+        optional($._noninterpolated_string_content),
         $._quotelike_end
       )
     ),
