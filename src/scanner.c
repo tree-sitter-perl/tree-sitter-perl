@@ -568,7 +568,7 @@ qwlist_started_backslash:
     lexer->mark_end(lexer);
     int c1 = lexer->lookahead;
     /* let's get the next lookahead */
-    ADVANCE;
+    ADVANCE_C;
     int c2 = lexer->lookahead;
 #define EQ2(s)  (c1 == s[0] && c2 == s[1])
 
@@ -582,10 +582,9 @@ qwlist_started_backslash:
         TOKEN(TOKEN_CHRELOP_CONT);
 
       if(EQ2(">=") || EQ2("<=")) {
-        ADVANCE;
-        int c3 = lexer->lookahead;
+        ADVANCE_C;
         /* exclude <=>, >=>, <=< and other friends */
-        if(c3 == '<' || c3 == '>')
+        if(c == '<' || c == '>')
           return false;
 
         TOKEN(TOKEN_CHRELOP_CONT);
