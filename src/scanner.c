@@ -44,7 +44,7 @@ struct LexerState {
   int delim_count;
 };
 
-#define ADVANCE \
+#define ADVANCE_C \
   do {                                         \
     if(lexer->lookahead == '\r')               \
       DEBUG("> advance U+%04X = \\r\n",        \
@@ -56,6 +56,7 @@ struct LexerState {
       DEBUG("> advance U+%04X = '%c'\n",       \
           lexer->lookahead, lexer->lookahead); \
     lexer->advance(lexer, false);              \
+    c = lexer->lookahead;                      \
   } while(0)
 
 #define TOKEN(type) \
@@ -81,11 +82,13 @@ static void skip_whitespace(TSLexer *lexer)
 
 static void _skip_chars(TSLexer *lexer, int maxlen, const char *allow)
 {
+  int c = lexer->lookahead;
+
   while(maxlen)
-    if(!lexer->lookahead)
+    if(!c)
       return;
-    else if(strchr(allow, lexer->lookahead)) {
-      ADVANCE;
+    else if(strchr(allow, c)) {
+      ADVANCE_C;
       if(maxlen > 0)
         maxlen--;
     }
@@ -98,14 +101,16 @@ static void _skip_chars(TSLexer *lexer, int maxlen, const char *allow)
 
 static void skip_braced(TSLexer *lexer)
 {
-  if(lexer->lookahead != '{')
+  int c = lexer->lookahead;
+
+  if(c != '{')
     return;
 
-  ADVANCE;
-  while(lexer->lookahead && lexer->lookahead != '}')
-    ADVANCE;
+  ADVANCE_C;
+  while(c && c != '}')
+    ADVANCE_C;
 
-  ADVANCE;
+  ADVANCE_C;
 }
 
 static int close_for_open(int c)
@@ -176,27 +181,26 @@ bool tree_sitter_perl_external_scanner_scan(
   bool is_ERROR = valid_symbols[TOKEN_ERROR];
   bool skipped_whitespace = false;
 
+  int c = lexer->lookahead;
+
   if(!is_ERROR && valid_symbols[TOKEN_GOBBLED_CONTENT]) {
     while (!lexer->eof(lexer)) 
-      ADVANCE;
+      ADVANCE_C;
 
     TOKEN(TOKEN_GOBBLED_CONTENT);
   }
-
-  int c = lexer->lookahead;
 
   if(valid_symbols[TOKEN_ATTRIBUTE_VALUE]) {
     /* the '(' must be immediate, before any whitespace */
     if(c == '(') {
       DEBUG("Attribute value started...\n", 0);
 
-      ADVANCE;
-      c = lexer->lookahead;
+      ADVANCE_C;
 
       int delimcount = 0;
       while(!lexer->eof(lexer)) {
         if(c == '\\') {
-          ADVANCE;
+          ADVANCE_C;
           /* ignore the next char */
         }
         else if(c == '(')
@@ -205,13 +209,12 @@ bool tree_sitter_perl_external_scanner_scan(
           if(delimcount)
             delimcount--;
           else {
-            ADVANCE;
+            ADVANCE_C;
             break;
           }
         }
 
-        ADVANCE;
-        c = lexer->lookahead;
+        ADVANCE_C;
       }
 
       TOKEN(TOKEN_ATTRIBUTE_VALUE);
@@ -235,7 +238,7 @@ bool tree_sitter_perl_external_scanner_scan(
 
   if(valid_symbols[PERLY_SEMICOLON]) {
     if(c == ';') {
-      ADVANCE;
+      ADVANCE_C;
 
       TOKEN(PERLY_SEMICOLON);
     }
@@ -249,7 +252,7 @@ bool tree_sitter_perl_external_scanner_scan(
 
   if((valid_symbols[PERLY_BRACE_OPEN] || valid_symbols[TOKEN_HASHBRACK]) && c == '{') {
     /* Encountered '{' while at least one of theabove was valid */
-    ADVANCE;
+    ADVANCE_C;
 
     /* PERLY_BRACE_OPEN is only valid during the start of a statement; if
      * that's valid here then we prefer that over HASHBRACK */
@@ -268,15 +271,15 @@ bool tree_sitter_perl_external_scanner_scan(
     ident[0] = c;
     ident[1] = 0;
     ident_len++;
-    ADVANCE;
+    ADVANCE_C;
 
-    while((c = lexer->lookahead) && isidcont(c)) {
+    while(c && isidcont(c)) {
       if(ident_len < MAX_IDENT_LEN) {
         ident[ident_len] = c;
         ident[ident_len+1] = 0;
       }
 
-      ADVANCE;
+      ADVANCE_C;
       ident_len++;
     }
     if(ident_len) {
@@ -294,14 +297,11 @@ bool tree_sitter_perl_external_scanner_scan(
       (valid_symbols[TOKEN_ESCAPE_SEQUENCE] ||
        valid_symbols[TOKEN_ESCAPED_DELIMITER] ||
        valid_symbols[TOKEN_QW_LIST_CONTENT])
-  ) {
-    ADVANCE;
-
-    c = lexer->lookahead;
-  }
+  )
+    ADVANCE_C;
 
   if(valid_symbols[TOKEN_APOSTROPHE] && c == '\'') {
-    ADVANCE;
+    ADVANCE_C;
     state->delim_open = 0;
     state->delim_close = '\'';
     state->delim_count = 0;
@@ -309,7 +309,7 @@ bool tree_sitter_perl_external_scanner_scan(
     TOKEN(TOKEN_APOSTROPHE);
   }
   if(valid_symbols[TOKEN_DOUBLE_QUOTE] && c == '"') {
-    ADVANCE;
+    ADVANCE_C;
     state->delim_open = 0;
     state->delim_close = '"';
     state->delim_count = 0;
@@ -343,16 +343,14 @@ bool tree_sitter_perl_external_scanner_scan(
         if(stage > 4)
           break;
 
-        ADVANCE;
-        c = lexer->lookahead;
+        ADVANCE_C;
       }
       if(stage < 6)
         while(!lexer->eof(lexer)) {
           if(c == '\n')
             break;
 
-          ADVANCE;
-          c = lexer->lookahead;
+          ADVANCE_C;
         }
       /* If we got this far then either we reached stage 6, or we're at EOF */
       TOKEN(TOKEN_POD);
@@ -380,7 +378,7 @@ bool tree_sitter_perl_external_scanner_scan(
       }
       state->delim_count = 0;
 
-      ADVANCE;
+      ADVANCE_C;
 
       DEBUG("Generic QSTRING open='%c' close='%c'\n", state->delim_open, state->delim_close);
       TOKEN(TOKEN_QUOTELIKE_BEGIN);
@@ -388,16 +386,17 @@ bool tree_sitter_perl_external_scanner_scan(
 
   if(valid_symbols[TOKEN_ESCAPED_DELIMITER] && begins_backslash) {
     if(c == state->delim_open || c == state->delim_close) {
-      ADVANCE;
+      ADVANCE_C;
       TOKEN(TOKEN_ESCAPED_DELIMITER);
     }
   }
 
   if(valid_symbols[TOKEN_ESCAPE_SEQUENCE] && begins_backslash) {
-    ADVANCE;
+    int esc_c = c;
+    ADVANCE_C;
 
     // Inside any kind of string, \\ is always an escape sequence
-    if(c == '\\')
+    if(esc_c == '\\')
       TOKEN(TOKEN_ESCAPE_SEQUENCE);
 
     if(valid_symbols[TOKEN_Q_STRING_CONTENT]) {
@@ -409,9 +408,9 @@ bool tree_sitter_perl_external_scanner_scan(
       TOKEN(TOKEN_QW_LIST_CONTENT);
     }
 
-    switch(c) {
+    switch(esc_c) {
       case 'x':
-        if(lexer->lookahead == '{')
+        if(c == '{')
           skip_braced(lexer);
         else
           skip_hexdigits(lexer, 2);
@@ -441,8 +440,7 @@ bool tree_sitter_perl_external_scanner_scan(
     bool is_qq = valid_symbols[TOKEN_QQ_STRING_CONTENT];
     bool valid = false;
 
-    int c;
-    while((c = lexer->lookahead)) {
+    while(c) {
       if(c == '\\')
         break;
       if(state->delim_open && c == state->delim_open)
@@ -457,7 +455,7 @@ bool tree_sitter_perl_external_scanner_scan(
         break;
 
       valid = true;
-      ADVANCE;
+      ADVANCE_C;
     }
 
     if(valid) {
@@ -475,8 +473,7 @@ bool tree_sitter_perl_external_scanner_scan(
       goto qwlist_started_backslash;
     }
 
-    int c;
-    while((c = lexer->lookahead)) {
+    while(c) {
       if(iswspace(c))
         break;
 
@@ -486,12 +483,10 @@ bool tree_sitter_perl_external_scanner_scan(
          * counts as just '('. We need to handle this carefully
          */
         lexer->mark_end(lexer);
-        ADVANCE;
-
-        c = lexer->lookahead;
+        ADVANCE_C;
 qwlist_started_backslash:
         if(c == state->delim_open || c == state->delim_close) {
-          ADVANCE;
+          ADVANCE_C;
           lexer->mark_end(lexer);
           TOKEN(TOKEN_QW_LIST_CONTENT);
         }
@@ -507,7 +502,7 @@ qwlist_started_backslash:
           break;
       }
 
-      ADVANCE;
+      ADVANCE_C;
       lexer->mark_end(lexer);
       valid = true;
     }
@@ -518,7 +513,7 @@ qwlist_started_backslash:
 
   if(valid_symbols[TOKEN_QUOTELIKE_END]) {
     if(c == state->delim_close && !state->delim_count) {
-      ADVANCE;
+      ADVANCE_C;
 
       TOKEN(TOKEN_QUOTELIKE_END);
     }
@@ -538,14 +533,13 @@ qwlist_started_backslash:
      */
     DEBUG("prototype or signature\n", 0);
 
-    ADVANCE;
-    c = lexer->lookahead;
+    ADVANCE_C;
 
     int count = 0;
 
     while(!lexer->eof(lexer)) {
       if(c == ')' && !count) {
-        ADVANCE;
+        ADVANCE_C;
         break;
       }
       else if(c == ')')
@@ -553,8 +547,7 @@ qwlist_started_backslash:
       else if(c == '(')
         count++;
 
-      ADVANCE;
-      c = lexer->lookahead;
+      ADVANCE_C;
     }
 
     TOKEN(TOKEN_PROTOTYPE_OR_SIGNATURE);
