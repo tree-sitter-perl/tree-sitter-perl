@@ -685,8 +685,6 @@ module.exports = grammar({
       $._quotelike_end
     ),
 
-    // TODO - the idea here is to use the _apostrophe token to read what follows qx
-    // I do believe that it gets parsed first
     command_string: $ => choice(
       seq(
         choice(
