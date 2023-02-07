@@ -374,7 +374,6 @@ bool tree_sitter_perl_external_scanner_scan(
   if(valid_symbols[TOKEN_NONASSOC])
     TOKEN(TOKEN_NONASSOC);
 
-
   if(valid_symbols[TOKEN_QUOTELIKE_BEGIN]) {
       if (skipped_whitespace && c == '#')
         return false;
@@ -570,30 +569,34 @@ qwlist_started_backslash:
     TOKEN(TOKEN_PROTOTYPE_OR_SIGNATURE);
   }
 
-  if(is_continue_op){
+  if(is_continue_op) {
     /* we're going all in on the evil: these are zero-width tokens w/ unbounded lookahead */
-    DEBUG("Starting zero-width lookahead for continue tokean\n", 0);
+    DEBUG("Starting zero-width lookahead for continue token\n", 0);
     lexer->mark_end(lexer);
     /* let's get the next lookahead */
     ADVANCE;
     int c2 = lexer->lookahead;
 
-    if ((c == '=' || c == '!') && c2 == '=')
+    if (valid_symbols[TOKEN_CHEQOP_CONT]) {
+      if ((c == '=' || c == '!') && c2 == '=')
+          TOKEN(TOKEN_CHEQOP_CONT);
+      if ((c == 'e' && c2 == 'q') || (c == 'n' && c2 == 'e'))
         TOKEN(TOKEN_CHEQOP_CONT);
-    if ((c == 'e' && c2 == 'q') || (c == 'n' && c2 == 'e'))
-      TOKEN(TOKEN_CHEQOP_CONT);
-    if (c == '>' || c == '<'){
-      bool got_operator = true;
-      if (c2 == '=')
-        ADVANCE;
-      /* exclude <=>, <<, >>, >=>, <=< and other friends */
-      if (lexer->lookahead == '>' || lexer->lookahead == '<')
-        got_operator = false;
-      if (got_operator)
+    }
+    if(valid_symbols[TOKEN_CHRELOP_CONT]) {
+      if (c == '>' || c == '<'){
+        bool got_operator = true;
+        if (c2 == '=')
+          ADVANCE;
+        /* exclude <=>, <<, >>, >=>, <=< and other friends */
+        if (lexer->lookahead == '>' || lexer->lookahead == '<')
+          got_operator = false;
+        if (got_operator)
+          TOKEN(TOKEN_CHRELOP_CONT);
+      }
+      if ((c == 'l' || c == 'g') && (c2 == 't' || c2 == 'e'))
         TOKEN(TOKEN_CHRELOP_CONT);
     }
-    if ((c == 'l' || c == 'g') && (c2 == 't' || c2 == 'e'))
-      TOKEN(TOKEN_CHRELOP_CONT);
   }
 
   return false;
