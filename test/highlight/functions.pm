@@ -48,6 +48,14 @@ int($num);
 shift @arr;
 # <- function.builtin
 #     ^ variable.array
-keys %hash
+keys %hash;
 # <- function.builtin
 #    ^ variable.hash
+-r "path";
+# <- function.builtin
+#  ^ string
+-w $path;
+# <- function.builtin
+#  ^ variable.scalar
+-x _;
+# <- function.builtin
