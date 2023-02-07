@@ -144,3 +144,27 @@ qw/ hello \/ goodbye /;
   (expression_statement (quoted_word_list))
   (expression_statement (quoted_word_list (escape_sequence)))
   (expression_statement (quoted_word_list (escaped_delimiter))))
+================================================================================
+`` strings
+================================================================================
+`command`;
+`command with (parens)`;
+`command with $interpolation`;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement (command_string))
+  (expression_statement (command_string))
+  (expression_statement (command_string (scalar))))
+================================================================================
+qx() strings
+================================================================================
+qx(command);
+qx(command with (parens));
+qx(command with $interpolation);
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement (command_string))
+  (expression_statement (command_string))
+  (expression_statement (command_string (scalar))))
