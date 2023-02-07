@@ -573,29 +573,37 @@ qwlist_started_backslash:
     /* we're going all in on the evil: these are zero-width tokens w/ unbounded lookahead */
     DEBUG("Starting zero-width lookahead for continue token\n", 0);
     lexer->mark_end(lexer);
+    int c1 = lexer->lookahead;
     /* let's get the next lookahead */
     ADVANCE;
     int c2 = lexer->lookahead;
+#define EQ2(s)  (c1 == s[0] && c2 == s[1])
 
     if (valid_symbols[TOKEN_CHEQOP_CONT]) {
-      if ((c == '=' || c == '!') && c2 == '=')
-          TOKEN(TOKEN_CHEQOP_CONT);
-      if ((c == 'e' && c2 == 'q') || (c == 'n' && c2 == 'e'))
+      if (EQ2("==") || EQ2("!=") || EQ2("eq") || EQ2("ne"))
         TOKEN(TOKEN_CHEQOP_CONT);
     }
+
     if(valid_symbols[TOKEN_CHRELOP_CONT]) {
-      if (c == '>' || c == '<'){
-        bool got_operator = true;
-        if (c2 == '=')
-          ADVANCE;
-        /* exclude <=>, <<, >>, >=>, <=< and other friends */
-        if (lexer->lookahead == '>' || lexer->lookahead == '<')
-          got_operator = false;
-        if (got_operator)
-          TOKEN(TOKEN_CHRELOP_CONT);
-      }
-      if ((c == 'l' || c == 'g') && (c2 == 't' || c2 == 'e'))
+      if (EQ2("lt") || EQ2("le") || EQ2("ge") || EQ2("gt"))
         TOKEN(TOKEN_CHRELOP_CONT);
+
+      if (EQ2(">=") || EQ2("<=")) {
+        ADVANCE;
+        int c3 = lexer->lookahead;
+        /* exclude <=>, >=>, <=< and other friends */
+        if(c3 == '<' || c3 == '>')
+          return false;
+
+        TOKEN(TOKEN_CHRELOP_CONT);
+      }
+
+      if (c1 == '>' || c1 == '<') {
+        /* exclude <<, >> and other friends */
+        if(c2 == '<' || c2 == '>')
+          return false;
+        TOKEN(TOKEN_CHRELOP_CONT);
+      }
     }
   }
 
