@@ -51,6 +51,20 @@ EXPR eq EXPR
   (expression_statement (equality_expression (number) (number)))
   (expression_statement (equality_expression (number) (number))))
 ================================================================================
+EXPR eq EXPR - list/non assoc
+================================================================================
+12 eq 34 eq 9002;
+12 eq 34 eq 9002 eq 9004;
+12 cmp 34 cmp 56;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement (equality_expression (number) (number) (number)))
+  (expression_statement (equality_expression (number) (number) (number) (number)))
+  (expression_statement (equality_expression (number) (number)))
+  (ERROR (number))
+  )
+================================================================================
 EXPR < EXPR
 ================================================================================
 12 < 34;
@@ -66,6 +80,30 @@ EXPR < EXPR
   (expression_statement (relational_expression (number) (number)))
   (expression_statement (relational_expression (number) (number)))
   (expression_statement (relational_expression (number) (number))))
+================================================================================
+EXPR < EXPR - list/non assoc
+================================================================================
+12 < 34 > 99 >= 3000;
+12 isa 34 isa 56;
+(12 < 34) > 45;
+12 > (34 < 45);
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement (relational_expression (number) (number) (number) (number)))
+  (expression_statement (relational_expression (number) (number))) (ERROR (number))
+  (expression_statement (relational_expression (relational_expression (number) (number)) (number)))
+  (expression_statement (relational_expression (number) (relational_expression (number) (number))))
+)
+================================================================================
+< and eq - list/non assoc corner cases
+================================================================================
+'' eq 2 > 3 > 4;
+1 > 2 <=> 3;
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement (equality_expression (string_literal) (relational_expression (number) (number) (number))))
+  (expression_statement (equality_expression (relational_expression (number) (number)) (number) ))
+)
 ================================================================================
 EXPR << EXPR
 ================================================================================
@@ -180,3 +218,11 @@ range ops
   (expression_statement (binary_expression (number) (number)))
   (expression_statement (binary_expression (number) (binary_expression (number) (number))))
   )
+================================================================================
+range ops - nonassoc
+================================================================================
+1 .. 2 .. 3;
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement (binary_expression (number) (number))) (ERROR (number))
+)

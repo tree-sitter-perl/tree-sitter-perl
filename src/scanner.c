@@ -35,6 +35,11 @@ enum TokenType {
   TOKEN_GOBBLED_CONTENT,
   TOKEN_ATTRIBUTE_VALUE,
   TOKEN_PROTOTYPE_OR_SIGNATURE,
+  /* zero-width lookahead tokens */
+  TOKEN_CHEQOP_CONT,
+  TOKEN_CHRELOP_CONT,
+  /* zero-width high priority token */
+  TOKEN_NONASSOC,
   /* error condition is always last */
   TOKEN_ERROR
 };
@@ -179,6 +184,7 @@ bool tree_sitter_perl_external_scanner_scan(
   struct LexerState *state = payload;
 
   bool is_ERROR = valid_symbols[TOKEN_ERROR];
+  bool is_continue_op = valid_symbols[TOKEN_CHEQOP_CONT] || valid_symbols[TOKEN_CHRELOP_CONT];
   bool skipped_whitespace = false;
 
   int c = lexer->lookahead;
@@ -362,7 +368,10 @@ bool tree_sitter_perl_external_scanner_scan(
   if(is_ERROR)
     return false;
 
-  /* quotelike_begin is a zero-width assert, so it won't help in error recovery */
+  /* we use this to force tree-sitter to stay on the error branch of a nonassoc operator */
+  if(valid_symbols[TOKEN_NONASSOC])
+    TOKEN(TOKEN_NONASSOC);
+
   if(valid_symbols[TOKEN_QUOTELIKE_BEGIN]) {
       if (skipped_whitespace && c == '#')
         return false;
@@ -553,6 +562,42 @@ qwlist_started_backslash:
     TOKEN(TOKEN_PROTOTYPE_OR_SIGNATURE);
   }
 
-  DEBUG("Did not lex any token\n", 0);
+  if(is_continue_op) {
+    /* we're going all in on the evil: these are zero-width tokens w/ unbounded lookahead */
+    DEBUG("Starting zero-width lookahead for continue token\n", 0);
+    lexer->mark_end(lexer);
+    int c1 = c;
+    /* let's get the next lookahead */
+    ADVANCE_C;
+    int c2 = c;
+#define EQ2(s)  (c1 == s[0] && c2 == s[1])
+
+    if(valid_symbols[TOKEN_CHEQOP_CONT]) {
+      if(EQ2("==") || EQ2("!=") || EQ2("eq") || EQ2("ne"))
+        TOKEN(TOKEN_CHEQOP_CONT);
+    }
+
+    if(valid_symbols[TOKEN_CHRELOP_CONT]) {
+      if(EQ2("lt") || EQ2("le") || EQ2("ge") || EQ2("gt"))
+        TOKEN(TOKEN_CHRELOP_CONT);
+
+      if(EQ2(">=") || EQ2("<=")) {
+        ADVANCE_C;
+        /* exclude <=>, >=>, <=< and other friends */
+        if(c == '<' || c == '>')
+          return false;
+
+        TOKEN(TOKEN_CHRELOP_CONT);
+      }
+
+      if(c1 == '>' || c1 == '<') {
+        /* exclude <<, >> and other friends */
+        if(c2 == '<' || c2 == '>')
+          return false;
+        TOKEN(TOKEN_CHRELOP_CONT);
+      }
+    }
+  }
+
   return false;
 }

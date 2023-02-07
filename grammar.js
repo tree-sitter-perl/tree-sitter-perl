@@ -43,6 +43,36 @@ const unop_post = (op, term) =>
 const binop = (op, term) =>
   seq(field('left', term), field('operator', op), field('right', term));
 
+// nonassoc we can do by forcing tree-sitter down the continue branch via a
+// zero-width external and following it w/ an error token
+binop.nonassoc = ($, op, term) => 
+  seq(
+    field('left', term),
+    field('operator', op),
+    field('right', term),
+    optseq(
+      field('operator', op),
+      $._NONASSOC,
+      $._ERROR
+    )
+  );
+
+// listassoc we do by using a continuation version of the token for the op.
+// Using tree-sitter directly to make the high prec continuation token is
+// punishing (crashes your computer level), so it has to be manually
+// implemented in the scanner. See the sad saga at https://github.com/tree-sitter-perl/tree-sitter-perl/pull/47#issuecomment-1418270313
+binop.listassoc = (op, continue_token, term) =>
+  seq(
+    field('arg', term),
+    field('operator', op),
+    field('arg', term),
+    repeat(seq(
+      continue_token,
+      field('operator', op),
+      field('arg', term),
+    ))
+  )
+
 const optseq = (...terms) => optional(seq(...terms));
 
 module.exports = grammar({
@@ -70,6 +100,11 @@ module.exports = grammar({
     $._gobbled_content,
     $.attribute_value,
     $.prototype_or_signature,
+    /* zero-width lookahead tokens */
+    $._CHEQOP_continue,
+    $._CHRELOP_continue,
+    /* zero-width high priority token */
+    $._NONASSOC,
     /* error condition must always be last; we don't use this in the grammar */
     $._ERROR
   ],
@@ -325,7 +360,7 @@ module.exports = grammar({
 
     // perly.y calls this `termbinop`
     binary_expression: $ => choice(
-      $._range_expression,
+      prec.right(TERMPREC.DOTDOT,  binop.nonassoc($, $._DOTDOT, $._term)),
       prec.left(TERMPREC.OROR,     binop($._OROR_DORDOR, $._term)),
       prec.left(TERMPREC.ANDAND,   binop($._ANDAND, $._term)),
       prec.left(TERMPREC.BITOROP,  binop($._BITOROP, $._term)),
@@ -336,25 +371,20 @@ module.exports = grammar({
       // prec.left(10, MATCHOP,
       prec.right(TERMPREC.POWOP,   binop($._POWOP, $._term)),
     ),
-    // TODO - get support for prec.nonassoc upstream b/c it really doesn't work to emulate
-    // it
-    _range_expression: $ => 
-      prec.left(TERMPREC.DOTDOT,        binop($._DOTDOT, $._term)),
-
 
     // perl.y calls this `termeqop`
     equality_expression: $ =>
-      prec.left(TERMPREC.CHEQOP, choice(
-        seq($._term, $._CHEQOP, $._term), // TODO: chaining
-        seq($._term, $._NCEQOP, $._term),
+      prec.right(TERMPREC.CHEQOP, choice(
+        binop.listassoc($._CHEQOP, $._CHEQOP_continue, $._term),
+        binop.nonassoc($, $._NCEQOP, $._term),
       )
     ),
 
     // perly.y calls this `termrelop`
     relational_expression: $ =>
-      prec.left(TERMPREC.CHRELOP, choice(
-        seq($._term, $._CHRELOP, $._term), // TODO: chaining
-        seq($._term, $._NCRELOP, $._term),
+      prec.right(TERMPREC.CHRELOP, choice(
+        binop.listassoc($._CHRELOP, $._CHRELOP_continue, $._term),
+        binop.nonassoc($, $._NCRELOP, $._term),
       )
     ),
 
@@ -519,7 +549,6 @@ module.exports = grammar({
       '<<=', '>>=',
       '&&=', '||=', '//=',
     ),
-    _DOTDOT: $ => choice('..', '...'),
     _OROR_DORDOR: $ => choice('||', '\/\/'),
     _ANDAND: $ => '&&',
     _BITOROP: $ => '|', // TODO also |. when enabled
@@ -528,9 +557,11 @@ module.exports = grammar({
     _ADDOP: $ => choice('+', '-', '.'),
     _MULOP: $ => choice('*', '/', '%', 'x'),
     _POWOP: $ => '**',
+    // these chaining ops have high precedence versions ALSO defined in the scanner, name _{name}_continue
     _CHEQOP: $ => choice('==', '!=', 'eq', 'ne'),
     _CHRELOP: $ => choice('<', '<=', '>=', '>', 'lt', 'le', 'ge', 'gt'),
-    _NCEQOP: $ => choice('<=>', 'cmp', '~~'),
+    _DOTDOT:  $ => choice('..', '...'),
+    _NCEQOP:  $ => choice('<=>', 'cmp', '~~'),
     _NCRELOP: $ => choice('isa'),
     _REFGEN: $ => '\\',
 
