@@ -95,6 +95,16 @@ EXPR < EXPR - list/non assoc
   (expression_statement (relational_expression (number) (relational_expression (number) (number))))
 )
 ================================================================================
+< and eq - list/non assoc corner cases
+================================================================================
+'' eq 2 > 3 > 4;
+1 > 2 <=> 3;
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement (equality_expression (string_literal) (relational_expression (number) (number) (number))))
+  (expression_statement (equality_expression (relational_expression (number) (number)) (number) ))
+)
+================================================================================
 EXPR << EXPR
 ================================================================================
 1 << 2;
