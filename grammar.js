@@ -683,18 +683,32 @@ module.exports = grammar({
       $._quotelike_end
     ),
 
-    command_string: $ => seq(
-      choice(
-        seq('qx', $._quotelike_begin),
-        $._backtick
+    // TODO - the idea here is to use the _apostrophe token to read what follows qx
+    // I do believe that it gets parsed first
+    command_string: $ => choice(
+      seq(
+        choice(
+          seq('qx', $._quotelike_begin),
+          $._backtick
+        ),
+        repeat(choice(
+          $._qq_string_content,
+          $.escape_sequence,
+          $.escaped_delimiter,
+          $._interpolated_expression,
+        )),
+        $._quotelike_end
       ),
-      repeat(choice(
-        $._qq_string_content,
-        $.escape_sequence,
-        $.escaped_delimiter,
-        $._interpolated_expression,
-      )),
-      $._quotelike_end
+      seq(
+        'qx',
+        $._apostrophe,
+        repeat(choice(
+          $._q_string_content,
+          $.escape_sequence,
+          $.escaped_delimiter,
+        )),
+        $._quotelike_end
+      )
     ),
 
     package: $ => $._bareword,

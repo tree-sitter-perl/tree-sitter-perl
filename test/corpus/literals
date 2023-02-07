@@ -162,9 +162,13 @@ qx() strings
 qx(command);
 qx(command with (parens));
 qx(command with $interpolation);
+qx'command with no $interpolation';
 --------------------------------------------------------------------------------
 
 (source_file
   (expression_statement (command_string))
   (expression_statement (command_string))
-  (expression_statement (command_string (scalar))))
+  (expression_statement (command_string (scalar)))
+  (expression_statement (command_string))
+  )
+
