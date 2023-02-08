@@ -29,7 +29,6 @@ enum TokenType {
   TOKEN_QUOTELIKE_END,
   TOKEN_Q_STRING_CONTENT,
   TOKEN_QQ_STRING_CONTENT,
-  TOKEN_QW_LIST_CONTENT,
   TOKEN_ESCAPE_SEQUENCE,
   TOKEN_ESCAPED_DELIMITER,
   TOKEN_POD,
@@ -294,19 +293,6 @@ bool tree_sitter_perl_external_scanner_scan(
     }
   }
 
-  bool begins_backslash = (c == '\\');
-
-  /* We can't "un-advance" this backslash if TOKEN_ESCAPED_DELIMITER didn't want it
-   * to leave it for TOKEN_QW_LIST_CONTENT, so we'll have to eat it now and
-   * remember that we did so for all of them
-   */
-  if(begins_backslash &&
-      (valid_symbols[TOKEN_ESCAPE_SEQUENCE] ||
-       valid_symbols[TOKEN_ESCAPED_DELIMITER] ||
-       valid_symbols[TOKEN_QW_LIST_CONTENT])
-  )
-    ADVANCE_C;
-
   if(valid_symbols[TOKEN_APOSTROPHE] && c == '\'') {
     ADVANCE_C;
     state->delim_open = 0;
@@ -402,56 +388,57 @@ bool tree_sitter_perl_external_scanner_scan(
       TOKEN(TOKEN_QUOTELIKE_BEGIN);
   }
 
-  if(valid_symbols[TOKEN_ESCAPED_DELIMITER] && begins_backslash) {
-    if(c == state->delim_open || c == state->delim_close) {
-      ADVANCE_C;
-      TOKEN(TOKEN_ESCAPED_DELIMITER);
-    }
-  }
-
-  if(valid_symbols[TOKEN_ESCAPE_SEQUENCE] && begins_backslash) {
-    int esc_c = c;
+  if(c == '\\') {
+    // let's see what that reverse-solidus was hiding!
     ADVANCE_C;
 
-    // Inside any kind of string, \\ is always an escape sequence
-    if(esc_c == '\\')
-      TOKEN(TOKEN_ESCAPE_SEQUENCE);
-
-    if(valid_symbols[TOKEN_Q_STRING_CONTENT]) {
-      // Inside a q() string, only \\ is a valid escape sequence; all else is literal
-      TOKEN(TOKEN_Q_STRING_CONTENT);
-    }
-    if(valid_symbols[TOKEN_QW_LIST_CONTENT]) {
-      // Inside a qw() list, only \\ is a valid escape sequence; all else is literal
-      TOKEN(TOKEN_QW_LIST_CONTENT);
+    if(valid_symbols[TOKEN_ESCAPED_DELIMITER]) {
+      if(c == state->delim_open || c == state->delim_close) {
+        ADVANCE_C;
+        TOKEN(TOKEN_ESCAPED_DELIMITER);
+      }
     }
 
-    switch(esc_c) {
-      case 'x':
-        if(c == '{')
+    if(valid_symbols[TOKEN_ESCAPE_SEQUENCE]) {
+      int esc_c = c;
+      ADVANCE_C;
+
+      // Inside any kind of string, \\ is always an escape sequence
+      if(esc_c == '\\')
+        TOKEN(TOKEN_ESCAPE_SEQUENCE);
+
+      if(valid_symbols[TOKEN_Q_STRING_CONTENT]) {
+        // Inside a q() string, only \\ is a valid escape sequence; all else is literal
+        TOKEN(TOKEN_Q_STRING_CONTENT);
+      }
+
+      switch(esc_c) {
+        case 'x':
+          if(c == '{')
+            skip_braced(lexer);
+          else
+            skip_hexdigits(lexer, 2);
+          break;
+
+        case 'N':
           skip_braced(lexer);
-        else
-          skip_hexdigits(lexer, 2);
-        break;
+          break;
 
-      case 'N':
-        skip_braced(lexer);
-        break;
+        case 'o':
+          /* TODO: contents should just be octal */
+          skip_braced(lexer);
+          break;
 
-      case 'o':
-        /* TODO: contents should just be octal */
-        skip_braced(lexer);
-        break;
+        case '0':
+          skip_octdigits(lexer, 3);
+          break;
 
-      case '0':
-        skip_octdigits(lexer, 3);
-        break;
+        default:
+          break;
+      }
 
-      default:
-        break;
+      TOKEN(TOKEN_ESCAPE_SEQUENCE);
     }
-
-    TOKEN(TOKEN_ESCAPE_SEQUENCE);
   }
 
   if(valid_symbols[TOKEN_Q_STRING_CONTENT] || valid_symbols[TOKEN_QQ_STRING_CONTENT]) {
@@ -482,51 +469,6 @@ bool tree_sitter_perl_external_scanner_scan(
       else
         TOKEN(TOKEN_Q_STRING_CONTENT);
     }
-  }
-
-  if(valid_symbols[TOKEN_QW_LIST_CONTENT]) {
-    bool valid = false;
-    if(begins_backslash) {
-      valid = true;
-      goto qwlist_started_backslash;
-    }
-
-    while(c) {
-      if(iswspace(c))
-        break;
-
-      if(c == '\\') {
-        /* Most escapes don't count inside a qw() list, but escaped delimiters
-         * still do. That is to say, a '\n' is taken as literal, but '\('
-         * counts as just '('. We need to handle this carefully
-         */
-        lexer->mark_end(lexer);
-        ADVANCE_C;
-qwlist_started_backslash:
-        if(c == state->delim_open || c == state->delim_close) {
-          ADVANCE_C;
-          lexer->mark_end(lexer);
-          TOKEN(TOKEN_QW_LIST_CONTENT);
-        }
-        else if(c == '\\')
-          break;
-      }
-      else if(state->delim_open && c == state->delim_open)
-        state->delim_count++;
-      else if(c == state->delim_close) {
-        if(state->delim_count)
-          state->delim_count--;
-        else
-          break;
-      }
-
-      ADVANCE_C;
-      lexer->mark_end(lexer);
-      valid = true;
-    }
-
-    if(valid)
-      TOKEN(TOKEN_QW_LIST_CONTENT);
   }
 
   if(valid_symbols[TOKEN_QUOTELIKE_END]) {

@@ -94,7 +94,6 @@ module.exports = grammar({
     $._quotelike_end,
     $._q_string_content,
     $._qq_string_content,
-    $._qw_list_content,
     $.escape_sequence,
     $.escaped_delimiter,
     $.pod,
@@ -681,7 +680,7 @@ module.exports = grammar({
     quoted_word_list: $ => seq(
       'qw',
       $._quotelike_begin,
-      repeat(choice($._qw_list_content, $.escape_sequence, $.escaped_delimiter)),
+      optional($._noninterpolated_string_content),
       $._quotelike_end
     ),
 
