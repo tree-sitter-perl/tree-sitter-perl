@@ -36,6 +36,10 @@ enum TokenType {
   TOKEN_GOBBLED_CONTENT,
   TOKEN_ATTRIBUTE_VALUE,
   TOKEN_PROTOTYPE_OR_SIGNATURE,
+  TOKEN_HEREDOC_DELIM,
+  TOKEN_COMMAND_HEREDOC_DELIM,
+  TOKEN_HEREDOC_START,
+  TOKEN_HEREDOC_END_ZW,
   /* zero-width lookahead tokens */
   TOKEN_CHEQOP_CONT,
   TOKEN_CHRELOP_CONT,
@@ -45,9 +49,16 @@ enum TokenType {
   TOKEN_ERROR
 };
 
+#define HEREDOC_TOKEN_LEN 8
 struct LexerState {
   int delim_open, delim_close;  /* codepoints */
   int delim_count;
+  /* heredoc - we need to track if we should start the heredoc, if it's interpolating,
+   * how many chars the delimeter is and what the delimeter is */
+  bool should_heredoc, heredoc_interpolates, heredoc_indents;
+  int heredoc_delim_length;
+  /* we max out at 8 chars for heredoc delimeter */
+  int heredoc_delim[HEREDOC_TOKEN_LEN + 1];
 };
 
 #define ADVANCE_C \
@@ -332,6 +343,15 @@ bool tree_sitter_perl_external_scanner_scan(
     TOKEN(TOKEN_BACKTICK);
   }
 
+  /* heredocs override POD, so they must be here before */
+  if(valid_symbols[TOKEN_HEREDOC_START]) {
+    if(state->should_heredoc && lexer->get_column(lexer) == 0) {
+      DEBUG("Heredoc started...\n", 0);
+      state->should_heredoc = false;
+      TOKEN(TOKEN_HEREDOC_START)
+    }
+  }
+
   if(valid_symbols[TOKEN_POD]) {
     int column = lexer->get_column(lexer);
     if(column == 0 && c == '=') {
@@ -380,6 +400,66 @@ bool tree_sitter_perl_external_scanner_scan(
   /* we use this to force tree-sitter to stay on the error branch of a nonassoc operator */
   if(valid_symbols[TOKEN_NONASSOC])
     TOKEN(TOKEN_NONASSOC);
+
+  if(valid_symbols[TOKEN_HEREDOC_DELIM] || valid_symbols[TOKEN_COMMAND_HEREDOC_DELIM]) {
+    // by default, indentation is false
+    state->heredoc_indents = false;
+    if(!skipped_whitespace) {
+      if(c == '~') {
+        ADVANCE_C;
+        state->heredoc_indents = true;
+      } 
+      if(isidfirst(c)) {
+        int i;
+        while(isidcont(c)) {
+          if(i < HEREDOC_TOKEN_LEN) {
+            state->heredoc_delim[i++] = c;
+          }
+          ADVANCE_C;
+        }
+        state->heredoc_delim_length = i;
+        state->heredoc_delim[i+1] = 0;
+        DEBUG("Got heredoc delim: %s", state->heredoc_delim);
+        state->heredoc_interpolates = true;
+        TOKEN(TOKEN_HEREDOC_DELIM);
+      }
+    }
+    if(c == '\'', || c == '"' || c == '`') {
+      int delim_open = c;
+      int i = 0;
+      ADVANCE_C;
+      while (c != delim_open) {
+        // backslashes escape the quote char
+        if(c == '\\') {
+          int to_add = c;
+          ADVANCE_C;
+          if(c == delim_open) {
+            to_add = delim_open;
+            ADVANCE_C;
+          }
+          if(i <= HEREDOC_TOKEN_LEN) {
+            state->heredoc_delim[i++] = to_add;
+          }
+        } else if(i <= HEREDOC_TOKEN_LEN) {
+          state->heredoc_delim[i++] = c;
+          ADVANCE_C;
+        }
+      }
+      if(i > 0) {
+        // gotta eat that delimeter
+        ADVANCE_C;
+        // gotta null terminate up in here
+        state->heredoc_delim_length = i;
+        state->heredoc_delim[i+1] = 0;
+        state->heredoc_interpolates = delim_open != '\'';
+        if(delim_open == '`')
+          TOKEN(TOKEN_COMMAND_HEREDOC_DELIM);
+        TOKEN(TOKEN_HEREDOC_DELIM)
+      }
+      // TODO - handling for quoted variants; if it's unspaced it falls thru to here
+
+    }
+  }
 
   if(valid_symbols[TOKEN_QUOTELIKE_BEGIN]) {
       if (skipped_whitespace && c == '#')
@@ -569,6 +649,29 @@ qwlist_started_backslash:
     }
 
     TOKEN(TOKEN_PROTOTYPE_OR_SIGNATURE);
+  }
+
+  // we put this late b/c we can't give back what it reads
+  if(valid_symbols[TOKEN_HEREDOC_END_ZW]) {
+    bool is_valid_start_pos = false;
+    if(state->heredoc_indents) {
+      skip_whitespace(lexer);
+      is_valid_start_pos = true;
+    } else if (lexer->get_column(lexer) == 0) {
+      is_valid_start_pos = true;
+    }
+
+    if(is_valid_start_pos) {
+      int checker[HEREDOC_TOKEN_LEN + 1];
+      for(int i = 0; i < state->heredoc_delim_length; i++) {
+        checker[i] = c;
+        ADVANCE_C;
+      }
+      checker[i + 1] = 0;
+      if (streq(checker, state->heredoc_delim)) {
+        TOKEN(TOKEN_HEREDOC_END_ZW)
+      }
+    }
   }
 
   if(is_continue_op) {
