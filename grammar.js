@@ -104,7 +104,7 @@ module.exports = grammar({
     $._heredoc_delimeter,
     $._command_heredoc_delimeter,
     $._heredoc_start,
-    $._heredoc_end_zw,
+    $._heredoc_middle,
     /* zero-width lookahead tokens */
     $._CHEQOP_continue,
     $._CHRELOP_continue,
@@ -718,7 +718,7 @@ module.exports = grammar({
     command_heredoc_token: $ => seq('<<', $._command_heredoc_delimeter),
     // TODO - alias this as needed
     _noninterpolated_heredoc_content: $ => alias(
-      seq($._heredoc_start, repeat(/.*/), $._heredoc_end_zw, /.*/),
+      seq($._heredoc_start, repeat($._heredoc_middle), /.*/),
       $.heredoc_content
     ),
     // TODO - must start w/ a content start token which kicks in at col0 when there's an

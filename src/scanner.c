@@ -1,7 +1,7 @@
 #include <tree_sitter/parser.h>
 
 /* Set this to #define instead to enable debug printing */
-#undef DEBUGGING
+#define DEBUGGING
 
 /* for debug */
 #ifdef DEBUGGING
@@ -39,7 +39,7 @@ enum TokenType {
   TOKEN_HEREDOC_DELIM,
   TOKEN_COMMAND_HEREDOC_DELIM,
   TOKEN_HEREDOC_START,
-  TOKEN_HEREDOC_END_ZW,
+  TOKEN_HEREDOC_MIDDLE,
   /* zero-width lookahead tokens */
   TOKEN_CHEQOP_CONT,
   TOKEN_CHRELOP_CONT,
@@ -208,6 +208,16 @@ bool tree_sitter_perl_external_scanner_scan(
     TOKEN(TOKEN_GOBBLED_CONTENT);
   }
 
+  /* heredocs override everything, so they must be here before */
+  if(valid_symbols[TOKEN_HEREDOC_START]) {
+    if(state->should_heredoc && lexer->get_column(lexer) == 0) {
+      DEBUG("Heredoc started...\n", 0);
+      state->should_heredoc = false;
+      TOKEN(TOKEN_HEREDOC_START);
+    }
+  }
+
+
   if(valid_symbols[TOKEN_ATTRIBUTE_VALUE]) {
     /* the '(' must be immediate, before any whitespace */
     if(c == '(') {
@@ -343,15 +353,6 @@ bool tree_sitter_perl_external_scanner_scan(
     TOKEN(TOKEN_BACKTICK);
   }
 
-  /* heredocs override POD, so they must be here before */
-  if(valid_symbols[TOKEN_HEREDOC_START]) {
-    if(state->should_heredoc && lexer->get_column(lexer) == 0) {
-      DEBUG("Heredoc started...\n", 0);
-      state->should_heredoc = false;
-      TOKEN(TOKEN_HEREDOC_START);
-    }
-  }
-
   if(valid_symbols[TOKEN_POD]) {
     int column = lexer->get_column(lexer);
     if(column == 0 && c == '=') {
@@ -397,6 +398,9 @@ bool tree_sitter_perl_external_scanner_scan(
   if(is_ERROR)
     return false;
 
+  if(valid_symbols[TOKEN_HEREDOC_MIDDLE]) {
+
+  }
   /* we use this to force tree-sitter to stay on the error branch of a nonassoc operator */
   if(valid_symbols[TOKEN_NONASSOC])
     TOKEN(TOKEN_NONASSOC);
@@ -410,7 +414,7 @@ bool tree_sitter_perl_external_scanner_scan(
         state->heredoc_indents = true;
       } 
       if(isidfirst(c)) {
-        int i;
+        int i = 0;
         while(isidcont(c)) {
           if(i < HEREDOC_TOKEN_LEN) {
             state->heredoc_delim[i++] = c;
@@ -419,8 +423,10 @@ bool tree_sitter_perl_external_scanner_scan(
         }
         state->heredoc_delim_length = i;
         state->heredoc_delim[i+1] = 0;
-        DEBUG("Got heredoc delim: %s", state->heredoc_delim);
+        DEBUG("Got heredoc length %d\n", i);
+        DEBUG("Got heredoc delim: %s\n", state->heredoc_delim);
         state->heredoc_interpolates = true;
+        state->should_heredoc = true;
         TOKEN(TOKEN_HEREDOC_DELIM);
       }
     }
@@ -452,6 +458,7 @@ bool tree_sitter_perl_external_scanner_scan(
         state->heredoc_delim_length = i;
         state->heredoc_delim[i+1] = 0;
         state->heredoc_interpolates = delim_open != '\'';
+        state->should_heredoc = true;
         if(delim_open == '`')
           TOKEN(TOKEN_COMMAND_HEREDOC_DELIM);
         TOKEN(TOKEN_HEREDOC_DELIM);
@@ -652,7 +659,7 @@ qwlist_started_backslash:
   }
 
   // we put this late b/c we can't give back what it reads
-  if(valid_symbols[TOKEN_HEREDOC_END_ZW]) {
+  if(valid_symbols[TOKEN_HEREDOC_MIDDLE]) {
     bool is_valid_start_pos = false;
     if(state->heredoc_indents) {
       skip_whitespace(lexer);
@@ -661,6 +668,9 @@ qwlist_started_backslash:
       is_valid_start_pos = true;
     }
 
+    // TODO - actually work; we needa loop thru and read a line at a time, then check the
+    // validity of the next line, and otherwise gobble it
+    lexer->mark_end(lexer);
     if(is_valid_start_pos) {
       int checker[HEREDOC_TOKEN_LEN + 1];
       for(int i = 0; i < state->heredoc_delim_length; i++) {
@@ -668,11 +678,19 @@ qwlist_started_backslash:
         checker[i] = c;
         checker[i + 1] = 0;
         ADVANCE_C;
+        if (lexer->eof(lexer))
+          break;
       }
       if (streq(checker, state->heredoc_delim)) {
-        TOKEN(TOKEN_HEREDOC_END_ZW);
+        // return up to the token, b/c we marked end b4 this line
+        TOKEN(TOKEN_HEREDOC_MIDDLE);
       }
     }
+    while(c != '\n' && c != '\r' && !lexer->eof(lexer)) {
+      ADVANCE_C;
+    }
+    lexer->mark_end(lexer);
+    TOKEN(TOKEN_HEREDOC_MIDDLE);
   }
 
   if(is_continue_op) {
