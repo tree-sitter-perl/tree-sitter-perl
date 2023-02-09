@@ -348,7 +348,7 @@ bool tree_sitter_perl_external_scanner_scan(
     if(state->should_heredoc && lexer->get_column(lexer) == 0) {
       DEBUG("Heredoc started...\n", 0);
       state->should_heredoc = false;
-      TOKEN(TOKEN_HEREDOC_START)
+      TOKEN(TOKEN_HEREDOC_START);
     }
   }
 
@@ -424,7 +424,7 @@ bool tree_sitter_perl_external_scanner_scan(
         TOKEN(TOKEN_HEREDOC_DELIM);
       }
     }
-    if(c == '\'', || c == '"' || c == '`') {
+    if(c == '\'' || c == '"' || c == '`') {
       int delim_open = c;
       int i = 0;
       ADVANCE_C;
@@ -454,7 +454,7 @@ bool tree_sitter_perl_external_scanner_scan(
         state->heredoc_interpolates = delim_open != '\'';
         if(delim_open == '`')
           TOKEN(TOKEN_COMMAND_HEREDOC_DELIM);
-        TOKEN(TOKEN_HEREDOC_DELIM)
+        TOKEN(TOKEN_HEREDOC_DELIM);
       }
       // TODO - handling for quoted variants; if it's unspaced it falls thru to here
 
@@ -664,12 +664,13 @@ qwlist_started_backslash:
     if(is_valid_start_pos) {
       int checker[HEREDOC_TOKEN_LEN + 1];
       for(int i = 0; i < state->heredoc_delim_length; i++) {
+        // TODO - handle dis betta; break @ \n|\r, allow scanning further..
         checker[i] = c;
+        checker[i + 1] = 0;
         ADVANCE_C;
       }
-      checker[i + 1] = 0;
       if (streq(checker, state->heredoc_delim)) {
-        TOKEN(TOKEN_HEREDOC_END_ZW)
+        TOKEN(TOKEN_HEREDOC_END_ZW);
       }
     }
   }
