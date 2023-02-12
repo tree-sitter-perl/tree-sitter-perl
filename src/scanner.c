@@ -51,24 +51,24 @@ enum TokenType {
 };
 
 #define MAX_TSPSTRING_LEN 8
-/* this is a arbitrary string where we only care about the first MAX_TSSTRING_LEN chars */
+/* this is a arbitrary string where we only care about the first MAX_TSPSTRING_LEN chars */
 struct TSPString {
   int length;
   int contents[MAX_TSPSTRING_LEN];
-}
+};
 
 /* we record the length, b/c that's still relevant for our cheapo comparison */
-static void TSPString_push(TSPString *s, int c)
+static void TSPString_push(struct TSPString *s, int c)
 {
-  if (s->length++ < MAX_TSSTRING_LEN)
+  if (s->length++ < MAX_TSPSTRING_LEN)
     s->contents[s->length] = c;
 }
 
-static bool TSPString_eq(TSPString *s1, TSPString *s2)
+static bool TSPString_eq(struct TSPString *s1, struct TSPString *s2)
 {
   return (s1->length == s2->length) 
     // we only compare as many chars as we care about
-    && (memcmp(s1, s2, s1->length < MAX_TSPSTRING_LEN ? s1->length : MAX_TSPSTRING_LEN) == 0)
+    && (memcmp(s1, s2, s1->length < MAX_TSPSTRING_LEN ? s1->length : MAX_TSPSTRING_LEN) == 0);
 }
 
 struct LexerState {
@@ -77,7 +77,7 @@ struct LexerState {
   /* heredoc - we need to track if we should start the heredoc, if it's interpolating,
    * how many chars the delimeter is and what the delimeter is */
   bool should_heredoc, heredoc_interpolates, heredoc_indents;
-  TSPString heredoc_delim;
+  struct TSPString heredoc_delim;
 };
 
 
@@ -678,11 +678,13 @@ qwlist_started_backslash:
       }
       // we may be doing lookahead now
       lexer->mark_end(lexer);
-      TSPString line;
+      struct TSPString line;
       line.length = 0;
       // read the whole line, b/c we want it
-      while(c != '\n' && !lexer->eof(lexer))
+      while(c != '\n' && !lexer->eof(lexer)) {
         TSPString_push(&line, c);
+        ADVANCE_C;
+      }
       if(TSPString_eq(&line, &state->heredoc_delim)) {
         // if we've read already, we return everything up until now
         if(has_matched)
