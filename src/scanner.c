@@ -51,16 +51,34 @@ enum TokenType {
 };
 
 #define HEREDOC_TOKEN_LEN 8
+/* this is a arbitrary string where we only care about the first HEREDOC_TOKEN_LEN chars */
+struct TSString {
+  int length;
+  int contents[HEREDOC_TOKEN_LEN];
+}
+
+/* we record the length, b/c that's still relevant for our cheapo comparison */
+static void TSString_push(TSString *s, int c)
+{
+  if (s->length++ < HEREDOC_TOKEN_LEN)
+    s->contents[s->length] = c
+}
+
+static bool TSString_eq(TSString *s1, TSString *s2)
+{
+  return (s1->length == s2->length) 
+    && (memcmp(s1, s2, s1->length < HEREDOC_TOKEN_LEN ? s1->length : HEREDOC_TOKEN_LEN) == 0)
+}
+
 struct LexerState {
   int delim_open, delim_close;  /* codepoints */
   int delim_count;
   /* heredoc - we need to track if we should start the heredoc, if it's interpolating,
    * how many chars the delimeter is and what the delimeter is */
   bool should_heredoc, heredoc_interpolates, heredoc_indents;
-  int heredoc_delim_length;
-  /* we max out at 8 chars for heredoc delimeter */
-  int heredoc_delim[HEREDOC_TOKEN_LEN + 1];
+  TSString heredoc_delim;
 };
+
 
 #define ADVANCE_C \
   do {                                         \
@@ -408,11 +426,11 @@ bool tree_sitter_perl_external_scanner_scan(
 
   if(valid_symbols[TOKEN_HEREDOC_DELIM] || valid_symbols[TOKEN_COMMAND_HEREDOC_DELIM]) {
     // by default, indentation is false
-    state->heredoc_indents = false;
+    bool should_indent = false;
     if(!skipped_whitespace) {
       if(c == '~') {
         ADVANCE_C;
-        state->heredoc_indents = true;
+        should_indent = true;
       } 
       if(isidfirst(c)) {
         int i = 0;
@@ -423,10 +441,9 @@ bool tree_sitter_perl_external_scanner_scan(
           ADVANCE_C;
         }
         state->heredoc_delim_length = i;
-        state->heredoc_delim[i+1] = 0;
-        DEBUG("Got heredoc length %d\n", i);
-        DEBUG("Got heredoc delim: %s\n", state->heredoc_delim);
+        state->heredoc_delim[i] = 0;
         state->heredoc_interpolates = true;
+        state->heredoc_indents = should_indent;
         state->should_heredoc = true;
         TOKEN(TOKEN_HEREDOC_DELIM);
       }
@@ -661,13 +678,13 @@ qwlist_started_backslash:
 
   // we put this late b/c we can't give back what it reads
   if(valid_symbols[TOKEN_HEREDOC_MIDDLE]) {
-    bool is_valid_start_pos = false;
-    if(state->heredoc_indents) {
-      skip_whitespace(lexer);
-      is_valid_start_pos = true;
-    } else if (lexer->get_column(lexer) == 0) {
-      is_valid_start_pos = true;
-    }
+    while (!lexer->eof(lexer)) {
+      // interpolating heredocs may need to stop in the middle of the line, so we do this
+      // here
+      bool is_valid_start_pos = lexer->get_column(lexer) == 0;
+      if(is_valid_start_pos && state->heredoc_indents) {
+        skip_whitespace(lexer);
+      }
 
     // TODO - actually work; we needa loop thru and read a line at a time, then check the
     // validity of the next line, and otherwise gobble it
