@@ -61,14 +61,14 @@ struct TSPString {
 static void TSPString_push(struct TSPString *s, int c)
 {
   if (s->length++ < MAX_TSPSTRING_LEN)
-    s->contents[s->length] = c;
+    s->contents[s->length - 1] = c;
 }
 
 static bool TSPString_eq(struct TSPString *s1, struct TSPString *s2)
 {
   return (s1->length == s2->length) 
     // we only compare as many chars as we care about
-    && (memcmp(s1, s2, s1->length < MAX_TSPSTRING_LEN ? s1->length : MAX_TSPSTRING_LEN) == 0);
+    && (memcmp(s1, s2, sizeof(struct TSPString) * s1->length < MAX_TSPSTRING_LEN ? s1->length : MAX_TSPSTRING_LEN) == 0);
 }
 
 struct LexerState {
@@ -76,7 +76,7 @@ struct LexerState {
   int delim_count;
   /* heredoc - we need to track if we should start the heredoc, if it's interpolating,
    * how many chars the delimeter is and what the delimeter is */
-  bool should_heredoc, heredoc_interpolates, heredoc_indents;
+  bool should_heredoc, heredoc_interpolates, heredoc_indents, heredoc_ends;
   struct TSPString heredoc_delim;
 };
 
@@ -115,6 +115,25 @@ static void skip_whitespace(TSLexer *lexer)
     else
       return;
   }
+}
+
+static void skip_ws_to_eol(TSLexer * lexer)
+{
+  while(1) {
+    int c = lexer->lookahead;
+    if(!c)
+      return;
+    if(iswspace(c)) {
+      lexer->advance(lexer, true);
+      // return after eating the newline
+      if(c == '\n')
+        return;
+    }
+      /* continue */
+    else
+      return;
+  }
+
 }
 
 static void _skip_chars(TSLexer *lexer, int maxlen, const char *allow)
@@ -228,19 +247,59 @@ bool tree_sitter_perl_external_scanner_scan(
     TOKEN(TOKEN_GOBBLED_CONTENT);
   }
 
+  // this is whitespace sensitive, so it must go before any whitespace is skipped
+  if(valid_symbols[TOKEN_HEREDOC_MIDDLE] && !is_ERROR) {
+    DEBUG("Beggining heredoc contents\n", 0);
+    bool has_matched = false;
+    struct TSPString line;
+    while(!lexer->eof(lexer)) {
+      line.length = 0; // cheap reset of the line TSPString
+      // interpolating heredocs may need to stop in the middle of the line
+      bool is_valid_start_pos = state->heredoc_ends || lexer->get_column(lexer) == 0;
+      DEBUG("Starting loop at col %d\n", lexer->get_column(lexer));
+      if(is_valid_start_pos && state->heredoc_indents) {
+        DEBUG("Skipping initial whitespace in heredoc\n", 0);
+        skip_whitespace(lexer);
+        c = lexer->lookahead;
+      }
+      // we may be doing lookahead now
+      lexer->mark_end(lexer);
+      // read the whole line, b/c we want it
+      while(c != '\n' && !lexer->eof(lexer)) {
+        TSPString_push(&line, c);
+        ADVANCE_C;
+      }
+      DEBUG("got length %d, want length %d\n", line.length, state->heredoc_delim.length);
+      if(is_valid_start_pos && TSPString_eq(&line, &state->heredoc_delim)) {
+        // if we've read already, we return everything up until now
+        if(has_matched) {
+          state->heredoc_ends = true;
+          TOKEN(TOKEN_HEREDOC_MIDDLE);
+        }
+        lexer->mark_end(lexer);
+        TOKEN(TOKEN_HEREDOC_END);
+      }
+      has_matched = true;
+      // eat the \n and loop again; can't skip whitespace b/c the next line may care
+      ADVANCE_C;
+    }
+  }
+
+  skip_ws_to_eol(lexer);
+  /* heredocs override everything, so they must be here before */
+  if(valid_symbols[TOKEN_HEREDOC_START]) {
+    if(state->should_heredoc && lexer->get_column(lexer) == 0) {
+      state->should_heredoc = false;
+      TOKEN(TOKEN_HEREDOC_START);
+    }
+  }
+
+
+
   if (iswspace(c)) {
     skipped_whitespace = true;
     skip_whitespace(lexer);
     c = lexer->lookahead;
-  }
-
-  /* heredocs override everything, so they must be here before */
-  if(valid_symbols[TOKEN_HEREDOC_START]) {
-    if(state->should_heredoc && lexer->get_column(lexer) == 0) {
-      DEBUG("Heredoc started...\n", 0);
-      state->should_heredoc = false;
-      TOKEN(TOKEN_HEREDOC_START);
-    }
   }
 
   if(valid_symbols[TOKEN_ATTRIBUTE_VALUE]) {
@@ -438,6 +497,7 @@ bool tree_sitter_perl_external_scanner_scan(
         state->heredoc_interpolates = true;
         state->heredoc_indents = should_indent;
         state->should_heredoc = true;
+        state->heredoc_ends = false;
         TOKEN(TOKEN_HEREDOC_DELIM);
       }
     }
@@ -660,38 +720,6 @@ qwlist_started_backslash:
     }
 
     TOKEN(TOKEN_PROTOTYPE_OR_SIGNATURE);
-  }
-
-  // we put this late b/c we can't give back what it reads
-  if(valid_symbols[TOKEN_HEREDOC_MIDDLE]) {
-    bool has_matched = false;
-    while(!lexer->eof(lexer)) {
-      // interpolating heredocs may need to stop in the middle of the line, so we do this
-      // here
-      bool is_valid_start_pos = lexer->get_column(lexer) == 0;
-      if(is_valid_start_pos && state->heredoc_indents) {
-        skip_whitespace(lexer);
-      }
-      // we may be doing lookahead now
-      lexer->mark_end(lexer);
-      struct TSPString line;
-      line.length = 0;
-      // read the whole line, b/c we want it
-      while(c != '\n' && !lexer->eof(lexer)) {
-        TSPString_push(&line, c);
-        ADVANCE_C;
-      }
-      if(TSPString_eq(&line, &state->heredoc_delim)) {
-        // if we've read already, we return everything up until now
-        if(has_matched)
-          TOKEN(TOKEN_HEREDOC_MIDDLE);
-        lexer->mark_end(lexer);
-        TOKEN(TOKEN_HEREDOC_END);
-      }
-      has_matched = true;
-      // eat the \n and loop again; can't skip whitespace b/c the next line may care
-      ADVANCE_C;
-    }
   }
 
   if(is_continue_op) {

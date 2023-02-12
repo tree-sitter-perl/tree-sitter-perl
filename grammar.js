@@ -709,20 +709,10 @@ module.exports = grammar({
       )
     ),
     
-      // TODO - in the lookahead, we require no whitespace unless it's quoted; even quoted
-      //   must be on the same line, though
-      // syntax for the delimeter is an identifier, unless quoted
-      //   in the delimeter, backslashes are literal, unless escaping the quote
-    // for the start token, we'll use the scanner, the END token we'll just parse normally
     heredoc_token: $ => seq('<<', $._heredoc_delimeter ),
     // in the event that it's in ``, we want it to be a different node
     command_heredoc_token: $ => seq('<<', $._command_heredoc_delimeter),
-    // TODO - alias this as needed
     noninterpolated_heredoc_content: $ => seq($._heredoc_start, repeat($._heredoc_middle), $.heredoc_end),
-    // TODO - must start w/ a content start token which kicks in at col0 when there's an
-    // active heredoc
-    // TODO - heredoc end is only if we have the entire string followed by a newline
-    // TODO - single-quote/backslash heredoc_content has NO escapes, even the backslash
 
     package: $ => $._bareword,
     _version: $ => prec(1, choice($.number, $.version)),
