@@ -1,7 +1,7 @@
 #include <tree_sitter/parser.h>
 
 /* Set this to #define instead to enable debug printing */
-#define DEBUGGING
+#undef DEBUGGING
 
 /* for debug */
 #ifdef DEBUGGING
