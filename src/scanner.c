@@ -50,24 +50,25 @@ enum TokenType {
   TOKEN_ERROR
 };
 
-#define HEREDOC_TOKEN_LEN 8
-/* this is a arbitrary string where we only care about the first HEREDOC_TOKEN_LEN chars */
-struct TSString {
+#define MAX_TSPSTRING_LEN 8
+/* this is a arbitrary string where we only care about the first MAX_TSSTRING_LEN chars */
+struct TSPString {
   int length;
-  int contents[HEREDOC_TOKEN_LEN];
+  int contents[MAX_TSPSTRING_LEN];
 }
 
 /* we record the length, b/c that's still relevant for our cheapo comparison */
-static void TSString_push(TSString *s, int c)
+static void TSPString_push(TSPString *s, int c)
 {
-  if (s->length++ < HEREDOC_TOKEN_LEN)
-    s->contents[s->length] = c
+  if (s->length++ < MAX_TSSTRING_LEN)
+    s->contents[s->length] = c;
 }
 
-static bool TSString_eq(TSString *s1, TSString *s2)
+static bool TSPString_eq(TSPString *s1, TSPString *s2)
 {
   return (s1->length == s2->length) 
-    && (memcmp(s1, s2, s1->length < HEREDOC_TOKEN_LEN ? s1->length : HEREDOC_TOKEN_LEN) == 0)
+    // we only compare as many chars as we care about
+    && (memcmp(s1, s2, s1->length < MAX_TSPSTRING_LEN ? s1->length : MAX_TSPSTRING_LEN) == 0)
 }
 
 struct LexerState {
@@ -76,7 +77,7 @@ struct LexerState {
   /* heredoc - we need to track if we should start the heredoc, if it's interpolating,
    * how many chars the delimeter is and what the delimeter is */
   bool should_heredoc, heredoc_interpolates, heredoc_indents;
-  TSString heredoc_delim;
+  TSPString heredoc_delim;
 };
 
 
@@ -435,13 +436,9 @@ bool tree_sitter_perl_external_scanner_scan(
       if(isidfirst(c)) {
         int i = 0;
         while(isidcont(c)) {
-          if(i < HEREDOC_TOKEN_LEN) {
-            state->heredoc_delim[i++] = c;
-          }
+          TSPString_push(&state->heredoc_delim, c);
           ADVANCE_C;
         }
-        state->heredoc_delim_length = i;
-        state->heredoc_delim[i] = 0;
         state->heredoc_interpolates = true;
         state->heredoc_indents = should_indent;
         state->should_heredoc = true;
@@ -450,10 +447,9 @@ bool tree_sitter_perl_external_scanner_scan(
     }
     if(c == '\'' || c == '"' || c == '`') {
       int delim_open = c;
-      int i = 0;
       ADVANCE_C;
-      while (c != delim_open) {
-        // backslashes escape the quote char
+      while (c != delim_open && !lexer->eof(lexer)) {
+        // backslashes escape the quote char and nothing else, not even a backslash
         if(c == '\\') {
           int to_add = c;
           ADVANCE_C;
@@ -461,28 +457,22 @@ bool tree_sitter_perl_external_scanner_scan(
             to_add = delim_open;
             ADVANCE_C;
           }
-          if(i <= HEREDOC_TOKEN_LEN) {
-            state->heredoc_delim[i++] = to_add;
-          }
-        } else if(i <= HEREDOC_TOKEN_LEN) {
-          state->heredoc_delim[i++] = c;
+          TSPString_push(&state->heredoc_delim, to_add);
+        } else {
+          TSPString_push(&state->heredoc_delim, c);
           ADVANCE_C;
         }
       }
-      if(i > 0) {
+      if(state->heredoc_delim.length > 0) {
         // gotta eat that delimeter
         ADVANCE_C;
         // gotta null terminate up in here
-        state->heredoc_delim_length = i;
-        state->heredoc_delim[i+1] = 0;
         state->heredoc_interpolates = delim_open != '\'';
         state->should_heredoc = true;
         if(delim_open == '`')
           TOKEN(TOKEN_COMMAND_HEREDOC_DELIM);
         TOKEN(TOKEN_HEREDOC_DELIM);
       }
-      // TODO - handling for quoted variants; if it's unspaced it falls thru to here
-
     }
   }
 
@@ -678,37 +668,30 @@ qwlist_started_backslash:
 
   // we put this late b/c we can't give back what it reads
   if(valid_symbols[TOKEN_HEREDOC_MIDDLE]) {
-    while (!lexer->eof(lexer)) {
+    bool has_matched = false;
+    while(!lexer->eof(lexer)) {
       // interpolating heredocs may need to stop in the middle of the line, so we do this
       // here
       bool is_valid_start_pos = lexer->get_column(lexer) == 0;
       if(is_valid_start_pos && state->heredoc_indents) {
         skip_whitespace(lexer);
       }
-
-    // TODO - actually work; we needa loop thru and read a line at a time, then check the
-    // validity of the next line, and otherwise gobble it
-    lexer->mark_end(lexer);
-    if(is_valid_start_pos) {
-      int checker[HEREDOC_TOKEN_LEN + 1];
-      for(int i = 0; i < state->heredoc_delim_length; i++) {
-        // TODO - handle dis betta; break @ \n|\r, allow scanning further..
-        checker[i] = c;
-        checker[i + 1] = 0;
-        ADVANCE_C;
-        if (lexer->eof(lexer))
-          break;
+      // we may be doing lookahead now
+      lexer->mark_end(lexer);
+      TSPString line;
+      line.length = 0;
+      // read the whole line, b/c we want it
+      while(c != '\n' && !lexer->eof(lexer))
+        TSPString_push(&line, c);
+      if(TSPString_eq(&line, &state->heredoc_delim)) {
+        // if we've read already, we return everything up until now
+        if(has_matched)
+          TOKEN(TOKEN_HEREDOC_MIDDLE);
+        lexer->mark_end(lexer);
+        TOKEN(TOKEN_HEREDOC_END);
       }
-      if (streq(checker, state->heredoc_delim)) {
-        // return up to the token, b/c we marked end b4 this line
-        TOKEN(TOKEN_HEREDOC_MIDDLE);
-      }
+      has_matched = true;
     }
-    while(c != '\n' && c != '\r' && !lexer->eof(lexer)) {
-      ADVANCE_C;
-    }
-    lexer->mark_end(lexer);
-    TOKEN(TOKEN_HEREDOC_MIDDLE);
   }
 
   if(is_continue_op) {
