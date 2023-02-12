@@ -85,13 +85,20 @@ struct LexerState {
   struct TSPString heredoc_delim;
 };
 
-static void LexerState_add_heredoc(struct LexerState * state, struct TSPString * delim, bool interpolates, bool indents)
+static void LexerState_add_heredoc(struct LexerState *state, struct TSPString *delim, bool interp, bool indent)
 {
   memcpy(&state->heredoc_delim, delim, sizeof(struct TSPString));
-  state->heredoc_interpolates = interpolates;
-  state->heredoc_indents = indents;
+  state->heredoc_interpolates = interp;
+  state->heredoc_indents = indent;
   state->heredoc_starts = true;
   state->heredoc_ends = false;
+}
+
+static void LexerState_finish_heredoc(struct LexerState *state)
+{
+  state->heredoc_delim.length = 0;
+  state->heredoc_ends = false;
+  state->heredoc_starts = false;
 }
 
 
@@ -268,7 +275,8 @@ bool tree_sitter_perl_external_scanner_scan(
     struct TSPString line;
     while(!lexer->eof(lexer)) {
       line.length = 0; // cheap reset of the line TSPString
-      // interpolating heredocs may need to stop in the middle of the line
+      // interpolating heredocs may need to stop in the middle of the line; indented
+      // heredocs may START in the beggining of a known line
       bool is_valid_start_pos = state->heredoc_ends || lexer->get_column(lexer) == 0;
       DEBUG("Starting loop at col %d\n", lexer->get_column(lexer));
       if(is_valid_start_pos && state->heredoc_indents) {
@@ -291,6 +299,7 @@ bool tree_sitter_perl_external_scanner_scan(
           TOKEN(TOKEN_HEREDOC_MIDDLE);
         }
         lexer->mark_end(lexer);
+        LexerState_finish_heredoc(state);
         TOKEN(TOKEN_HEREDOC_END);
       }
       has_matched = true;
