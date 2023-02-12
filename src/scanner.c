@@ -60,15 +60,20 @@ struct TSPString {
 /* we record the length, b/c that's still relevant for our cheapo comparison */
 static void TSPString_push(struct TSPString *s, int c)
 {
-  if (s->length++ < MAX_TSPSTRING_LEN)
+  if (s->length++ <= MAX_TSPSTRING_LEN)
     s->contents[s->length - 1] = c;
 }
 
 static bool TSPString_eq(struct TSPString *s1, struct TSPString *s2)
 {
-  return (s1->length == s2->length) 
-    // we only compare as many chars as we care about
-    && (memcmp(s1, s2, sizeof(int) * s1->length < MAX_TSPSTRING_LEN ? s1->length : MAX_TSPSTRING_LEN) == 0);
+  if(s1->length != s2->length) 
+    return false;
+  int max_len = s1->length < MAX_TSPSTRING_LEN ? s1->length : MAX_TSPSTRING_LEN;
+  for(int i = 0; i < s1->length; i++) {
+    if (s1->contents[i] != s2->contents[i])
+      return false;
+  }
+  return true;
 }
 
 struct LexerState {
@@ -87,7 +92,6 @@ static void LexerState_add_heredoc(struct LexerState * state, struct TSPString *
   state->heredoc_indents = indents;
   state->heredoc_starts = true;
   state->heredoc_ends = false;
-
 }
 
 
