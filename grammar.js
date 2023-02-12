@@ -122,7 +122,7 @@ module.exports = grammar({
     $.__END__,
     $._CTRL_D,
     // $._CTRL_Z // borken on windoze, sigh
-    $._noninterpolated_heredoc_content
+    $.noninterpolated_heredoc_content
   ],
   conflicts: $ => [
     [ $.preinc_expression, $.postinc_expression ],
@@ -718,10 +718,7 @@ module.exports = grammar({
     // in the event that it's in ``, we want it to be a different node
     command_heredoc_token: $ => seq('<<', $._command_heredoc_delimeter),
     // TODO - alias this as needed
-    _noninterpolated_heredoc_content: $ => alias(
-      seq($._heredoc_start, repeat($._heredoc_middle), $.heredoc_end),
-      $.heredoc_content
-    ),
+    noninterpolated_heredoc_content: $ => seq($._heredoc_start, repeat($._heredoc_middle), $.heredoc_end),
     // TODO - must start w/ a content start token which kicks in at col0 when there's an
     // active heredoc
     // TODO - heredoc end is only if we have the entire string followed by a newline
