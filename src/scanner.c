@@ -524,7 +524,9 @@ bool tree_sitter_perl_external_scanner_scan(
         ADVANCE_C;
         // gotta null terminate up in here
         state->heredoc_interpolates = delim_open != '\'';
+        state->heredoc_indents = false;
         state->should_heredoc = true;
+        state->heredoc_ends = false;
         if(delim_open == '`')
           TOKEN(TOKEN_COMMAND_HEREDOC_DELIM);
         TOKEN(TOKEN_HEREDOC_DELIM);
