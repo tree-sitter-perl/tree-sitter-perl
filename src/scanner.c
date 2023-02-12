@@ -228,6 +228,12 @@ bool tree_sitter_perl_external_scanner_scan(
     TOKEN(TOKEN_GOBBLED_CONTENT);
   }
 
+  if (iswspace(c)) {
+    skipped_whitespace = true;
+    skip_whitespace(lexer);
+    c = lexer->lookahead;
+  }
+
   /* heredocs override everything, so they must be here before */
   if(valid_symbols[TOKEN_HEREDOC_START]) {
     if(state->should_heredoc && lexer->get_column(lexer) == 0) {
@@ -237,10 +243,9 @@ bool tree_sitter_perl_external_scanner_scan(
     }
   }
 
-
   if(valid_symbols[TOKEN_ATTRIBUTE_VALUE]) {
     /* the '(' must be immediate, before any whitespace */
-    if(c == '(') {
+    if(c == '(' && !skipped_whitespace) {
       DEBUG("Attribute value started...\n", 0);
 
       ADVANCE_C;
@@ -277,12 +282,6 @@ bool tree_sitter_perl_external_scanner_scan(
       break;
     }
   */
-
-  if (iswspace(c)) {
-    skipped_whitespace = true;
-    skip_whitespace(lexer);
-    c = lexer->lookahead;
-  }
 
   if(valid_symbols[PERLY_SEMICOLON]) {
     if(c == ';') {
@@ -418,9 +417,6 @@ bool tree_sitter_perl_external_scanner_scan(
   if(is_ERROR)
     return false;
 
-  if(valid_symbols[TOKEN_HEREDOC_MIDDLE]) {
-
-  }
   /* we use this to force tree-sitter to stay on the error branch of a nonassoc operator */
   if(valid_symbols[TOKEN_NONASSOC])
     TOKEN(TOKEN_NONASSOC);
@@ -428,13 +424,13 @@ bool tree_sitter_perl_external_scanner_scan(
   if(valid_symbols[TOKEN_HEREDOC_DELIM] || valid_symbols[TOKEN_COMMAND_HEREDOC_DELIM]) {
     // by default, indentation is false
     bool should_indent = false;
+    state->heredoc_delim.length = 0;
     if(!skipped_whitespace) {
       if(c == '~') {
         ADVANCE_C;
         should_indent = true;
       } 
       if(isidfirst(c)) {
-        int i = 0;
         while(isidcont(c)) {
           TSPString_push(&state->heredoc_delim, c);
           ADVANCE_C;
@@ -693,6 +689,8 @@ qwlist_started_backslash:
         TOKEN(TOKEN_HEREDOC_END);
       }
       has_matched = true;
+      // eat the \n and loop again; can't skip whitespace b/c the next line may care
+      ADVANCE_C;
     }
   }
 
