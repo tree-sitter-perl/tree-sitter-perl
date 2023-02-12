@@ -68,7 +68,7 @@ static bool TSPString_eq(struct TSPString *s1, struct TSPString *s2)
 {
   return (s1->length == s2->length) 
     // we only compare as many chars as we care about
-    && (memcmp(s1, s2, sizeof(struct TSPString) * s1->length < MAX_TSPSTRING_LEN ? s1->length : MAX_TSPSTRING_LEN) == 0);
+    && (memcmp(s1, s2, sizeof(int) * s1->length < MAX_TSPSTRING_LEN ? s1->length : MAX_TSPSTRING_LEN) == 0);
 }
 
 struct LexerState {
@@ -80,8 +80,9 @@ struct LexerState {
   struct TSPString heredoc_delim;
 };
 
-static void LexerState_add_heredoc(struct LexerState * state, bool interpolates, bool indents)
+static void LexerState_add_heredoc(struct LexerState * state, struct TSPString * delim, bool interpolates, bool indents)
 {
+  memcpy(&state->heredoc_delim, delim, sizeof(struct TSPString));
   state->heredoc_interpolates = interpolates;
   state->heredoc_indents = indents;
   state->heredoc_starts = true;
@@ -492,7 +493,8 @@ bool tree_sitter_perl_external_scanner_scan(
   if(valid_symbols[TOKEN_HEREDOC_DELIM] || valid_symbols[TOKEN_COMMAND_HEREDOC_DELIM]) {
     // by default, indentation is false
     bool should_indent = false;
-    state->heredoc_delim.length = 0;
+    struct TSPString delim;
+    delim.length = 0;
     if(!skipped_whitespace) {
       if(c == '~') {
         ADVANCE_C;
@@ -500,10 +502,10 @@ bool tree_sitter_perl_external_scanner_scan(
       } 
       if(isidfirst(c)) {
         while(isidcont(c)) {
-          TSPString_push(&state->heredoc_delim, c);
+          TSPString_push(&delim, c);
           ADVANCE_C;
         }
-        LexerState_add_heredoc(state, true, should_indent);
+        LexerState_add_heredoc(state, &delim, true, should_indent);
         TOKEN(TOKEN_HEREDOC_DELIM);
       }
     }
@@ -519,17 +521,17 @@ bool tree_sitter_perl_external_scanner_scan(
             to_add = delim_open;
             ADVANCE_C;
           }
-          TSPString_push(&state->heredoc_delim, to_add);
+          TSPString_push(&delim, to_add);
         } else {
-          TSPString_push(&state->heredoc_delim, c);
+          TSPString_push(&delim, c);
           ADVANCE_C;
         }
       }
-      if(state->heredoc_delim.length > 0) {
+      if(delim.length > 0) {
         // gotta eat that delimeter
         ADVANCE_C;
         // gotta null terminate up in here
-        LexerState_add_heredoc(state, delim_open == '\'', false);
+        LexerState_add_heredoc(state, &delim, delim_open == '\'', false);
         if(delim_open == '`')
           TOKEN(TOKEN_COMMAND_HEREDOC_DELIM);
         TOKEN(TOKEN_HEREDOC_DELIM);
