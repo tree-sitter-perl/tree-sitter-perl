@@ -76,9 +76,18 @@ struct LexerState {
   int delim_count;
   /* heredoc - we need to track if we should start the heredoc, if it's interpolating,
    * how many chars the delimeter is and what the delimeter is */
-  bool should_heredoc, heredoc_interpolates, heredoc_indents, heredoc_ends;
+  bool heredoc_starts, heredoc_interpolates, heredoc_indents, heredoc_ends;
   struct TSPString heredoc_delim;
 };
+
+static void LexerState_add_heredoc(struct LexerState * state, bool interpolates, bool indents)
+{
+  state->heredoc_interpolates = interpolates;
+  state->heredoc_indents = indents;
+  state->heredoc_starts = true;
+  state->heredoc_ends = false;
+
+}
 
 
 #define ADVANCE_C \
@@ -288,8 +297,8 @@ bool tree_sitter_perl_external_scanner_scan(
   skip_ws_to_eol(lexer);
   /* heredocs override everything, so they must be here before */
   if(valid_symbols[TOKEN_HEREDOC_START]) {
-    if(state->should_heredoc && lexer->get_column(lexer) == 0) {
-      state->should_heredoc = false;
+    if(state->heredoc_starts && lexer->get_column(lexer) == 0) {
+      state->heredoc_starts = false;
       TOKEN(TOKEN_HEREDOC_START);
     }
   }
@@ -494,10 +503,7 @@ bool tree_sitter_perl_external_scanner_scan(
           TSPString_push(&state->heredoc_delim, c);
           ADVANCE_C;
         }
-        state->heredoc_interpolates = true;
-        state->heredoc_indents = should_indent;
-        state->should_heredoc = true;
-        state->heredoc_ends = false;
+        LexerState_add_heredoc(state, true, should_indent);
         TOKEN(TOKEN_HEREDOC_DELIM);
       }
     }
@@ -523,10 +529,7 @@ bool tree_sitter_perl_external_scanner_scan(
         // gotta eat that delimeter
         ADVANCE_C;
         // gotta null terminate up in here
-        state->heredoc_interpolates = delim_open != '\'';
-        state->heredoc_indents = false;
-        state->should_heredoc = true;
-        state->heredoc_ends = false;
+        LexerState_add_heredoc(state, delim_open == '\'', false);
         if(delim_open == '`')
           TOKEN(TOKEN_COMMAND_HEREDOC_DELIM);
         TOKEN(TOKEN_HEREDOC_DELIM);
