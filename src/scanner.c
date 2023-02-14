@@ -58,13 +58,13 @@ struct TSPString {
 };
 
 /* we record the length, b/c that's still relevant for our cheapo comparison */
-static void TSPString_push(struct TSPString *s, int c)
+static void tspstring_push(struct TSPString *s, int c)
 {
   if (s->length++ <= MAX_TSPSTRING_LEN)
     s->contents[s->length - 1] = c;
 }
 
-static bool TSPString_eq(struct TSPString *s1, struct TSPString *s2)
+static bool tspstring_eq(struct TSPString *s1, struct TSPString *s2)
 {
   if(s1->length != s2->length) 
     return false;
@@ -76,7 +76,7 @@ static bool TSPString_eq(struct TSPString *s1, struct TSPString *s2)
   return true;
 }
 
-static void TSPString_reset(struct TSPString *s)
+static void tspstring_reset(struct TSPString *s)
 {
   s->length = 0;
 }
@@ -92,7 +92,7 @@ struct LexerState {
   struct TSPString heredoc_delim;
 };
 
-static void LexerState_add_heredoc(struct LexerState *state, struct TSPString *delim, bool interp, bool indent)
+static void lexerstate_add_heredoc(struct LexerState *state, struct TSPString *delim, bool interp, bool indent)
 {
   memcpy(&state->heredoc_delim, delim, sizeof(struct TSPString));
   state->heredoc_interpolates = interp;
@@ -100,7 +100,7 @@ static void LexerState_add_heredoc(struct LexerState *state, struct TSPString *d
   state->heredoc_state = HEREDOC_START;
 }
 
-static void LexerState_finish_heredoc(struct LexerState *state)
+static void lexerstate_finish_heredoc(struct LexerState *state)
 {
   state->heredoc_delim.length = 0;
   state->heredoc_state = HEREDOC_NONE;
@@ -280,7 +280,7 @@ bool tree_sitter_perl_external_scanner_scan(
       struct TSPString line;
       // read as many lines as we can 
       while(!lexer->eof(lexer)) {
-        TSPString_reset(&line);
+        tspstring_reset(&line);
         // interpolating heredocs may need to stop in the middle of the line; indented
         // heredocs may START in the beggining of a known line
         bool is_valid_start_pos = state->heredoc_state == HEREDOC_END || lexer->get_column(lexer) == 0;
@@ -295,20 +295,20 @@ bool tree_sitter_perl_external_scanner_scan(
         lexer->mark_end(lexer);
         // read the whole line, b/c we want it
         while(c != '\n' && !lexer->eof(lexer)) {
-          TSPString_push(&line, c);
+          tspstring_push(&line, c);
           if (c == '$' || c == '@' || c == '\\')
             saw_escape = true;
           ADVANCE_C;
         }
         DEBUG("got length %d, want length %d\n", line.length, state->heredoc_delim.length);
-        if(is_valid_start_pos && TSPString_eq(&line, &state->heredoc_delim)) {
+        if(is_valid_start_pos && tspstring_eq(&line, &state->heredoc_delim)) {
           // if we've read already, we return everything up until now
           if(state->heredoc_state != HEREDOC_END) {
             state->heredoc_state = HEREDOC_END;
             TOKEN(TOKEN_HEREDOC_MIDDLE);
           }
           lexer->mark_end(lexer);
-          LexerState_finish_heredoc(state);
+          lexerstate_finish_heredoc(state);
           TOKEN(TOKEN_HEREDOC_END);
         }
         if(saw_escape && state->heredoc_interpolates) {
@@ -550,7 +550,7 @@ bool tree_sitter_perl_external_scanner_scan(
     bool should_interpolate = true;
 
     struct TSPString delim;
-    TSPString_reset(&delim);
+    tspstring_reset(&delim);
     if(!skipped_whitespace) {
       if(c == '~') {
         ADVANCE_C;
@@ -562,10 +562,10 @@ bool tree_sitter_perl_external_scanner_scan(
       }
       if(isidfirst(c)) {
         while(isidcont(c)) {
-          TSPString_push(&delim, c);
+          tspstring_push(&delim, c);
           ADVANCE_C;
         }
-        LexerState_add_heredoc(state, &delim, should_interpolate, should_indent);
+        lexerstate_add_heredoc(state, &delim, should_interpolate, should_indent);
         TOKEN(TOKEN_HEREDOC_DELIM);
       }
     }
@@ -586,9 +586,9 @@ bool tree_sitter_perl_external_scanner_scan(
             to_add = delim_open;
             ADVANCE_C;
           }
-          TSPString_push(&delim, to_add);
+          tspstring_push(&delim, to_add);
         } else {
-          TSPString_push(&delim, c);
+          tspstring_push(&delim, c);
           ADVANCE_C;
         }
       }
@@ -596,7 +596,7 @@ bool tree_sitter_perl_external_scanner_scan(
         // gotta eat that delimeter
         ADVANCE_C;
         // gotta null terminate up in here
-        LexerState_add_heredoc(state, &delim, should_interpolate, should_indent);
+        lexerstate_add_heredoc(state, &delim, should_interpolate, should_indent);
         if(delim_open == '`')
           TOKEN(TOKEN_COMMAND_HEREDOC_DELIM);
         TOKEN(TOKEN_HEREDOC_DELIM);
