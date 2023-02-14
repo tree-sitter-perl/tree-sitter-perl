@@ -76,12 +76,19 @@ static bool TSPString_eq(struct TSPString *s1, struct TSPString *s2)
   return true;
 }
 
+static void TSPString_reset(struct TSPString *s)
+{
+  s->length = 0;
+}
+
+typedef enum { HEREDOC_NONE, HEREDOC_START, HEREDOC_UNKNOWN, HEREDOC_CONTINUE, HEREDOC_END } HeredocState;
 struct LexerState {
   int delim_open, delim_close;  /* codepoints */
   int delim_count;
   /* heredoc - we need to track if we should start the heredoc, if it's interpolating,
    * how many chars the delimeter is and what the delimeter is */
-  bool heredoc_starts, heredoc_interpolates, heredoc_indents, heredoc_ends;
+  bool heredoc_interpolates, heredoc_indents;
+  HeredocState heredoc_state;
   struct TSPString heredoc_delim;
 };
 
@@ -90,15 +97,13 @@ static void LexerState_add_heredoc(struct LexerState *state, struct TSPString *d
   memcpy(&state->heredoc_delim, delim, sizeof(struct TSPString));
   state->heredoc_interpolates = interp;
   state->heredoc_indents = indent;
-  state->heredoc_starts = true;
-  state->heredoc_ends = false;
+  state->heredoc_state = HEREDOC_START;
 }
 
 static void LexerState_finish_heredoc(struct LexerState *state)
 {
   state->heredoc_delim.length = 0;
-  state->heredoc_ends = false;
-  state->heredoc_starts = false;
+  state->heredoc_state = HEREDOC_NONE;
 }
 
 
@@ -273,11 +278,12 @@ bool tree_sitter_perl_external_scanner_scan(
     DEBUG("Beggining heredoc contents\n", 0);
     bool has_matched = false;
     struct TSPString line;
+    // TODO - handle HEREDOC_CONTINUE, where we know we must go again
     while(!lexer->eof(lexer)) {
-      line.length = 0; // cheap reset of the line TSPString
+      TSPString_reset(&line);
       // interpolating heredocs may need to stop in the middle of the line; indented
       // heredocs may START in the beggining of a known line
-      bool is_valid_start_pos = state->heredoc_ends || lexer->get_column(lexer) == 0;
+      bool is_valid_start_pos = state->heredoc_state == HEREDOC_END || lexer->get_column(lexer) == 0;
       DEBUG("Starting loop at col %d\n", lexer->get_column(lexer));
       if(is_valid_start_pos && state->heredoc_indents) {
         DEBUG("Skipping initial whitespace in heredoc\n", 0);
@@ -295,7 +301,7 @@ bool tree_sitter_perl_external_scanner_scan(
       if(is_valid_start_pos && TSPString_eq(&line, &state->heredoc_delim)) {
         // if we've read already, we return everything up until now
         if(has_matched) {
-          state->heredoc_ends = true;
+          state->heredoc_state = HEREDOC_END;
           TOKEN(TOKEN_HEREDOC_MIDDLE);
         }
         lexer->mark_end(lexer);
@@ -311,8 +317,8 @@ bool tree_sitter_perl_external_scanner_scan(
   skip_ws_to_eol(lexer);
   /* heredocs override everything, so they must be here before */
   if(valid_symbols[TOKEN_HEREDOC_START]) {
-    if(state->heredoc_starts && lexer->get_column(lexer) == 0) {
-      state->heredoc_starts = false;
+    if(state->heredoc_state == HEREDOC_START && lexer->get_column(lexer) == 0) {
+      state->heredoc_state = HEREDOC_UNKNOWN;
       TOKEN(TOKEN_HEREDOC_START);
     }
   }
@@ -504,26 +510,37 @@ bool tree_sitter_perl_external_scanner_scan(
     TOKEN(TOKEN_NONASSOC);
 
   if(valid_symbols[TOKEN_HEREDOC_DELIM] || valid_symbols[TOKEN_COMMAND_HEREDOC_DELIM]) {
-    // by default, indentation is false
+    // by default, indentation is false and interpolation is true
     bool should_indent = false;
+    bool should_interpolate = true;
+
     struct TSPString delim;
-    delim.length = 0;
+    TSPString_reset(&delim);
     if(!skipped_whitespace) {
       if(c == '~') {
         ADVANCE_C;
         should_indent = true;
       } 
+      if(c == '\\') {
+        ADVANCE_C;
+        should_interpolate = false;
+      }
       if(isidfirst(c)) {
         while(isidcont(c)) {
           TSPString_push(&delim, c);
           ADVANCE_C;
         }
-        LexerState_add_heredoc(state, &delim, true, should_indent);
+        LexerState_add_heredoc(state, &delim, should_interpolate, should_indent);
         TOKEN(TOKEN_HEREDOC_DELIM);
       }
     }
-    if(c == '\'' || c == '"' || c == '`') {
+    // if we picked up a ~ before, we may have to skip to hit the quote
+    if(should_indent)
+      skip_whitespace(lexer);
+    // if we picked up a \ before, we cannot allow even an immediate quote
+    if(should_interpolate && (c == '\'' || c == '"' || c == '`')) {
       int delim_open = c;
+      should_interpolate = c != '\'';
       ADVANCE_C;
       while (c != delim_open && !lexer->eof(lexer)) {
         // backslashes escape the quote char and nothing else, not even a backslash
@@ -544,7 +561,7 @@ bool tree_sitter_perl_external_scanner_scan(
         // gotta eat that delimeter
         ADVANCE_C;
         // gotta null terminate up in here
-        LexerState_add_heredoc(state, &delim, delim_open == '\'', false);
+        LexerState_add_heredoc(state, &delim, should_interpolate, should_indent /*false*/);
         if(delim_open == '`')
           TOKEN(TOKEN_COMMAND_HEREDOC_DELIM);
         TOKEN(TOKEN_HEREDOC_DELIM);
