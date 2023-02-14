@@ -320,16 +320,32 @@ bool tree_sitter_perl_external_scanner_scan(
         ADVANCE_C;
       }
     } else {
-        // handle the continue case; read ahead until we get a \n or an escape
-        bool saw_chars = false;
-        while(!strchr("\n$@\\", c)) {
+      DEBUG("Entering heredoc interp mode\n", 0);
+      // handle the continue case; read ahead until we get a \n or an escape
+      bool saw_chars = false;
+      while(1) {
+        if(strchr("$@", c)) {
+          // string interp is whitespace sensitive, so we need to do an extra lookahead
+          lexer->mark_end(lexer);
           ADVANCE_C;
-          saw_chars = true;
+          if(!iswspace(c)) {
+            break;
+          }
         }
-        if(c == '\n')
+        if(c == '\\') {
+          lexer->mark_end(lexer);
+          break;
+        }
+        if(c == '\n') {
+          lexer->mark_end(lexer);
           state->heredoc_state = HEREDOC_UNKNOWN;
-        if(saw_chars)
           TOKEN(TOKEN_HEREDOC_MIDDLE);
+        }
+        saw_chars = true;
+        ADVANCE_C;
+      }
+      if(saw_chars)
+        TOKEN(TOKEN_HEREDOC_MIDDLE);
       }
   }
 
@@ -619,6 +635,9 @@ bool tree_sitter_perl_external_scanner_scan(
   if(valid_symbols[TOKEN_ESCAPE_SEQUENCE] && begins_backslash) {
     int esc_c = c;
     ADVANCE_C;
+    // we need to explicitly accept here b/c we may have done a lookahead above in
+    // heredoc-middle handling
+    lexer->mark_end(lexer);
 
     // Inside any kind of string, \\ is always an escape sequence
     if(esc_c == '\\')
