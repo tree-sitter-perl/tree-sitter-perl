@@ -596,7 +596,7 @@ bool tree_sitter_perl_external_scanner_scan(
         // gotta eat that delimeter
         ADVANCE_C;
         // gotta null terminate up in here
-        LexerState_add_heredoc(state, &delim, should_interpolate, should_indent /*false*/);
+        LexerState_add_heredoc(state, &delim, should_interpolate, should_indent);
         if(delim_open == '`')
           TOKEN(TOKEN_COMMAND_HEREDOC_DELIM);
         TOKEN(TOKEN_HEREDOC_DELIM);

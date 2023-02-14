@@ -312,6 +312,7 @@ module.exports = grammar({
       seq('(', $._expr, ')'),
       $.quoted_word_list,
       $.heredoc_token,
+      $.command_heredoc_token,
       $.stub_expression,
       $.scalar,
       $.glob,

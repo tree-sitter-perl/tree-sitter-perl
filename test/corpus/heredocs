@@ -27,3 +27,14 @@ CRAZY, but you'd be \n $wrong
   (expression_statement (heredoc_token))
   (heredoc_content (heredoc_end))
 )
+================================================================================
+Command heredocs
+================================================================================
+<< `BASH`;
+:(){ :|:& };:
+BASH
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement (command_heredoc_token))
+  (heredoc_content (heredoc_end))
+)
