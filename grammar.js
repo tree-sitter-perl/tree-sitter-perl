@@ -122,7 +122,7 @@ module.exports = grammar({
     $.__END__,
     $._CTRL_D,
     // $._CTRL_Z // borken on windoze, sigh
-    $.noninterpolated_heredoc_content
+    $.heredoc_content
   ],
   conflicts: $ => [
     [ $.preinc_expression, $.postinc_expression ],
@@ -712,7 +712,16 @@ module.exports = grammar({
     heredoc_token: $ => seq('<<', $._heredoc_delimeter ),
     // in the event that it's in ``, we want it to be a different node
     command_heredoc_token: $ => seq('<<', $._command_heredoc_delimeter),
-    noninterpolated_heredoc_content: $ => seq($._heredoc_start, repeat($._heredoc_middle), $.heredoc_end),
+    heredoc_content: $ => seq(
+      $._heredoc_start,
+      repeat(choice(
+        $._heredoc_middle,
+        $.escape_sequence,
+        $.scalar,
+        $.array
+      )),
+      $.heredoc_end
+    ),
 
     package: $ => $._bareword,
     _version: $ => prec(1, choice($.number, $.version)),

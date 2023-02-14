@@ -276,42 +276,61 @@ bool tree_sitter_perl_external_scanner_scan(
   // this is whitespace sensitive, so it must go before any whitespace is skipped
   if(valid_symbols[TOKEN_HEREDOC_MIDDLE] && !is_ERROR) {
     DEBUG("Beggining heredoc contents\n", 0);
-    bool has_matched = false;
-    struct TSPString line;
-    // TODO - handle HEREDOC_CONTINUE, where we know we must go again
-    while(!lexer->eof(lexer)) {
-      TSPString_reset(&line);
-      // interpolating heredocs may need to stop in the middle of the line; indented
-      // heredocs may START in the beggining of a known line
-      bool is_valid_start_pos = state->heredoc_state == HEREDOC_END || lexer->get_column(lexer) == 0;
-      DEBUG("Starting loop at col %d\n", lexer->get_column(lexer));
-      if(is_valid_start_pos && state->heredoc_indents) {
-        DEBUG("Skipping initial whitespace in heredoc\n", 0);
-        skip_whitespace(lexer);
-        c = lexer->lookahead;
-      }
-      // we may be doing lookahead now
-      lexer->mark_end(lexer);
-      // read the whole line, b/c we want it
-      while(c != '\n' && !lexer->eof(lexer)) {
-        TSPString_push(&line, c);
-        ADVANCE_C;
-      }
-      DEBUG("got length %d, want length %d\n", line.length, state->heredoc_delim.length);
-      if(is_valid_start_pos && TSPString_eq(&line, &state->heredoc_delim)) {
-        // if we've read already, we return everything up until now
-        if(has_matched) {
-          state->heredoc_state = HEREDOC_END;
+    if (state->heredoc_state != HEREDOC_CONTINUE) {
+      struct TSPString line;
+      // read as many lines as we can 
+      while(!lexer->eof(lexer)) {
+        TSPString_reset(&line);
+        // interpolating heredocs may need to stop in the middle of the line; indented
+        // heredocs may START in the beggining of a known line
+        bool is_valid_start_pos = state->heredoc_state == HEREDOC_END || lexer->get_column(lexer) == 0;
+        bool saw_escape = false;
+        DEBUG("Starting loop at col %d\n", lexer->get_column(lexer));
+        if(is_valid_start_pos && state->heredoc_indents) {
+          DEBUG("Skipping initial whitespace in heredoc\n", 0);
+          skip_whitespace(lexer);
+          c = lexer->lookahead;
+        }
+        // we may be doing lookahead now
+        lexer->mark_end(lexer);
+        // read the whole line, b/c we want it
+        while(c != '\n' && !lexer->eof(lexer)) {
+          TSPString_push(&line, c);
+          if (c == '$' || c == '@' || c == '\\')
+            saw_escape = true;
+          ADVANCE_C;
+        }
+        DEBUG("got length %d, want length %d\n", line.length, state->heredoc_delim.length);
+        if(is_valid_start_pos && TSPString_eq(&line, &state->heredoc_delim)) {
+          // if we've read already, we return everything up until now
+          if(state->heredoc_state != HEREDOC_END) {
+            state->heredoc_state = HEREDOC_END;
+            TOKEN(TOKEN_HEREDOC_MIDDLE);
+          }
+          lexer->mark_end(lexer);
+          LexerState_finish_heredoc(state);
+          TOKEN(TOKEN_HEREDOC_END);
+        }
+        if(saw_escape && state->heredoc_interpolates) {
+          // we'll repeat this line in continue mode where we'll pause midline
+          state->heredoc_state = HEREDOC_CONTINUE;
           TOKEN(TOKEN_HEREDOC_MIDDLE);
         }
-        lexer->mark_end(lexer);
-        LexerState_finish_heredoc(state);
-        TOKEN(TOKEN_HEREDOC_END);
+        // eat the \n and loop again; can't skip whitespace b/c the next line may care
+        ADVANCE_C;
       }
-      has_matched = true;
-      // eat the \n and loop again; can't skip whitespace b/c the next line may care
-      ADVANCE_C;
-    }
+    } else {
+        // handle the continue case; read ahead until we get a \n or an escape
+        bool saw_chars = false;
+        while(!strchr("\n$@\\", c)) {
+          ADVANCE_C;
+          saw_chars = true;
+        }
+        if(c == '\n')
+          state->heredoc_state = HEREDOC_UNKNOWN;
+        if(saw_chars)
+          TOKEN(TOKEN_HEREDOC_MIDDLE);
+      }
   }
 
   skip_ws_to_eol(lexer);
