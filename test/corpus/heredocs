@@ -65,3 +65,19 @@ Indented heredocs
   (expression_statement (heredoc_token))
   (heredoc_content (heredoc_end))
 )
+================================================================================
+Insane heredocs
+================================================================================
+<<'WUT\'\n?';
+this is intersting
+WUT'\n?
+<<"WHY?$CUZ";
+ WHY?$CUZ
+WHY?$CUZ
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement (heredoc_token))
+  (heredoc_content (heredoc_end))
+  (expression_statement (heredoc_token))
+  (heredoc_content (scalar) (heredoc_end))
+  )
