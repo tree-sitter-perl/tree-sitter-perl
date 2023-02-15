@@ -151,7 +151,7 @@ static void skip_ws_to_eol(TSLexer * lexer)
     if(iswspace(c)) {
       lexer->advance(lexer, true);
       // return after eating the newline
-      if(c == '\n')
+      if(strchr("\n\r", c))
         return;
     }
       /* continue */
