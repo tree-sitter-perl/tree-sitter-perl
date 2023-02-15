@@ -556,8 +556,10 @@ bool tree_sitter_perl_external_scanner_scan(
       }
     }
     // if we picked up a ~ before, we may have to skip to hit the quote
-    if(should_indent)
+    if(should_indent) {
       skip_whitespace(lexer);
+      c = lexer->lookahead;
+    }
     // if we picked up a \ before, we cannot allow even an immediate quote
     if(should_interpolate && (c == '\'' || c == '"' || c == '`')) {
       int delim_open = c;
@@ -616,14 +618,15 @@ bool tree_sitter_perl_external_scanner_scan(
     ADVANCE_C;
     // let's see what that reverse-solidus was hiding!
     // note that we may have fallen through here from a HEREDOC_MIDDLE, so we need to
-    // accept the token literally after we've read our heart's content
+    // accept the token explicitly after we've read our heart's content
     int esc_c = c;
-    ADVANCE_C;
-    lexer->mark_end(lexer);
+    // if we escaped a whitespace, the space comes through, it just hides the \ char
+    if(!iswspace(c))
+      ADVANCE_C;
 
     if(valid_symbols[TOKEN_ESCAPED_DELIMITER]) {
       if(esc_c == state->delim_open || esc_c == state->delim_close) {
-        ADVANCE_C;
+        lexer->mark_end(lexer);
         TOKEN(TOKEN_ESCAPED_DELIMITER);
       }
     }
@@ -663,6 +666,7 @@ bool tree_sitter_perl_external_scanner_scan(
           break;
       }
 
+      lexer->mark_end(lexer);
       TOKEN(TOKEN_ESCAPE_SEQUENCE);
     }
   }
