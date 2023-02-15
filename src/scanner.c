@@ -151,7 +151,7 @@ static void skip_ws_to_eol(TSLexer * lexer)
     if(iswspace(c)) {
       lexer->advance(lexer, true);
       // return after eating the newline
-      if(strchr("\n\r", c))
+      if(c == '\n')
         return;
     }
       /* continue */
@@ -294,6 +294,14 @@ bool tree_sitter_perl_external_scanner_scan(
         lexer->mark_end(lexer);
         // read the whole line, b/c we want it
         while(c != '\n' && !lexer->eof(lexer)) {
+          // we need special handling for windows line ending, b/c we can't count it in
+          // our lookahead
+          if(c == '\r') {
+            ADVANCE_C;
+            if(c == '\n')
+              break;
+            tspstring_push(&line, '\r');
+          }
           tspstring_push(&line, c);
           if (c == '$' || c == '@' || c == '\\')
             saw_escape = true;
