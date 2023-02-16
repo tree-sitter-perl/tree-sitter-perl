@@ -34,6 +34,9 @@
 (interpolated_string_literal) @string
 (quoted_word_list) @string
 (command_string) @string
+[(heredoc_token) (command_heredoc_token)] @string.special
+(heredoc_content) @string
+(heredoc_end) @string.special
 [(escape_sequence) (escaped_delimiter)] @string.special
 
 (_ (bareword) @string.special . "=>")
