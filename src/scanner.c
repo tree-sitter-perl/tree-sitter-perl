@@ -59,7 +59,7 @@ struct TSPString {
 /* we record the length, b/c that's still relevant for our cheapo comparison */
 static void tspstring_push(struct TSPString *s, int c)
 {
-  if (s->length++ <= MAX_TSPSTRING_LEN)
+  if (s->length++ < MAX_TSPSTRING_LEN)
     s->contents[s->length - 1] = c;
 }
 
