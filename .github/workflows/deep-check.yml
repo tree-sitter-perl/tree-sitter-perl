@@ -1,0 +1,20 @@
+name: Deep Checks
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - run: npm install
+        # the idea is you can define a particular test you want run on each platform, then
+        # check the results in the github UI
+      - run: npm test-deep
