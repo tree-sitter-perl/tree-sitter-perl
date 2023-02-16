@@ -1,7 +1,7 @@
 ================================================================================
 Non-quoted heredoc
 ================================================================================
-<<TINGS;
+print(<<TINGS, 'other content');
 this is just $content
   TINGS here (or even \nTINGS here) does not end it\
 TINGS
@@ -10,7 +10,12 @@ This type does no $interp
 RAW
 --------------------------------------------------------------------------------
 (source_file
-  (expression_statement (heredoc_token))
+  (expression_statement
+    (function_call_expression
+      (function)
+      (list_expression
+        (heredoc_token)
+        (string_literal))))
   (heredoc_content (scalar) (escape_sequence) (escape_sequence) (heredoc_end))
   (expression_statement (heredoc_token))
   (heredoc_content (heredoc_end))
