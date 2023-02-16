@@ -667,6 +667,11 @@ module.exports = grammar({
       optional($._interpolated_string_content),
       $._quotelike_end
     ),
+    _interpolations: $ => choice(
+      $.scalar,
+      $.array
+      // TODO: $arr[123], $hash{key}, ${expr}, @{expr}, ...
+    ),
     _noninterpolated_string_content: $ => repeat1(
       choice(
         $._q_string_content,
@@ -679,9 +684,7 @@ module.exports = grammar({
         $._qq_string_content,
         $.escape_sequence,
         $.escaped_delimiter,
-        $.scalar,
-        $.array,
-        // TODO: $arr[123], $hash{key}, ${expr}, @{expr}, ...
+        $._interpolations
       )
     ),
 
@@ -709,7 +712,7 @@ module.exports = grammar({
       )
     ),
     
-    heredoc_token: $ => seq('<<', $._heredoc_delimiter ),
+    heredoc_token: $ => seq('<<', $._heredoc_delimiter),
     // in the event that it's in ``, we want it to be a different node
     command_heredoc_token: $ => seq('<<', $._command_heredoc_delimiter),
     heredoc_content: $ => seq(
@@ -717,8 +720,7 @@ module.exports = grammar({
       repeat(choice(
         $._heredoc_middle,
         $.escape_sequence,
-        $.scalar,
-        $.array
+        $._interpolations
       )),
       $.heredoc_end
     ),
