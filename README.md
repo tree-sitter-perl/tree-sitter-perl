@@ -70,6 +70,35 @@ parser_config.perl = {
 Then you just `:TSInstall perl`. You'll need to copy the queries in the `queries`
 directory of this repo into a `queries/perl` directory somewhere in you `rtp`.
 
+### Emacs
+
+As of version 29, [Emacs](https://www.gnu.org/software/emacs/) can be
+built with tree-sitter support.  This version is not yet released, so
+you need to build it yourself from the [Emacs source
+repository](https://git.savannah.gnu.org/cgit/emacs.git?h=emacs-29).
+You need to have tree-sitter itself available to do this.
+
+Once this is done, you can install the Perl bindings 
+by executing two Emacs lisp forms:
+
+```Emacs Lisp
+(setq treesit-language-source-alist 
+  '((perl . ("https://github.com/tree-sitter-perl/tree-sitter-perl" "release"))))
+(treesit-install-language-grammar 'perl)
+```
+
+Alternatively, you can run the command interactively:
+```
+M-x treesit-install-language-grammar <RET>
+```
+Then answer the prompts accordingly.  Enter `perl` for the language, the
+repository URL is `https://github.com/tree-sitter-perl/tree-sitter-perl`
+and the branch is `release`.
+
+An Emacs major mode which makes use of these binding ... is yet to be
+written.
+
+
 ### In General
 
 You can get the built files off of the `release` branch in this repo. If you have specific
