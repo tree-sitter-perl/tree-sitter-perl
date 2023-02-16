@@ -712,6 +712,22 @@ module.exports = grammar({
       )
     ),
     
+    /* quick overview of the heredoc logic
+     * 1. we parse the heredoc token (given all of its rules and varieties). We store that in the
+     *    lexer state for comparing later
+     * 2. tree-sitter continues happily along
+     * 3. we have a _heredoc_start zw token in extras, so every lex looks to see if it's
+     *    valid to start a heredoc. If we're at the beggining of a line, then we initiate
+     * 4. now we're inside heredoc_content, we parse the full line to decide what to do.
+     *    There are 3 options
+     *    a. if there's nothing interesting, then we accept it + read another line
+     *    b. if there's escapes or interpolation (depending on if the heredoc_token above
+     *       allowed them), then we give the line back, and re-parse it in "continue"
+     *       mode, stopping at $, @, and \
+     *    c. we read the end token; then we make everything before into a _heredoc_middle,
+     *       and re-parse the ending line in "end" mode, where we finally finish our
+     *       heredoc
+     */
     heredoc_token: $ => seq('<<', $._heredoc_delimiter),
     // in the event that it's in ``, we want it to be a different node
     command_heredoc_token: $ => seq('<<', $._command_heredoc_delimiter),
