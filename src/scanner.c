@@ -85,7 +85,7 @@ struct LexerState {
   int delim_open, delim_close;  /* codepoints */
   int delim_count;
   /* heredoc - we need to track if we should start the heredoc, if it's interpolating,
-   * how many chars the delimeter is and what the delimeter is */
+   * how many chars the delimiter is and what the delimiter is */
   bool heredoc_interpolates, heredoc_indents;
   HeredocState heredoc_state;
   struct TSPString heredoc_delim;
@@ -589,7 +589,7 @@ bool tree_sitter_perl_external_scanner_scan(
         }
       }
       if(delim.length > 0) {
-        // gotta eat that delimeter
+        // gotta eat that delimiter
         ADVANCE_C;
         // gotta null terminate up in here
         lexerstate_add_heredoc(state, &delim, should_interpolate, should_indent);

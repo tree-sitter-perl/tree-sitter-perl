@@ -100,8 +100,8 @@ module.exports = grammar({
     $._gobbled_content,
     $.attribute_value,
     $.prototype_or_signature,
-    $._heredoc_delimeter,
-    $._command_heredoc_delimeter,
+    $._heredoc_delimiter,
+    $._command_heredoc_delimiter,
     $._heredoc_start,
     $._heredoc_middle,
     $.heredoc_end,
@@ -709,9 +709,9 @@ module.exports = grammar({
       )
     ),
     
-    heredoc_token: $ => seq('<<', $._heredoc_delimeter ),
+    heredoc_token: $ => seq('<<', $._heredoc_delimiter ),
     // in the event that it's in ``, we want it to be a different node
-    command_heredoc_token: $ => seq('<<', $._command_heredoc_delimeter),
+    command_heredoc_token: $ => seq('<<', $._command_heredoc_delimiter),
     heredoc_content: $ => seq(
       $._heredoc_start,
       repeat(choice(
