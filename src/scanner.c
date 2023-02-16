@@ -80,20 +80,20 @@ static void tspstring_reset(struct TSPString *s)
   s->length = 0;
 }
 
-typedef enum { HEREDOC_NONE, HEREDOC_START, HEREDOC_UNKNOWN, HEREDOC_CONTINUE, HEREDOC_END } HeredocState;
+enum HeredocState { HEREDOC_NONE, HEREDOC_START, HEREDOC_UNKNOWN, HEREDOC_CONTINUE, HEREDOC_END };
 struct LexerState {
   int delim_open, delim_close;  /* codepoints */
   int delim_count;
   /* heredoc - we need to track if we should start the heredoc, if it's interpolating,
    * how many chars the delimiter is and what the delimiter is */
   bool heredoc_interpolates, heredoc_indents;
-  HeredocState heredoc_state;
+  enum HeredocState heredoc_state;
   struct TSPString heredoc_delim;
 };
 
 static void lexerstate_add_heredoc(struct LexerState *state, struct TSPString *delim, bool interp, bool indent)
 {
-  memcpy(&state->heredoc_delim, delim, sizeof(struct TSPString));
+  state->heredoc_delim = *delim;
   state->heredoc_interpolates = interp;
   state->heredoc_indents = indent;
   state->heredoc_state = HEREDOC_START;
@@ -154,11 +154,9 @@ static void skip_ws_to_eol(TSLexer * lexer)
       if(c == '\n')
         return;
     }
-      /* continue */
     else
       return;
   }
-
 }
 
 static void _skip_chars(TSLexer *lexer, int maxlen, const char *allow)
@@ -274,7 +272,7 @@ bool tree_sitter_perl_external_scanner_scan(
 
   // this is whitespace sensitive, so it must go before any whitespace is skipped
   if(valid_symbols[TOKEN_HEREDOC_MIDDLE] && !is_ERROR) {
-    DEBUG("Beggining heredoc contents\n", 0);
+    DEBUG("Beginning heredoc contents\n", 0);
     if (state->heredoc_state != HEREDOC_CONTINUE) {
       struct TSPString line;
       // read as many lines as we can 
