@@ -28,6 +28,16 @@ EXPR, EXPR
   (expression_statement (list_expression (number) (number)))
   (expression_statement (list_expression (number) (number)))
   (expression_statement (list_expression (number) (number))))
+
+================================================================================
+EXPR, EXPR
+================================================================================
+hello  # tree-sitter is magical!
+  => 'world';
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement (list_expression (autoquoted_bareword (comment)) (string_literal)))
+)
 ================================================================================
 EXPR || EXPR
 ================================================================================
