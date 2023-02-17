@@ -35,6 +35,11 @@ enum TokenType {
   TOKEN_GOBBLED_CONTENT,
   TOKEN_ATTRIBUTE_VALUE,
   TOKEN_PROTOTYPE_OR_SIGNATURE,
+  TOKEN_HEREDOC_DELIM,
+  TOKEN_COMMAND_HEREDOC_DELIM,
+  TOKEN_HEREDOC_START,
+  TOKEN_HEREDOC_MIDDLE,
+  TOKEN_HEREDOC_END,
   /* zero-width lookahead tokens */
   TOKEN_CHEQOP_CONT,
   TOKEN_CHRELOP_CONT,
@@ -44,10 +49,62 @@ enum TokenType {
   TOKEN_ERROR
 };
 
+#define MAX_TSPSTRING_LEN 8
+/* this is a arbitrary string where we only care about the first MAX_TSPSTRING_LEN chars */
+struct TSPString {
+  int length;
+  int contents[MAX_TSPSTRING_LEN];
+};
+
+/* we record the length, b/c that's still relevant for our cheapo comparison */
+static void tspstring_push(struct TSPString *s, int c)
+{
+  if (s->length++ < MAX_TSPSTRING_LEN)
+    s->contents[s->length - 1] = c;
+}
+
+static bool tspstring_eq(struct TSPString *s1, struct TSPString *s2)
+{
+  if(s1->length != s2->length) 
+    return false;
+  int max_len = s1->length < MAX_TSPSTRING_LEN ? s1->length : MAX_TSPSTRING_LEN;
+  for(int i = 0; i < max_len; i++) {
+    if (s1->contents[i] != s2->contents[i])
+      return false;
+  }
+  return true;
+}
+
+static void tspstring_reset(struct TSPString *s)
+{
+  s->length = 0;
+}
+
+enum HeredocState { HEREDOC_NONE, HEREDOC_START, HEREDOC_UNKNOWN, HEREDOC_CONTINUE, HEREDOC_END };
 struct LexerState {
   int delim_open, delim_close;  /* codepoints */
   int delim_count;
+  /* heredoc - we need to track if we should start the heredoc, if it's interpolating,
+   * how many chars the delimiter is and what the delimiter is */
+  bool heredoc_interpolates, heredoc_indents;
+  enum HeredocState heredoc_state;
+  struct TSPString heredoc_delim;
 };
+
+static void lexerstate_add_heredoc(struct LexerState *state, struct TSPString *delim, bool interp, bool indent)
+{
+  state->heredoc_delim = *delim;
+  state->heredoc_interpolates = interp;
+  state->heredoc_indents = indent;
+  state->heredoc_state = HEREDOC_START;
+}
+
+static void lexerstate_finish_heredoc(struct LexerState *state)
+{
+  state->heredoc_delim.length = 0;
+  state->heredoc_state = HEREDOC_NONE;
+}
+
 
 #define ADVANCE_C \
   do {                                         \
@@ -80,6 +137,23 @@ static void skip_whitespace(TSLexer *lexer)
     if(iswspace(c))
       lexer->advance(lexer, true);
       /* continue */
+    else
+      return;
+  }
+}
+
+static void skip_ws_to_eol(TSLexer * lexer)
+{
+  while(1) {
+    int c = lexer->lookahead;
+    if(!c)
+      return;
+    if(iswspace(c)) {
+      lexer->advance(lexer, true);
+      // return after eating the newline
+      if(c == '\n')
+        return;
+    }
     else
       return;
   }
@@ -196,9 +270,108 @@ bool tree_sitter_perl_external_scanner_scan(
     TOKEN(TOKEN_GOBBLED_CONTENT);
   }
 
+  // this is whitespace sensitive, so it must go before any whitespace is skipped
+  if(valid_symbols[TOKEN_HEREDOC_MIDDLE] && !is_ERROR) {
+    DEBUG("Beginning heredoc contents\n", 0);
+    if (state->heredoc_state != HEREDOC_CONTINUE) {
+      struct TSPString line;
+      // read as many lines as we can 
+      while(!lexer->eof(lexer)) {
+        tspstring_reset(&line);
+        // interpolating heredocs may need to stop in the middle of the line; indented
+        // heredocs may START in the beggining of a known line
+        bool is_valid_start_pos = state->heredoc_state == HEREDOC_END || lexer->get_column(lexer) == 0;
+        bool saw_escape = false;
+        DEBUG("Starting loop at col %d\n", lexer->get_column(lexer));
+        if(is_valid_start_pos && state->heredoc_indents) {
+          DEBUG("Skipping initial whitespace in heredoc\n", 0);
+          skip_whitespace(lexer);
+          c = lexer->lookahead;
+        }
+        // we may be doing lookahead now
+        lexer->mark_end(lexer);
+        // read the whole line, b/c we want it
+        while(c != '\n' && !lexer->eof(lexer)) {
+          // we need special handling for windows line ending, b/c we can't count it in
+          // our lookahead
+          if(c == '\r') {
+            ADVANCE_C;
+            if(c == '\n')
+              break;
+            tspstring_push(&line, '\r');
+          }
+          tspstring_push(&line, c);
+          if (c == '$' || c == '@' || c == '\\')
+            saw_escape = true;
+          ADVANCE_C;
+        }
+        DEBUG("got length %d, want length %d\n", line.length, state->heredoc_delim.length);
+        if(is_valid_start_pos && tspstring_eq(&line, &state->heredoc_delim)) {
+          // if we've read already, we return everything up until now
+          if(state->heredoc_state != HEREDOC_END) {
+            state->heredoc_state = HEREDOC_END;
+            TOKEN(TOKEN_HEREDOC_MIDDLE);
+          }
+          lexer->mark_end(lexer);
+          lexerstate_finish_heredoc(state);
+          TOKEN(TOKEN_HEREDOC_END);
+        }
+        if(saw_escape && state->heredoc_interpolates) {
+          // we'll repeat this line in continue mode where we'll pause midline
+          state->heredoc_state = HEREDOC_CONTINUE;
+          TOKEN(TOKEN_HEREDOC_MIDDLE);
+        }
+        // eat the \n and loop again; can't skip whitespace b/c the next line may care
+        ADVANCE_C;
+      }
+    } else {
+      DEBUG("Entering heredoc interp mode\n", 0);
+      // handle the continue case; read ahead until we get a \n or an escape
+      bool saw_chars = false;
+      while(1) {
+        if(strchr("$@", c)) {
+          // string interp is whitespace sensitive, so we need to do an extra lookahead
+          lexer->mark_end(lexer);
+          ADVANCE_C;
+          if(!iswspace(c)) {
+            break;
+          }
+        }
+        if(c == '\\') {
+          lexer->mark_end(lexer);
+          break;
+        }
+        if(c == '\n') {
+          lexer->mark_end(lexer);
+          state->heredoc_state = HEREDOC_UNKNOWN;
+          TOKEN(TOKEN_HEREDOC_MIDDLE);
+        }
+        saw_chars = true;
+        ADVANCE_C;
+      }
+      if(saw_chars)
+        TOKEN(TOKEN_HEREDOC_MIDDLE);
+      }
+  }
+
+  skip_ws_to_eol(lexer);
+  /* heredocs override everything, so they must be here before */
+  if(valid_symbols[TOKEN_HEREDOC_START]) {
+    if(state->heredoc_state == HEREDOC_START && lexer->get_column(lexer) == 0) {
+      state->heredoc_state = HEREDOC_UNKNOWN;
+      TOKEN(TOKEN_HEREDOC_START);
+    }
+  }
+
+  if (iswspace(c)) {
+    skipped_whitespace = true;
+    skip_whitespace(lexer);
+    c = lexer->lookahead;
+  }
+
   if(valid_symbols[TOKEN_ATTRIBUTE_VALUE]) {
     /* the '(' must be immediate, before any whitespace */
-    if(c == '(') {
+    if(c == '(' && !skipped_whitespace) {
       DEBUG("Attribute value started...\n", 0);
 
       ADVANCE_C;
@@ -235,12 +408,6 @@ bool tree_sitter_perl_external_scanner_scan(
       break;
     }
   */
-
-  if (iswspace(c)) {
-    skipped_whitespace = true;
-    skip_whitespace(lexer);
-    c = lexer->lookahead;
-  }
 
   if(valid_symbols[PERLY_SEMICOLON]) {
     if(c == ';') {
@@ -367,6 +534,68 @@ bool tree_sitter_perl_external_scanner_scan(
   if(valid_symbols[TOKEN_NONASSOC])
     TOKEN(TOKEN_NONASSOC);
 
+  if(valid_symbols[TOKEN_HEREDOC_DELIM] || valid_symbols[TOKEN_COMMAND_HEREDOC_DELIM]) {
+    // by default, indentation is false and interpolation is true
+    bool should_indent = false;
+    bool should_interpolate = true;
+
+    struct TSPString delim;
+    tspstring_reset(&delim);
+    if(!skipped_whitespace) {
+      if(c == '~') {
+        ADVANCE_C;
+        should_indent = true;
+      } 
+      if(c == '\\') {
+        ADVANCE_C;
+        should_interpolate = false;
+      }
+      if(isidfirst(c)) {
+        while(isidcont(c)) {
+          tspstring_push(&delim, c);
+          ADVANCE_C;
+        }
+        lexerstate_add_heredoc(state, &delim, should_interpolate, should_indent);
+        TOKEN(TOKEN_HEREDOC_DELIM);
+      }
+    }
+    // if we picked up a ~ before, we may have to skip to hit the quote
+    if(should_indent) {
+      skip_whitespace(lexer);
+      c = lexer->lookahead;
+    }
+    // if we picked up a \ before, we cannot allow even an immediate quote
+    if(should_interpolate && (c == '\'' || c == '"' || c == '`')) {
+      int delim_open = c;
+      should_interpolate = c != '\'';
+      ADVANCE_C;
+      while (c != delim_open && !lexer->eof(lexer)) {
+        // backslashes escape the quote char and nothing else, not even a backslash
+        if(c == '\\') {
+          int to_add = c;
+          ADVANCE_C;
+          if(c == delim_open) {
+            to_add = delim_open;
+            ADVANCE_C;
+          }
+          tspstring_push(&delim, to_add);
+        } else {
+          tspstring_push(&delim, c);
+          ADVANCE_C;
+        }
+      }
+      if(delim.length > 0) {
+        // gotta eat that delimiter
+        ADVANCE_C;
+        // gotta null terminate up in here
+        lexerstate_add_heredoc(state, &delim, should_interpolate, should_indent);
+        if(delim_open == '`')
+          TOKEN(TOKEN_COMMAND_HEREDOC_DELIM);
+        TOKEN(TOKEN_HEREDOC_DELIM);
+      }
+    }
+  }
+
   if(valid_symbols[TOKEN_QUOTELIKE_BEGIN]) {
       if (skipped_whitespace && c == '#')
         return false;
@@ -389,20 +618,24 @@ bool tree_sitter_perl_external_scanner_scan(
   }
 
   if(c == '\\') {
-    // let's see what that reverse-solidus was hiding!
+    // eat the reverse-solidus
     ADVANCE_C;
+    // let's see what that reverse-solidus was hiding!
+    // note that we may have fallen through here from a HEREDOC_MIDDLE, so we need to
+    // accept the token explicitly after we've read our heart's content
+    int esc_c = c;
+    // if we escaped a whitespace, the space comes through, it just hides the \ char
+    if(!iswspace(c))
+      ADVANCE_C;
 
     if(valid_symbols[TOKEN_ESCAPED_DELIMITER]) {
-      if(c == state->delim_open || c == state->delim_close) {
-        ADVANCE_C;
+      if(esc_c == state->delim_open || esc_c == state->delim_close) {
+        lexer->mark_end(lexer);
         TOKEN(TOKEN_ESCAPED_DELIMITER);
       }
     }
 
     if(valid_symbols[TOKEN_ESCAPE_SEQUENCE]) {
-      int esc_c = c;
-      ADVANCE_C;
-
       // Inside any kind of string, \\ is always an escape sequence
       if(esc_c == '\\')
         TOKEN(TOKEN_ESCAPE_SEQUENCE);
@@ -437,6 +670,7 @@ bool tree_sitter_perl_external_scanner_scan(
           break;
       }
 
+      lexer->mark_end(lexer);
       TOKEN(TOKEN_ESCAPE_SEQUENCE);
     }
   }

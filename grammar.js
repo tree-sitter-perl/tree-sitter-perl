@@ -100,6 +100,11 @@ module.exports = grammar({
     $._gobbled_content,
     $.attribute_value,
     $.prototype_or_signature,
+    $._heredoc_delimiter,
+    $._command_heredoc_delimiter,
+    $._heredoc_start,
+    $._heredoc_middle,
+    $.heredoc_end,
     /* zero-width lookahead tokens */
     $._CHEQOP_continue,
     $._CHRELOP_continue,
@@ -116,6 +121,7 @@ module.exports = grammar({
     $.__END__,
     $._CTRL_D,
     // $._CTRL_Z // borken on windoze, sigh
+    $.heredoc_content
   ],
   conflicts: $ => [
     [ $.preinc_expression, $.postinc_expression ],
@@ -304,6 +310,8 @@ module.exports = grammar({
        */
       seq('(', $._expr, ')'),
       $.quoted_word_list,
+      $.heredoc_token,
+      $.command_heredoc_token,
       $.stub_expression,
       $.scalar,
       $.glob,
@@ -659,6 +667,11 @@ module.exports = grammar({
       optional($._interpolated_string_content),
       $._quotelike_end
     ),
+    _interpolations: $ => choice(
+      $.scalar,
+      $.array
+      // TODO: $arr[123], $hash{key}, ${expr}, @{expr}, ...
+    ),
     _noninterpolated_string_content: $ => repeat1(
       choice(
         $._q_string_content,
@@ -671,9 +684,7 @@ module.exports = grammar({
         $._qq_string_content,
         $.escape_sequence,
         $.escaped_delimiter,
-        $.scalar,
-        $.array,
-        // TODO: $arr[123], $hash{key}, ${expr}, @{expr}, ...
+        $._interpolations
       )
     ),
 
@@ -699,6 +710,35 @@ module.exports = grammar({
         optional($._noninterpolated_string_content),
         $._quotelike_end
       )
+    ),
+    
+    /* quick overview of the heredoc logic
+     * 1. we parse the heredoc token (given all of its rules and varieties). We store that in the
+     *    lexer state for comparing later
+     * 2. tree-sitter continues happily along
+     * 3. we have a _heredoc_start zw token in extras, so every lex looks to see if it's
+     *    valid to start a heredoc. If we're at the beggining of a line, then we initiate
+     * 4. now we're inside heredoc_content, we parse the full line to decide what to do.
+     *    There are 3 options
+     *    a. if there's nothing interesting, then we accept it + read another line
+     *    b. if there's escapes or interpolation (depending on if the heredoc_token above
+     *       allowed them), then we give the line back, and re-parse it in "continue"
+     *       mode, stopping at $, @, and \
+     *    c. we read the end token; then we make everything before into a _heredoc_middle,
+     *       and re-parse the ending line in "end" mode, where we finally finish our
+     *       heredoc
+     */
+    heredoc_token: $ => seq('<<', $._heredoc_delimiter),
+    // in the event that it's in ``, we want it to be a different node
+    command_heredoc_token: $ => seq('<<', $._command_heredoc_delimiter),
+    heredoc_content: $ => seq(
+      $._heredoc_start,
+      repeat(choice(
+        $._heredoc_middle,
+        $.escape_sequence,
+        $._interpolations
+      )),
+      $.heredoc_end
     ),
 
     package: $ => $._bareword,
