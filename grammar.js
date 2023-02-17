@@ -465,11 +465,11 @@ module.exports = grammar({
       prec.left(TERMPREC.REQUIRE, seq('require', optional($._term))),
 
     func0op_call_expression: $ =>
-      seq(field('function', $.func0op), optseq('(', ')')),
+      seq(field('function', $._func0op), optseq('(', ')')),
 
     func1op_call_expression: $ =>
       prec.left(TERMPREC.UNOP, seq(
-        field('function', $.func1op),
+        field('function', $._func1op),
         choice(optseq('(', optional($._expr), ')'), $._term),
       )),
 
@@ -576,14 +576,14 @@ module.exports = grammar({
     _PHASE_NAME: $ => choice('BEGIN', 'INIT', 'CHECK', 'UNITCHECK', 'END'),
 
     // Anything toke.c calls FUN0 or FUN0OP; the distinction does not matter to us
-    func0op: $ => choice(
+    _func0op: $ => choice(
       '__FILE__', '__LINE__', '__PACKAGE__', '__SUB__',
       'break', 'fork', 'getppid', 'time', 'times', 'wait', 'wantarray',
       /* TODO: all the end*ent, get*ent, set*ent, etc... */
     ),
 
     // Anything toke.c calls FUN1 or UNIOP; the distinction does not matter to us
-    func1op: $ => choice(
+    _func1op: $ => choice(
       // UNI
       'abs', 'alarm', 'chop', 'chdir', 'close', 'closedir', 'caller', 'chomp',
       'chr', 'cos', 'chroot', 'defined', 'delete', 'dbmclose', 'exists', 'exit',
@@ -710,7 +710,8 @@ module.exports = grammar({
     bareword: $ => $._bareword,
     _bareword: $ => /[a-zA-Z_]\w*(?:::[a-zA-Z_]\w*)*/,  // TODO: unicode
 
-    autoquoted_bareword: $ => seq($._bareword, $._fat_comma_zw),
+    _autoquotables: $ => choice($._bareword, $._func0op, $._func1op),
+    autoquoted_bareword: $ => seq($._autoquotables, $._fat_comma_zw),
 
     _ident_special: $ => /[0-9]+|\^[A-Z]|./,
   }
