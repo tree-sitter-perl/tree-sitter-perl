@@ -68,7 +68,7 @@ static bool tspstring_eq(struct TSPString *s1, struct TSPString *s2)
   if(s1->length != s2->length) 
     return false;
   int max_len = s1->length < MAX_TSPSTRING_LEN ? s1->length : MAX_TSPSTRING_LEN;
-  for(int i = 0; i < s1->length; i++) {
+  for(int i = 0; i < max_len; i++) {
     if (s1->contents[i] != s2->contents[i])
       return false;
   }
@@ -362,8 +362,6 @@ bool tree_sitter_perl_external_scanner_scan(
       TOKEN(TOKEN_HEREDOC_START);
     }
   }
-
-
 
   if (iswspace(c)) {
     skipped_whitespace = true;
