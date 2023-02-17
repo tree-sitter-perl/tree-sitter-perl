@@ -36,7 +36,7 @@
 (command_string) @string
 [(escape_sequence) (escaped_delimiter)] @string.special
 
-(_ (bareword) @string.special . "=>")
+(autoquoted_bareword) @string.special
 
 (scalar) @variable.scalar
 (scalar_deref_expression ["->" "$" "*"] @variable.scalar)

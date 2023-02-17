@@ -38,6 +38,7 @@ enum TokenType {
   /* zero-width lookahead tokens */
   TOKEN_CHEQOP_CONT,
   TOKEN_CHRELOP_CONT,
+  TOKEN_FAT_COMMA_ZW,
   /* zero-width high priority token */
   TOKEN_NONASSOC,
   /* error condition is always last */
@@ -184,7 +185,7 @@ bool tree_sitter_perl_external_scanner_scan(
   struct LexerState *state = payload;
 
   bool is_ERROR = valid_symbols[TOKEN_ERROR];
-  bool is_continue_op = valid_symbols[TOKEN_CHEQOP_CONT] || valid_symbols[TOKEN_CHRELOP_CONT];
+  bool is_continue_op = valid_symbols[TOKEN_CHEQOP_CONT] || valid_symbols[TOKEN_CHRELOP_CONT] || valid_symbols[TOKEN_FAT_COMMA_ZW];
   bool skipped_whitespace = false;
 
   int c = lexer->lookahead;
@@ -526,6 +527,11 @@ bool tree_sitter_perl_external_scanner_scan(
     if(valid_symbols[TOKEN_CHEQOP_CONT]) {
       if(EQ2("==") || EQ2("!=") || EQ2("eq") || EQ2("ne"))
         TOKEN(TOKEN_CHEQOP_CONT);
+    }
+
+    if(valid_symbols[TOKEN_FAT_COMMA_ZW]) {
+      if(EQ2("=>"))
+        TOKEN(TOKEN_FAT_COMMA_ZW);
     }
 
     if(valid_symbols[TOKEN_CHRELOP_CONT]) {

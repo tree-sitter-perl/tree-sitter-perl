@@ -103,6 +103,7 @@ module.exports = grammar({
     /* zero-width lookahead tokens */
     $._CHEQOP_continue,
     $._CHRELOP_continue,
+    $._fat_comma_zw,
     /* zero-width high priority token */
     $._NONASSOC,
     /* error condition must always be last; we don't use this in the grammar */
@@ -341,6 +342,7 @@ module.exports = grammar({
       $.func1op_call_expression,
       /* PMFUNC */
       $.bareword,
+      $.autoquoted_bareword,
       $._listop,
 
       /* perly.y doesn't know about `my` because that is handled weirdly in
@@ -707,6 +709,8 @@ module.exports = grammar({
     // bareword is at the very end b/c the lexer prefers tokens defined earlier in the grammar 
     bareword: $ => $._bareword,
     _bareword: $ => /[a-zA-Z_]\w*(?:::[a-zA-Z_]\w*)*/,  // TODO: unicode
+
+    autoquoted_bareword: $ => seq($._bareword, $._fat_comma_zw),
 
     _ident_special: $ => /[0-9]+|\^[A-Z]|./,
   }
