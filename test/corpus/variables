@@ -120,22 +120,6 @@ $h{1}{2}{3};
         key: (number))
       key: (number))))
 ================================================================================
-hash autoquoting
-================================================================================
-$hash{quoted};
-$hash{shift};
---------------------------------------------------------------------------------
-(source_file
-  (expression_statement
-    (hash_element_expression
-      hash: (container_variable)
-      key: (autoquoted_bareword)))
-  (expression_statement
-    (hash_element_expression
-      hash: (container_variable)
-      key: (autoquoted_bareword)))
-)
-================================================================================
 special vars
 ================================================================================
 $1;

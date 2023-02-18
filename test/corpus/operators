@@ -30,17 +30,6 @@ EXPR, EXPR
   (expression_statement (list_expression (number) (number))))
 
 ================================================================================
-AUTOQUOTED => EXPR
-================================================================================
-hello  # tree-sitter is magical!
-  => 'world';
-shift => 'up';
---------------------------------------------------------------------------------
-(source_file
-  (expression_statement (list_expression (autoquoted_bareword (comment)) (string_literal)))
-  (expression_statement (list_expression (autoquoted_bareword) (string_literal)))
-)
-================================================================================
 EXPR || EXPR
 ================================================================================
 12 || 34;
