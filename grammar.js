@@ -280,11 +280,15 @@ module.exports = grammar({
       prec.left(TERMPREC.ARROW, seq($._term, '->', '[', field('index', $._expr), ']')),
       seq($._subscripted,                          '[', field('index', $._expr), ']'),
     ),
+    _hash_key: $ => choice(
+      alias($._autoquotables, $.autoquoted_bareword),
+      $._expr
+    ),
     hash_element_expression: $ => choice(
       // perly.y matches scalar '{' expr '}' here but that would yield a scalar var node
-      seq(field('hash', $.container_variable),     '{', field('key', $._expr), '}'),
-      prec.left(TERMPREC.ARROW, seq($._term, '->', '{', field('key', $._expr), '}')),
-      seq($._subscripted,                          '{', field('key', $._expr), '}'),
+      seq(field('hash', $.container_variable),     '{', field('key', $._hash_key), '}'),
+      prec.left(TERMPREC.ARROW, seq($._term, '->', '{', field('key', $._hash_key), '}')),
+      seq($._subscripted,                          '{', field('key', $._hash_key), '}'),
     ),
     slice_expression: $ => choice(
       seq('(', optional(field('list', $._expr)), ')', '[', $._expr, ']'),
@@ -750,7 +754,9 @@ module.exports = grammar({
     bareword: $ => $._bareword,
     _bareword: $ => /[a-zA-Z_]\w*(?:::[a-zA-Z_]\w*)*/,  // TODO: unicode
 
-    _autoquotables: $ => choice($._bareword, $._func0op, $._func1op),
+    // TODO - what's the correct precedence for this?
+    // TODO - support autoquoting 'q', 'qq', 'qr' and other operators
+    _autoquotables: $ => prec(9000, choice($._bareword, $._func0op, $._func1op)),
     autoquoted_bareword: $ => seq($._autoquotables, $._fat_comma_zw),
 
     _ident_special: $ => /[0-9]+|\^[A-Z]|./,
