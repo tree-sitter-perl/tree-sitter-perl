@@ -608,8 +608,11 @@ bool tree_sitter_perl_external_scanner_scan(
     // precedence than the quoting op
     if (delim == '=' && c == '>')
       TOKEN(TOKEN_FAT_COMMA_ZW);
-    if(valid_symbols[TOKEN_HASH_KEY_END_ZW] && c == '}')
+
+    if(valid_symbols[TOKEN_HASH_KEY_END_ZW] && delim == '}') {
+      DEBUG("wag1\n", 0);
       TOKEN(TOKEN_HASH_KEY_END_ZW);
+    }
     lexer->mark_end(lexer);
 
     int delim_close = close_for_open(delim);
