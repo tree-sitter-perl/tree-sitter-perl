@@ -109,7 +109,7 @@ module.exports = grammar({
     $._CHEQOP_continue,
     $._CHRELOP_continue,
     $._fat_comma_zw,
-    $._hash_key_end_zw,
+    $._brace_end_zw,
     /* zero-width high priority token */
     $._NONASSOC,
     /* error condition must always be last; we don't use this in the grammar */
@@ -281,8 +281,10 @@ module.exports = grammar({
       prec.left(TERMPREC.ARROW, seq($._term, '->', '[', field('index', $._expr), ']')),
       seq($._subscripted,                          '[', field('index', $._expr), ']'),
     ),
+    // TODO - generalize this for any autoquote, b/c indirob needs this too for the
+    // bareword variant
     _hash_key: $ => choice(
-      seq(alias($._autoquotables, $.autoquoted_bareword), $._hash_key_end_zw),
+      $._brace_autoquoted,
       $._expr
     ),
     hash_element_expression: $ => choice(
@@ -758,7 +760,11 @@ module.exports = grammar({
     // NOTE - we MUST do it this way, b/c if we don't include every literal token, then TS
     // will not even consider the consuming rules. Lexical precedence...
     _autoquotables: $ => choice($._bareword, $._func0op, $._func1op, 'q', 'qq', 'qw'),
+    // TODO - fat comma won't quote things w/ :: inside of 'em
+    // TODO - support - autoquoting; it's a drop confusing; takes barewords w/ ::, but
+    // eats over + and - so long as it doesn't become -- or ++
     autoquoted_bareword: $ => seq($._autoquotables, $._fat_comma_zw),
+    _brace_autoquoted: $ => seq(alias($._autoquotables, $.autoquoted_bareword), $._brace_end_zw),
 
     _ident_special: $ => /[0-9]+|\^[A-Z]|./,
   }

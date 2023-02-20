@@ -44,7 +44,7 @@ enum TokenType {
   TOKEN_CHEQOP_CONT,
   TOKEN_CHRELOP_CONT,
   TOKEN_FAT_COMMA_ZW,
-  TOKEN_HASH_KEY_END_ZW,
+  TOKEN_BRACE_END_ZW,
   /* zero-width high priority token */
   TOKEN_NONASSOC,
   /* error condition is always last */
@@ -609,9 +609,9 @@ bool tree_sitter_perl_external_scanner_scan(
     if (delim == '=' && c == '>')
       TOKEN(TOKEN_FAT_COMMA_ZW);
 
-    if(valid_symbols[TOKEN_HASH_KEY_END_ZW] && delim == '}') {
+    if(valid_symbols[TOKEN_BRACE_END_ZW] && delim == '}') {
       DEBUG("wag1\n", 0);
-      TOKEN(TOKEN_HASH_KEY_END_ZW);
+      TOKEN(TOKEN_BRACE_END_ZW);
     }
     lexer->mark_end(lexer);
 
@@ -761,7 +761,7 @@ bool tree_sitter_perl_external_scanner_scan(
     TOKEN(TOKEN_PROTOTYPE_OR_SIGNATURE);
   }
 
-  bool is_continue_op = valid_symbols[TOKEN_CHEQOP_CONT] || valid_symbols[TOKEN_CHRELOP_CONT] || valid_symbols[TOKEN_FAT_COMMA_ZW] || valid_symbols[TOKEN_HASH_KEY_END_ZW];
+  bool is_continue_op = valid_symbols[TOKEN_CHEQOP_CONT] || valid_symbols[TOKEN_CHRELOP_CONT] || valid_symbols[TOKEN_FAT_COMMA_ZW] || valid_symbols[TOKEN_BRACE_END_ZW];
   if(is_continue_op) {
     /* we're going all in on the evil: these are zero-width tokens w/ unbounded lookahead */
     DEBUG("Starting zero-width lookahead for continue token\n", 0);
@@ -781,9 +781,9 @@ bool tree_sitter_perl_external_scanner_scan(
       if(EQ2("=>"))
         TOKEN(TOKEN_FAT_COMMA_ZW);
     }
-    if(valid_symbols[TOKEN_HASH_KEY_END_ZW]){
+    if(valid_symbols[TOKEN_BRACE_END_ZW]){
       if(c1 == '}')
-        TOKEN(TOKEN_HASH_KEY_END_ZW);
+        TOKEN(TOKEN_BRACE_END_ZW);
     }
 
     if(valid_symbols[TOKEN_CHRELOP_CONT]) {
