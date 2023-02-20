@@ -59,9 +59,11 @@ $hash{q};
 indirob autoquoting
 ================================================================================
 ${bareword};
+${Long::Bareword};
 ${q};
 --------------------------------------------------------------------------------
 (source_file
+  (expression_statement (scalar (autoquoted_bareword)))
   (expression_statement (scalar (autoquoted_bareword)))
   (expression_statement (scalar (autoquoted_bareword)))
 )

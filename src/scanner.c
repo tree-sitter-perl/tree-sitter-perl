@@ -417,10 +417,12 @@ bool tree_sitter_perl_external_scanner_scan(
       TOKEN(PERLY_SEMICOLON);
     }
     if(c == '}' || lexer->eof(lexer)) {
-      DEBUG("Fake PERLY_SEMICOLON at end-of-scope\n", 0);
-      // no advance
-
-      TOKEN(PERLY_SEMICOLON);
+      // do a PERLY_SEMICOLON unless we're in brace autoquoting
+      if(is_ERROR || !valid_symbols[TOKEN_BRACE_END_ZW]) {
+        DEBUG("Fake PERLY_SEMICOLON at end-of-scope\n", 0);
+        // no advance
+        TOKEN(PERLY_SEMICOLON);
+      }
     }
   }
 
