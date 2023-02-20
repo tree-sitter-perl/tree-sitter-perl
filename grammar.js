@@ -293,7 +293,7 @@ module.exports = grammar({
       seq(field('list', $.quoted_word_list), '[', $._expr, ']'),
     ),
     // this needs to be a named node so highlights.scm can capture it
-    container_variable: $ => seq('$', $._indirob),
+    container_variable: $ => seq('$', $._var_indirob),
 
     _term: $ => choice(
       $.assignment_expression,
@@ -519,12 +519,12 @@ module.exports = grammar({
     )),
     method: $ => choice($._METHCALL0, $.scalar),
 
-    scalar:   $ => seq('$',  $._indirob),
-    array:    $ => seq('@',  $._indirob),
-    hash:     $ => seq(token(prec(2, '%')), $._indirob),
-    arraylen: $ => seq('$#', $._indirob),
+    scalar:   $ => seq('$',  $._var_indirob),
+    array:    $ => seq('@',  $._var_indirob),
+    hash:     $ => seq(token(prec(2, '%')), $._var_indirob),
+    arraylen: $ => seq('$#', $._var_indirob),
     // perly.y calls this `star`
-    glob:     $ => seq('*',  $._indirob),
+    glob:     $ => seq('*',  $._var_indirob),
 
     _indirob: $ => choice(
       $._bareword,
@@ -533,6 +533,11 @@ module.exports = grammar({
       $._ident_special,
       $.scalar,
       $.block,
+    ),
+    // not all indirobs are alike; for variables, they have autoquoting behavior
+    _var_indirob: $ => choice(
+      $._indirob,
+      seq($._PERLY_BRACE_OPEN, $._brace_autoquoted, '}')
     ),
 
     attrlist: $ => prec.left(0, seq(
@@ -759,11 +764,17 @@ module.exports = grammar({
     // NOTE - we MUST do it this way, b/c if we don't include every literal token, then TS
     // will not even consider the consuming rules. Lexical precedence...
     _autoquotables: $ => choice($._func0op, $._func1op, 'q', 'qq', 'qw'),
-    // TODO - fat comma won't quote things w/ :: inside of 'em
     // TODO - support - autoquoting; it's a drop confusing; takes barewords w/ ::, but
     // eats over + and - so long as it doesn't become -- or ++
-    autoquoted_bareword: $ => seq(choice($._bareword_begin, $._autoquotables), $._fat_comma_zw),
-    _brace_autoquoted: $ => seq(alias(choice($._bareword, $._autoquotables), $.autoquoted_bareword), $._brace_end_zw),
+    // NOTE - these have zw lookaheads so they override just being read as barewords
+    autoquoted_bareword: $ => seq(
+      choice($._bareword_begin, $._autoquotables),
+      $._fat_comma_zw
+    ),
+    _brace_autoquoted: $ => seq(
+      alias(choice($._bareword, $._autoquotables), $.autoquoted_bareword),
+      $._brace_end_zw
+    ),
 
     _ident_special: $ => /[0-9]+|\^[A-Z]|./,
   }
