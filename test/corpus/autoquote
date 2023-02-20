@@ -53,3 +53,13 @@ $hash{q};
       hash: (container_variable)
       key: (autoquoted_bareword)))
 )
+================================================================================
+indirob autoquoting
+================================================================================
+${bareword};
+${q};
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement (scalar (autoquoted_bareword)))
+  (expression_statement (scalar (autoquoted_bareword)))
+)
