@@ -747,7 +747,8 @@ module.exports = grammar({
 
     package: $ => $._bareword,
     _version: $ => prec(1, choice($.number, $.version)),
-    version: $ => /v[0-9]+(?:\.[0-9]+)*/,
+    // we have to up the lexical prec here to prevent v5 from being read as a bareword
+    version: $ => token(prec(1, /v[0-9]+(?:\.[0-9]+)*/)),
     bareword: $ => $._bareword,
     // we split bareword tokenizing into begin + continue tokens, b/c sometimes we need to
     // match only the begin, like in => autoquoting
