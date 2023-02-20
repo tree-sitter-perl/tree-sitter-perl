@@ -4,10 +4,12 @@ AUTOQUOTED => EXPR
 hello  # tree-sitter is magical!
   => 'world';
 shift => 'up';
+plain::bareword => 'here';
 --------------------------------------------------------------------------------
 (source_file
   (expression_statement (list_expression (autoquoted_bareword (comment)) (string_literal)))
   (expression_statement (list_expression (autoquoted_bareword) (string_literal)))
+  (expression_statement (list_expression (bareword) (string_literal)))
 )
 ================================================================================
 quotelike followed by =>

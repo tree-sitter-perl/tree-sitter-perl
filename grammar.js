@@ -281,12 +281,7 @@ module.exports = grammar({
       prec.left(TERMPREC.ARROW, seq($._term, '->', '[', field('index', $._expr), ']')),
       seq($._subscripted,                          '[', field('index', $._expr), ']'),
     ),
-    // TODO - generalize this for any autoquote, b/c indirob needs this too for the
-    // bareword variant
-    _hash_key: $ => choice(
-      $._brace_autoquoted,
-      $._expr
-    ),
+    _hash_key: $ => choice($._brace_autoquoted, $._expr),
     hash_element_expression: $ => choice(
       // perly.y matches scalar '{' expr '}' here but that would yield a scalar var node
       seq(field('hash', $.container_variable),     '{', field('key', $._hash_key), '}'),
@@ -753,18 +748,21 @@ module.exports = grammar({
     package: $ => $._bareword,
     _version: $ => prec(1, choice($.number, $.version)),
     version: $ => /v[0-9]+(?:\.[0-9]+)*/,
-    // bareword is at the very end b/c the lexer prefers tokens defined earlier in the grammar 
     bareword: $ => $._bareword,
-    _bareword: $ => /[a-zA-Z_]\w*(?:::[a-zA-Z_]\w*)*/,  // TODO: unicode
+    // we split bareword tokenizing into begin + continue tokens, b/c sometimes we need to
+    // match only the begin, like in => autoquoting
+    _bareword: $ => seq($._bareword_begin, optional($._bareword_continue)),
+    _bareword_begin: $ => /[a-zA-Z_]\w*/,
+    _bareword_continue: $ => token.immediate(/(::[a-zA-Z_]\w*)+/),  // TODO: unicode
 
     // NOTE - we MUST do it this way, b/c if we don't include every literal token, then TS
     // will not even consider the consuming rules. Lexical precedence...
-    _autoquotables: $ => choice($._bareword, $._func0op, $._func1op, 'q', 'qq', 'qw'),
+    _autoquotables: $ => choice($._func0op, $._func1op, 'q', 'qq', 'qw'),
     // TODO - fat comma won't quote things w/ :: inside of 'em
     // TODO - support - autoquoting; it's a drop confusing; takes barewords w/ ::, but
     // eats over + and - so long as it doesn't become -- or ++
-    autoquoted_bareword: $ => seq($._autoquotables, $._fat_comma_zw),
-    _brace_autoquoted: $ => seq(alias($._autoquotables, $.autoquoted_bareword), $._brace_end_zw),
+    autoquoted_bareword: $ => seq(choice($._bareword_begin, $._autoquotables), $._fat_comma_zw),
+    _brace_autoquoted: $ => seq(alias(choice($._bareword, $._autoquotables), $.autoquoted_bareword), $._brace_end_zw),
 
     _ident_special: $ => /[0-9]+|\^[A-Z]|./,
   }
