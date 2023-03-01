@@ -129,9 +129,23 @@ special vars
 ================================================================================
 $1;
 $^X;
+${^O};
 $!;
 --------------------------------------------------------------------------------
 (source_file
   (expression_statement (scalar))
   (expression_statement (scalar))
+  (expression_statement (scalar))
   (expression_statement (scalar)))
+================================================================================
+crazy vars
+================================================================================
+$::application;
+$::::var;
+%overload::;
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement (scalar))
+  (expression_statement (scalar))
+  (expression_statement (hash))
+)
