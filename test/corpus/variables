@@ -129,11 +129,9 @@ special vars
 ================================================================================
 $1;
 $^X;
-${^O};
 $!;
 --------------------------------------------------------------------------------
 (source_file
-  (expression_statement (scalar))
   (expression_statement (scalar))
   (expression_statement (scalar))
   (expression_statement (scalar)))
