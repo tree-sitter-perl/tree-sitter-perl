@@ -537,7 +537,11 @@ module.exports = grammar({
     // not all indirobs are alike; for variables, they have autoquoting behavior
     _var_indirob: $ => choice(
       $._indirob,
-      seq($._PERLY_BRACE_OPEN, $._brace_autoquoted, '}')
+      seq(
+        $._PERLY_BRACE_OPEN,
+        choice($._bareword, $._autoquotables, $._ident_special),
+        $._brace_end_zw, '}'
+      )
     ),
 
     attrlist: $ => prec.left(0, seq(
@@ -624,7 +628,6 @@ module.exports = grammar({
     //   https://github.com/tree-sitter/tree-sitter/issues/1910
     comment: $ => token(/#.*(\r?\n\s*#.*)*/),
 
-    ...primitives,
     // NOTE - not sure if this is a bug in tree-sitter, but choice here doesn't work, it
     // won't bother looking at the second choice. So we instead make one invisible node +
     // name the children appropriately
@@ -777,5 +780,6 @@ module.exports = grammar({
     ),
 
     _ident_special: $ => /[0-9]+|\^[A-Z]|./,
+    ...primitives,
   }
 })

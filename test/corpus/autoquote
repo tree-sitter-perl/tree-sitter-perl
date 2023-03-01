@@ -61,9 +61,13 @@ indirob autoquoting
 ${bareword};
 ${Long::Bareword};
 ${q};
+${^O};
+${1};
 --------------------------------------------------------------------------------
 (source_file
-  (expression_statement (scalar (autoquoted_bareword)))
-  (expression_statement (scalar (autoquoted_bareword)))
-  (expression_statement (scalar (autoquoted_bareword)))
+  (expression_statement (scalar))
+  (expression_statement (scalar))
+  (expression_statement (scalar))
+  (expression_statement (scalar))
+  (expression_statement (scalar))
 )
