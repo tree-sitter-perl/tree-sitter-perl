@@ -74,6 +74,8 @@ binop.listassoc = (op, continue_token, term) =>
   )
 
 const optseq = (...terms) => optional(seq(...terms));
+const paren_list_of = rule => 
+      seq('(', repeat(seq(optional(rule), ',')), optional(rule), ')')
 
 module.exports = grammar({
   name: 'perl',
@@ -451,8 +453,7 @@ module.exports = grammar({
         field('variable', $.hash),
         field('variables', $._paren_list_of_variables))),
     _variable: $ => choice($.scalar, $.array, $.hash, $.undef_expression),
-    _paren_list_of_variables: $ =>
-      seq('(', repeat(seq(optional($._variable), ',')), optional($._variable), ')'),
+    _paren_list_of_variables: $ => paren_list_of($._variable),
 
     stub_expression: $ => seq('(', ')'),
 
@@ -640,7 +641,6 @@ module.exports = grammar({
       $._gobbled_content
     ),
     */
-    _identifier: $ => /[a-zA-Z_]\w*/,
 
     // toke.c calls this a THING and that is such a generic unhelpful word,
     // we'll call it this instead
@@ -748,6 +748,7 @@ module.exports = grammar({
     bareword: $ => $._bareword,
     _bareword: $ => /[a-zA-Z_]\w*(?:::[a-zA-Z_]\w*)*/,  // TODO: unicode
 
+    _identifier: $ => /[a-zA-Z_]\w*/,
     _ident_special: $ => /[0-9]+|\^[A-Z]|./,
   }
 })
