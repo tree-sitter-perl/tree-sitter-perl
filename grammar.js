@@ -746,7 +746,7 @@ module.exports = grammar({
     version: $ => /v[0-9]+(?:\.[0-9]+)*/,
     // bareword is at the very end b/c the lexer prefers tokens defined earlier in the grammar 
     bareword: $ => $._bareword,
-    _bareword: $ => /[a-zA-Z_]\w*(?:::[a-zA-Z_]\w*)*/,  // TODO: unicode
+    _bareword: $ => /((::)|([a-zA-Z_]\w*))+/,  // TODO: unicode
 
     _identifier: $ => /[a-zA-Z_]\w*/,
     _ident_special: $ => /[0-9]+|\^[A-Z]|./,
