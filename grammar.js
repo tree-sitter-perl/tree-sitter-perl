@@ -138,7 +138,7 @@ module.exports = grammar({
     _fullstmt: $ => choice($._barestmt, $.statement_label),
 
     // perly.y calls this labfullstmt
-    statement_label: $ => seq(field('label', $.bareword), ':', field('statement', $._fullstmt)),
+    statement_label: $ => seq(field('label', $.identifier), ':', field('statement', $._fullstmt)),
 
     _barestmt: $ => choice(
       $.package_statement,
@@ -744,11 +744,13 @@ module.exports = grammar({
     package: $ => $._bareword,
     _version: $ => prec(1, choice($.number, $.version)),
     version: $ => /v[0-9]+(?:\.[0-9]+)*/,
-    // bareword is at the very end b/c the lexer prefers tokens defined earlier in the grammar 
-    bareword: $ => $._bareword,
-    _bareword: $ => /((::)|([a-zA-Z_]\w*))+/,  // TODO: unicode
 
+    identifier: $ => $._identifier,
     _identifier: $ => /[a-zA-Z_]\w*/,
     _ident_special: $ => /[0-9]+|\^[A-Z]|./,
+
+    // bareword is at the very end b/c the lexer prefers tokens defined earlier in the grammar 
+    bareword: $ => $._bareword,
+    _bareword: $ => choice($._identifier, /((::)|([a-zA-Z_]\w*))+/),  // TODO: unicode
   }
 })
