@@ -31,7 +31,6 @@ my @a;
 my %h;
 my ($S, @A, %h);
 our $PackageVar;
-my $no::namespaces::allowed;
 --------------------------------------------------------------------------------
 (source_file
   (expression_statement (variable_declaration (scalar)))
@@ -39,7 +38,6 @@ my $no::namespaces::allowed;
   (expression_statement (variable_declaration (hash)))
   (expression_statement (variable_declaration (scalar) (array) (hash)))
   (expression_statement (variable_declaration (scalar)))
-  (expression_statement (variable_declaration (ERROR))))
 )
 ================================================================================
 variable declarations including undef

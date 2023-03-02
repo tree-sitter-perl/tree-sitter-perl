@@ -62,7 +62,7 @@
 (goto_expression (bareword) @label)
 (loopex_expression (bareword) @label)
 
-(statement_label label: (bareword) @label)
+(statement_label label: _ @label)
 
 (function_call_expression (function) @function)
 (method_call_expression (method) @function.method)
@@ -70,3 +70,4 @@
 
 (func0op_call_expression function: (_) @function.builtin)
 (func1op_call_expression function: (_) @function.builtin)
+(ERROR) @error

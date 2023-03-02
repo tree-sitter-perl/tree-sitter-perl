@@ -440,10 +440,10 @@ module.exports = grammar({
       seq(
         choice('my', 'our'),
         choice(
-          field('variable', $.scalar),
-          field('variable', $.array),
-          field('variable', $.hash),
-          field('variables', $._paren_list_of_variables)),
+          field('variable', alias($._declare_scalar, $.scalar)),
+          field('variable', alias($._declare_array, $.array)),
+          field('variable', alias($._declare_hash, $.hash)),
+          field('variables', $._decl_variable_list)),
         optseq(':', optional(field('attributes', $.attrlist))))
     ),
     localization_expression: $ =>
@@ -451,9 +451,18 @@ module.exports = grammar({
         field('variable', $.scalar),
         field('variable', $.array),
         field('variable', $.hash),
-        field('variables', $._paren_list_of_variables))),
-    _variable: $ => choice($.scalar, $.array, $.hash, $.undef_expression),
-    _paren_list_of_variables: $ => paren_list_of($._variable),
+        field('variables', $._variable_list))),
+    _variable_list: $ => paren_list_of(
+      choice($.scalar, $.array, $.hash, $.undef_expression)
+    ),
+    _decl_variable_list: $ => paren_list_of(
+      choice(
+        $.undef_expression,
+        alias($._declare_scalar, $.scalar),
+        alias($._declare_array, $.array),
+        alias($._declare_hash, $.hash),
+      )
+    ),
 
     stub_expression: $ => seq('(', ')'),
 
@@ -517,8 +526,12 @@ module.exports = grammar({
     method: $ => choice($._METHCALL0, $.scalar),
 
     scalar:   $ => seq('$',  $._indirob),
+    _declare_scalar:   $ => seq('$',  $._varname),
     array:    $ => seq('@',  $._indirob),
+    _declare_array:    $ => seq('@',  $._varname),
     hash:     $ => seq(token(prec(2, '%')), $._indirob),
+    _declare_hash:    $ => seq(token(prec(2, '%')),  $._varname),
+
     arraylen: $ => seq('$#', $._indirob),
     // perly.y calls this `star`
     glob:     $ => seq('*',  $._indirob),
@@ -530,6 +543,10 @@ module.exports = grammar({
       $._ident_special,
       $.scalar,
       $.block,
+    ),
+    _varname: $ => choice(
+      $._identifier,
+      $._ident_special // TODO - not sure if we wanna make `my $1` error out
     ),
 
     attrlist: $ => prec.left(0, seq(

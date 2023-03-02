@@ -67,3 +67,6 @@ $^X;
 # <- variable.scalar
 $!;
 # <- variable.scalar
+
+my $not::allowed;
+#       ^ error
