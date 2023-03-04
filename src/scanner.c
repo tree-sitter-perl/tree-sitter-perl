@@ -637,6 +637,7 @@ bool tree_sitter_perl_external_scanner_scan(
 
     if(valid_symbols[TOKEN_ESCAPE_SEQUENCE]) {
       // Inside any kind of string, \\ is always an escape sequence
+      lexer->mark_end(lexer);
       if(esc_c == '\\')
         TOKEN(TOKEN_ESCAPE_SEQUENCE);
 
@@ -670,7 +671,6 @@ bool tree_sitter_perl_external_scanner_scan(
           break;
       }
 
-      lexer->mark_end(lexer);
       TOKEN(TOKEN_ESCAPE_SEQUENCE);
     }
   }
