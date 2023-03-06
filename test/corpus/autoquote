@@ -62,9 +62,11 @@ ${bareword};
 ${Long::Bareword};
 ${q};
 ${^O};
+${^MATCH};
 ${1};
 --------------------------------------------------------------------------------
 (source_file
+  (expression_statement (scalar))
   (expression_statement (scalar))
   (expression_statement (scalar))
   (expression_statement (scalar))
