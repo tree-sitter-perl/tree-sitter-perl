@@ -43,6 +43,8 @@ enum TokenType {
   /* zero-width lookahead tokens */
   TOKEN_CHEQOP_CONT,
   TOKEN_CHRELOP_CONT,
+  TOKEN_FAT_COMMA_ZW,
+  TOKEN_BRACE_END_ZW,
   /* zero-width high priority token */
   TOKEN_NONASSOC,
   /* error condition is always last */
@@ -258,7 +260,6 @@ bool tree_sitter_perl_external_scanner_scan(
   struct LexerState *state = payload;
 
   bool is_ERROR = valid_symbols[TOKEN_ERROR];
-  bool is_continue_op = valid_symbols[TOKEN_CHEQOP_CONT] || valid_symbols[TOKEN_CHRELOP_CONT];
   bool skipped_whitespace = false;
 
   int c = lexer->lookahead;
@@ -416,10 +417,12 @@ bool tree_sitter_perl_external_scanner_scan(
       TOKEN(PERLY_SEMICOLON);
     }
     if(c == '}' || lexer->eof(lexer)) {
-      DEBUG("Fake PERLY_SEMICOLON at end-of-scope\n", 0);
-      // no advance
-
-      TOKEN(PERLY_SEMICOLON);
+      // do a PERLY_SEMICOLON unless we're in brace autoquoting
+      if(is_ERROR || !valid_symbols[TOKEN_BRACE_END_ZW]) {
+        DEBUG("Fake PERLY_SEMICOLON at end-of-scope\n", 0);
+        // no advance
+        TOKEN(PERLY_SEMICOLON);
+      }
     }
   }
 
@@ -597,24 +600,37 @@ bool tree_sitter_perl_external_scanner_scan(
   }
 
   if(valid_symbols[TOKEN_QUOTELIKE_BEGIN]) {
-      if (skipped_whitespace && c == '#')
-        return false;
+    int delim = c;
+    if (skipped_whitespace && c == '#')
+      return false;
+    // we must do a two char lookahead to avoid turning the "=" in => into a quote char
+    lexer->mark_end(lexer);
+    ADVANCE_C;
+    // we return a fat_comma zw in the event that we see it, b/c that has higher
+    // precedence than the quoting op
+    if (delim == '=' && c == '>')
+      TOKEN(TOKEN_FAT_COMMA_ZW);
 
-      int delim_close = close_for_open(lexer->lookahead);
-      if(delim_close) {
-        state->delim_open  = lexer->lookahead;
-        state->delim_close = delim_close;
-      }
-      else {
-        state->delim_open  = 0;
-        state->delim_close = lexer->lookahead;
-      }
-      state->delim_count = 0;
+    if(valid_symbols[TOKEN_BRACE_END_ZW] && delim == '}') {
+      DEBUG("wag1\n", 0);
+      TOKEN(TOKEN_BRACE_END_ZW);
+    }
+    lexer->mark_end(lexer);
 
-      ADVANCE_C;
+    int delim_close = close_for_open(delim);
+    if(delim_close) {
+      state->delim_open  = delim;
+      state->delim_close = delim_close;
+    }
+    else {
+      state->delim_open  = 0;
+      state->delim_close = delim;
+    }
+    state->delim_count = 0;
 
-      DEBUG("Generic QSTRING open='%c' close='%c'\n", state->delim_open, state->delim_close);
-      TOKEN(TOKEN_QUOTELIKE_BEGIN);
+
+    DEBUG("Generic QSTRING open='%c' close='%c'\n", state->delim_open, state->delim_close);
+    TOKEN(TOKEN_QUOTELIKE_BEGIN);
   }
 
   if(c == '\\') {
@@ -747,6 +763,7 @@ bool tree_sitter_perl_external_scanner_scan(
     TOKEN(TOKEN_PROTOTYPE_OR_SIGNATURE);
   }
 
+  bool is_continue_op = valid_symbols[TOKEN_CHEQOP_CONT] || valid_symbols[TOKEN_CHRELOP_CONT] || valid_symbols[TOKEN_FAT_COMMA_ZW] || valid_symbols[TOKEN_BRACE_END_ZW];
   if(is_continue_op) {
     /* we're going all in on the evil: these are zero-width tokens w/ unbounded lookahead */
     DEBUG("Starting zero-width lookahead for continue token\n", 0);
@@ -760,6 +777,15 @@ bool tree_sitter_perl_external_scanner_scan(
     if(valid_symbols[TOKEN_CHEQOP_CONT]) {
       if(EQ2("==") || EQ2("!=") || EQ2("eq") || EQ2("ne"))
         TOKEN(TOKEN_CHEQOP_CONT);
+    }
+
+    if(valid_symbols[TOKEN_FAT_COMMA_ZW]) {
+      if(EQ2("=>"))
+        TOKEN(TOKEN_FAT_COMMA_ZW);
+    }
+    if(valid_symbols[TOKEN_BRACE_END_ZW]){
+      if(c1 == '}')
+        TOKEN(TOKEN_BRACE_END_ZW);
     }
 
     if(valid_symbols[TOKEN_CHRELOP_CONT]) {
