@@ -110,15 +110,16 @@ static void lexerstate_finish_heredoc(struct LexerState *state)
 
 #define ADVANCE_C \
   do {                                         \
-    if(lexer->lookahead == '\r')               \
+    if(lexer->lookahead == '\r') {             \
       DEBUG("> advance U+%04X = \\r\n",        \
           lexer->lookahead);                   \
-    else if(lexer->lookahead == '\n')          \
+    } else if(lexer->lookahead == '\n')  {     \
       DEBUG("> advance U+%04X = \\n\n",        \
           lexer->lookahead);                   \
-    else                                       \
+    } else {                                   \
       DEBUG("> advance U+%04X = '%c'\n",       \
           lexer->lookahead, lexer->lookahead); \
+    }                                          \
     lexer->advance(lexer, false);              \
     c = lexer->lookahead;                      \
   } while(0)
