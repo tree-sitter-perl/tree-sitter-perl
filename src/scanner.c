@@ -360,11 +360,7 @@ bool tree_sitter_perl_external_scanner_scan(
   skip_ws_to_eol(lexer);
   /* heredocs override everything, so they must be here before */
   if(valid_symbols[TOKEN_HEREDOC_START]) {
-    if (lexer->eof(lexer)) {
-      return false;
-    }
-
-    if(state->heredoc_state == HEREDOC_START && lexer->get_column(lexer) == 0) {
+    if(!lexer->eof(lexer) && state->heredoc_state == HEREDOC_START && lexer->get_column(lexer) == 0) {
       state->heredoc_state = HEREDOC_UNKNOWN;
       TOKEN(TOKEN_HEREDOC_START);
     }
@@ -494,11 +490,7 @@ bool tree_sitter_perl_external_scanner_scan(
     TOKEN(TOKEN_BACKTICK);
   }
 
-  if(valid_symbols[TOKEN_POD]) {
-    if (lexer->eof(lexer)) {
-      return false;
-    }
-
+  if(valid_symbols[TOKEN_POD] && !lexer->eof(lexer)) {
     int column = lexer->get_column(lexer);
     if(column == 0 && c == '=') {
       DEBUG("POD started...\n", 0);
