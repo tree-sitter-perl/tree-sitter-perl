@@ -266,8 +266,9 @@ bool tree_sitter_perl_external_scanner_scan(
   int c = lexer->lookahead;
 
   if(!is_ERROR && valid_symbols[TOKEN_GOBBLED_CONTENT]) {
-    while (!lexer->eof(lexer)) 
+    while (!lexer->eof(lexer)) {
       ADVANCE_C;
+    }
 
     TOKEN(TOKEN_GOBBLED_CONTENT);
   }
