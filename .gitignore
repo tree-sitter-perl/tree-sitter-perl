@@ -12,3 +12,4 @@ bindings/c/*.h
 tree-sitter-perl.wasm
 binding.gyp
 log.html
+scratch/
