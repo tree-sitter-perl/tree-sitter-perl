@@ -59,8 +59,8 @@
 (subroutine_declaration_statement name: (_) @function)
 (attrlist (attribute) @decorator)
 
-(goto_expression (bareword) @label)
-(loopex_expression (bareword) @label)
+(goto_expression (label) @label)
+(loopex_expression (label) @label)
 
 (statement_label label: _ @label)
 

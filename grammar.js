@@ -493,10 +493,11 @@ module.exports = grammar({
         choice(optseq('(', optional($._expr), ')'), $._term),
       )),
 
+    _label_arg: $ => choice(alias($.identifier, $.label), $._term),
     loopex_expression: $ =>
-      prec.left(TERMPREC.LOOPEX, seq(field('loopex', $._LOOPEX), optional($._term))),
+      prec.left(TERMPREC.LOOPEX, seq(field('loopex', $._LOOPEX), optional($._label_arg))),
     goto_expression: $ =>
-      prec.left(TERMPREC.LOOPEX, seq('goto', $._term)),
+      prec.left(TERMPREC.LOOPEX, seq('goto', $._label_arg)),
 
     /* Perl just considers `undef` like any other UNIOP but it's quite likely
      * that tree consumers and highlighters would want to handle it specially
@@ -790,7 +791,8 @@ module.exports = grammar({
       $._brace_end_zw
     ),
 
-    identifier: $ => $._identifier,
+    // prefer identifer to bareword where the grammar allows
+    identifier: $ => prec(2, $._identifier),
     _identifier: $ => /[a-zA-Z_]\w*/,
     _ident_special: $ => /[0-9]+|\^[A-Z]|./,
 
