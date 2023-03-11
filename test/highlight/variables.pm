@@ -45,6 +45,9 @@ $hash{ key };
 #    ^ variable.hash
 #      ^^^ string.special
 #          ^ variable.hash
+$hash{q}{shift};
+#     ^ string.special
+#        ^^^^^ string.special
 $href->{ key };
 # <- variable.scalar
 #    ^^^ variable.hash
@@ -67,6 +70,7 @@ $^X;
 # <- variable.scalar
 $!;
 # <- variable.scalar
-
 my $not::allowed;
 #       ^ error
+${ ^ANY_IDENT1 };
+# ^^^^^^ variable.scalar

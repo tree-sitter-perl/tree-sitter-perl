@@ -24,7 +24,7 @@ RAW
 Quoted heredocs
 ================================================================================
 <<  "$STOP";
-please $STOP doing silly things
+please $STOP doing \\ silly things
 $STOP
 <<  '  CRAZY';
 you'd think this is just
@@ -33,7 +33,7 @@ CRAZY, but you'd be \n $wrong
 --------------------------------------------------------------------------------
 (source_file
   (expression_statement (heredoc_token))
-  (heredoc_content (scalar) (heredoc_end))
+  (heredoc_content (scalar) (escape_sequence) (heredoc_end))
   (expression_statement (heredoc_token))
   (heredoc_content (heredoc_end))
 )
