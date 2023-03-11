@@ -41,6 +41,7 @@ enum TokenType {
   TOKEN_HEREDOC_MIDDLE,
   TOKEN_HEREDOC_END,
   /* zero-width lookahead tokens */
+  TOKEN_PERLY_SEMICOLON_ZW,
   TOKEN_CHEQOP_CONT,
   TOKEN_CHRELOP_CONT,
   TOKEN_PERLY_COMMA_CONT,
@@ -754,6 +755,10 @@ bool tree_sitter_perl_external_scanner_scan(
   ADVANCE_C;
   int c2 = c;
 #define EQ2(s)  (c1 == s[0] && c2 == s[1])
+  if(valid_symbols[TOKEN_PERLY_SEMICOLON_ZW]) {
+    if(c1 == ';' || c1 == '}')
+      TOKEN(TOKEN_PERLY_SEMICOLON_ZW);
+  }
 
   if(valid_symbols[TOKEN_PERLY_COMMA_CONT]) {
     if(c1 == ',' || EQ2("=>"))
