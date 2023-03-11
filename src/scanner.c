@@ -43,6 +43,7 @@ enum TokenType {
   /* zero-width lookahead tokens */
   TOKEN_CHEQOP_CONT,
   TOKEN_CHRELOP_CONT,
+  TOKEN_PERLY_COMMA_CONT,
   /* zero-width high priority token */
   TOKEN_NONASSOC,
   /* error condition is always last */
@@ -258,7 +259,6 @@ bool tree_sitter_perl_external_scanner_scan(
   struct LexerState *state = payload;
 
   bool is_ERROR = valid_symbols[TOKEN_ERROR];
-  bool is_continue_op = valid_symbols[TOKEN_CHEQOP_CONT] || valid_symbols[TOKEN_CHRELOP_CONT];
   bool skipped_whitespace = false;
 
   int c = lexer->lookahead;
@@ -747,40 +747,41 @@ bool tree_sitter_perl_external_scanner_scan(
     TOKEN(TOKEN_PROTOTYPE_OR_SIGNATURE);
   }
 
-  if(is_continue_op) {
-    /* we're going all in on the evil: these are zero-width tokens w/ unbounded lookahead */
-    DEBUG("Starting zero-width lookahead for continue token\n", 0);
-    lexer->mark_end(lexer);
-    int c1 = c;
-    /* let's get the next lookahead */
-    ADVANCE_C;
-    int c2 = c;
+  DEBUG("Starting zero-width lookahead for continue token\n", 0);
+  lexer->mark_end(lexer);
+  int c1 = c;
+  /* let's get the next lookahead */
+  ADVANCE_C;
+  int c2 = c;
 #define EQ2(s)  (c1 == s[0] && c2 == s[1])
 
-    if(valid_symbols[TOKEN_CHEQOP_CONT]) {
-      if(EQ2("==") || EQ2("!=") || EQ2("eq") || EQ2("ne"))
-        TOKEN(TOKEN_CHEQOP_CONT);
+  if(valid_symbols[TOKEN_PERLY_COMMA_CONT]) {
+    if(c1 == ',' || EQ2("=>"))
+      TOKEN(TOKEN_PERLY_COMMA_CONT);
+  }
+  if(valid_symbols[TOKEN_CHEQOP_CONT]) {
+    if(EQ2("==") || EQ2("!=") || EQ2("eq") || EQ2("ne"))
+      TOKEN(TOKEN_CHEQOP_CONT);
+  }
+
+  if(valid_symbols[TOKEN_CHRELOP_CONT]) {
+    if(EQ2("lt") || EQ2("le") || EQ2("ge") || EQ2("gt"))
+      TOKEN(TOKEN_CHRELOP_CONT);
+
+    if(EQ2(">=") || EQ2("<=")) {
+      ADVANCE_C;
+      /* exclude <=>, >=>, <=< and other friends */
+      if(c == '<' || c == '>')
+        return false;
+
+      TOKEN(TOKEN_CHRELOP_CONT);
     }
 
-    if(valid_symbols[TOKEN_CHRELOP_CONT]) {
-      if(EQ2("lt") || EQ2("le") || EQ2("ge") || EQ2("gt"))
-        TOKEN(TOKEN_CHRELOP_CONT);
-
-      if(EQ2(">=") || EQ2("<=")) {
-        ADVANCE_C;
-        /* exclude <=>, >=>, <=< and other friends */
-        if(c == '<' || c == '>')
-          return false;
-
-        TOKEN(TOKEN_CHRELOP_CONT);
-      }
-
-      if(c1 == '>' || c1 == '<') {
-        /* exclude <<, >> and other friends */
-        if(c2 == '<' || c2 == '>')
-          return false;
-        TOKEN(TOKEN_CHRELOP_CONT);
-      }
+    if(c1 == '>' || c1 == '<') {
+      /* exclude <<, >> and other friends */
+      if(c2 == '<' || c2 == '>')
+        return false;
+      TOKEN(TOKEN_CHRELOP_CONT);
     }
   }
 

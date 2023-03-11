@@ -161,3 +161,11 @@ local $var;
 
 (source_file
   (expression_statement (localization_expression (scalar))))
+================================================================================
+return
+================================================================================
+return 1, 2, 3;
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement (return_expression (number) (number) (number) ))
+)

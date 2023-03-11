@@ -108,6 +108,7 @@ module.exports = grammar({
     /* zero-width lookahead tokens */
     $._CHEQOP_continue,
     $._CHRELOP_continue,
+    $._PERLY_COMMA_continue,
     /* zero-width high priority token */
     $._NONASSOC,
     /* error condition must always be last; we don't use this in the grammar */
@@ -258,8 +259,9 @@ module.exports = grammar({
     list_expression: $ => seq(
       $._term, $._PERLY_COMMA, repeat(seq(optional($._term), $._PERLY_COMMA)), optional($._term)
     ),
-    // TODO - implement a low-prec listexpr for the top level, and a high-prec using a
-    // continue token for things like return
+    _high_prec_listexpr: $ => prec.right(seq(
+      $._term, repeat(seq($._PERLY_COMMA_continue, $._PERLY_COMMA, optional($._term)))
+    )),
 
     _subscripted: $ => choice(
       /* TODO:
@@ -486,7 +488,7 @@ module.exports = grammar({
       prec.left(TERMPREC.LOOPEX, seq(field('loopex', $._LOOPEX), optional($._term))),
     goto_expression: $ =>
       prec.left(TERMPREC.LOOPEX, seq('goto', $._term)),
-    return_expression: $ => seq('return', $._listexpr),
+    return_expression: $ => seq('return', $._high_prec_listexpr),
 
     /* Perl just considers `undef` like any other UNIOP but it's quite likely
      * that tree consumers and highlighters would want to handle it specially
