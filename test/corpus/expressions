@@ -165,7 +165,13 @@ local $var;
 return
 ================================================================================
 return 1, 2, 3;
+return 1, 2, 3 or die("never reached");
 --------------------------------------------------------------------------------
 (source_file
   (expression_statement (return_expression (number) (number) (number) ))
+  (expression_statement
+    (lowprec_logical_expression
+      (return_expression (number) (number) (number) )
+      (function_call_expression (function) (interpolated_string_literal))
+    ))
 )
