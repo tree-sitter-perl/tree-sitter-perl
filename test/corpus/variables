@@ -2,12 +2,14 @@
 basic vars
 ================================================================================
 $s;
+$namespace::s;
 @a;
 $#a;
 %h;
 *g;
 --------------------------------------------------------------------------------
 (source_file
+  (expression_statement (scalar))
   (expression_statement (scalar))
   (expression_statement (array))
   (expression_statement (arraylen))
@@ -35,7 +37,8 @@ our $PackageVar;
   (expression_statement (variable_declaration (array)))
   (expression_statement (variable_declaration (hash)))
   (expression_statement (variable_declaration (scalar) (array) (hash)))
-  (expression_statement (variable_declaration (scalar))))
+  (expression_statement (variable_declaration (scalar)))
+)
 ================================================================================
 variable declarations including undef
 ================================================================================
@@ -130,3 +133,15 @@ $!;
   (expression_statement (scalar))
   (expression_statement (scalar))
   (expression_statement (scalar)))
+================================================================================
+crazy vars
+================================================================================
+$::application;
+$::::var;
+%overload::;
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement (scalar))
+  (expression_statement (scalar))
+  (expression_statement (hash))
+)
