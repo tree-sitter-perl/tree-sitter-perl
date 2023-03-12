@@ -167,6 +167,7 @@ return
 return;
 return 1, 2, 3;
 return 1, 2, 3 or die("never reached");
+return unless 9001;
 --------------------------------------------------------------------------------
 (source_file
   (expression_statement (return_expression))
