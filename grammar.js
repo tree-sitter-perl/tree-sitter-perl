@@ -558,7 +558,7 @@ module.exports = grammar({
       $._indirob,
       seq(
         $._PERLY_BRACE_OPEN,
-        choice($._bareword, $._autoquotables, $._ident_special, /\^[a-zA-Z_]\w*/ ),
+        choice($._bareword, $._autoquotables, $._ident_special, /\^[A-Z]\w*/ ),
         $._brace_end_zw, '}'
       )
     ),
