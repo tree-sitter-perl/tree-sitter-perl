@@ -177,4 +177,9 @@ return unless 9001;
       (return_expression (number) (number) (number) )
       (function_call_expression (function) (interpolated_string_literal))
     ))
+  (expression_statement
+    (postfix_unless_expression
+      (return_expression)
+      (number)
+      ))
 )

@@ -111,7 +111,6 @@ module.exports = grammar({
     $._CHEQOP_continue,
     $._CHRELOP_continue,
     $._PERLY_COMMA_continue,
-    $._PERLY_SEMICOLON_zw,
     $._fat_comma_zw,
     $._brace_end_zw,
     /* zero-width high priority token */
@@ -504,7 +503,7 @@ module.exports = grammar({
       prec.left(TERMPREC.LOOPEX, seq(field('loopex', $._LOOPEX), optional($._label_arg))),
     goto_expression: $ =>
       prec.left(TERMPREC.LOOPEX, seq('goto', $._label_arg)),
-    return_expression: $ => seq('return', choice($._PERLY_SEMICOLON_zw, $._high_prec_listexpr)),
+    return_expression: $ => prec.right(TERMPREC.LSTOP, seq('return', optional($._high_prec_listexpr))),
 
     /* Perl just considers `undef` like any other UNIOP but it's quite likely
      * that tree consumers and highlighters would want to handle it specially

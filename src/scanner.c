@@ -44,7 +44,6 @@ enum TokenType {
   TOKEN_CHEQOP_CONT,
   TOKEN_CHRELOP_CONT,
   TOKEN_PERLY_COMMA_CONT,
-  TOKEN_PERLY_SEMICOLON_ZW,
   TOKEN_FAT_COMMA_ZW,
   TOKEN_BRACE_END_ZW,
   /* zero-width high priority token */
@@ -771,12 +770,6 @@ bool tree_sitter_perl_external_scanner_scan(
   ADVANCE_C;
   int c2 = c;
 #define EQ2(s)  (c1 == s[0] && c2 == s[1])
-
-  if(valid_symbols[TOKEN_PERLY_SEMICOLON_ZW]) {
-    DEBUG("ZW-lookahead for ;\n", 0);
-    if(c1 == ';' || c1 == '}')
-      TOKEN(TOKEN_PERLY_SEMICOLON_ZW);
-  }
 
   if(valid_symbols[TOKEN_FAT_COMMA_ZW]) {
     DEBUG("ZW-lookahead for => autoquoting\n", 0);
