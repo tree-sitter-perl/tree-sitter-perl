@@ -273,11 +273,7 @@ module.exports = grammar({
        */
       $.array_element_expression,
       $.hash_element_expression,
-      /* term -> ( )
-       * term -> ( expr )
-       * subscripted -> ( )
-       * subscripted -> ( expr )
-       */
+      $.coderef_call_expression,
       $.slice_expression,
     ),
 
@@ -293,6 +289,10 @@ module.exports = grammar({
       seq(field('hash', $.container_variable),     '{', field('key', $._hash_key), '}'),
       prec.left(TERMPREC.ARROW, seq($._term, '->', '{', field('key', $._hash_key), '}')),
       seq($._subscripted,                          '{', field('key', $._hash_key), '}'),
+    ),
+    coderef_call_expression: $ => choice(
+      prec.left(TERMPREC.ARROW, seq($._term, '->', '(', optional(field('arguments', $._expr)), ')')),
+      seq($._subscripted,                           '(', optional(field('arguments', $._expr)), ')'),
     ),
     slice_expression: $ => choice(
       seq('(', optional(field('list', $._expr)), ')', '[', $._expr, ']'),
