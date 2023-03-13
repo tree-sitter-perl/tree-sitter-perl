@@ -133,7 +133,7 @@ redo;
 
 (source_file
   (expression_statement (loopex_expression))
-  (expression_statement (loopex_expression (bareword)))
+  (expression_statement (loopex_expression (label)))
   (expression_statement (loopex_expression)))
 ================================================================================
 goto
@@ -142,7 +142,7 @@ goto LABEL;
 --------------------------------------------------------------------------------
 
 (source_file
-  (expression_statement (goto_expression (bareword))))
+  (expression_statement (goto_expression (label))))
 ================================================================================
 undef
 ================================================================================

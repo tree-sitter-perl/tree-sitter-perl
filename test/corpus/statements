@@ -212,13 +212,18 @@ package AAA;
 package BBB 1.23;
 package CCC { }
 package DDD 4.56 { }
+package :: { }
+package ::butwhy:::::: { }
 --------------------------------------------------------------------------------
 
 (source_file
   (package_statement (package))
   (package_statement (package) (number))
   (package_statement (package) (block))
-  (package_statement (package) (number) (block)))
+  (package_statement (package) (number) (block))
+  (package_statement (package) (block))
+  (package_statement (package) (block))
+)
 ================================================================================
 Labels
 ================================================================================
@@ -229,15 +234,15 @@ ITEM: while(@items) { }
 
 (source_file
   (statement_label
-    label: (bareword)
+    label: (identifier)
     statement: (expression_statement (number)))
   (statement_label
-    label: (bareword)
+    label: (identifier)
     statement: (for_statement
       list: (array)
       block: (block)))
   (statement_label
-    label: (bareword)
+    label: (identifier)
     statement: (while_statement
       condition: (array)
       block: (block))))

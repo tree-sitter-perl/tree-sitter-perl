@@ -74,6 +74,8 @@ binop.listassoc = (op, continue_token, term) =>
   )
 
 const optseq = (...terms) => optional(seq(...terms));
+const paren_list_of = rule => 
+      seq('(', repeat(seq(optional(rule), ',')), optional(rule), ')')
 
 module.exports = grammar({
   name: 'perl',
@@ -106,10 +108,12 @@ module.exports = grammar({
     $._heredoc_middle,
     $.heredoc_end,
     /* zero-width lookahead tokens */
-    $._PERLY_SEMICOLON_zw,
     $._CHEQOP_continue,
     $._CHRELOP_continue,
     $._PERLY_COMMA_continue,
+    $._PERLY_SEMICOLON_zw,
+    $._fat_comma_zw,
+    $._brace_end_zw,
     /* zero-width high priority token */
     $._NONASSOC,
     /* error condition must always be last; we don't use this in the grammar */
@@ -138,7 +142,7 @@ module.exports = grammar({
     _fullstmt: $ => choice($._barestmt, $.statement_label),
 
     // perly.y calls this labfullstmt
-    statement_label: $ => seq(field('label', $.bareword), ':', field('statement', $._fullstmt)),
+    statement_label: $ => seq(field('label', $.identifier), ':', field('statement', $._fullstmt)),
 
     _barestmt: $ => choice(
       $.package_statement,
@@ -284,18 +288,19 @@ module.exports = grammar({
       prec.left(TERMPREC.ARROW, seq($._term, '->', '[', field('index', $._expr), ']')),
       seq($._subscripted,                          '[', field('index', $._expr), ']'),
     ),
+    _hash_key: $ => choice($._brace_autoquoted, $._expr),
     hash_element_expression: $ => choice(
       // perly.y matches scalar '{' expr '}' here but that would yield a scalar var node
-      seq(field('hash', $.container_variable),     '{', field('key', $._expr), '}'),
-      prec.left(TERMPREC.ARROW, seq($._term, '->', '{', field('key', $._expr), '}')),
-      seq($._subscripted,                          '{', field('key', $._expr), '}'),
+      seq(field('hash', $.container_variable),     '{', field('key', $._hash_key), '}'),
+      prec.left(TERMPREC.ARROW, seq($._term, '->', '{', field('key', $._hash_key), '}')),
+      seq($._subscripted,                          '{', field('key', $._hash_key), '}'),
     ),
     slice_expression: $ => choice(
       seq('(', optional(field('list', $._expr)), ')', '[', $._expr, ']'),
       seq(field('list', $.quoted_word_list), '[', $._expr, ']'),
     ),
     // this needs to be a named node so highlights.scm can capture it
-    container_variable: $ => seq('$', $._indirob),
+    container_variable: $ => seq('$', $._var_indirob),
 
     _term: $ => choice(
       $.assignment_expression,
@@ -355,6 +360,7 @@ module.exports = grammar({
       $.func1op_call_expression,
       /* PMFUNC */
       $.bareword,
+      $.autoquoted_bareword,
       $._listop,
 
       /* perly.y doesn't know about `my` because that is handled weirdly in
@@ -444,10 +450,10 @@ module.exports = grammar({
       seq(
         choice('my', 'our'),
         choice(
-          field('variable', $.scalar),
-          field('variable', $.array),
-          field('variable', $.hash),
-          field('variables', $._paren_list_of_variables)),
+          field('variable', alias($._declare_scalar, $.scalar)),
+          field('variable', alias($._declare_array, $.array)),
+          field('variable', alias($._declare_hash, $.hash)),
+          field('variables', $._decl_variable_list)),
         optseq(':', optional(field('attributes', $.attrlist))))
     ),
     localization_expression: $ =>
@@ -455,10 +461,18 @@ module.exports = grammar({
         field('variable', $.scalar),
         field('variable', $.array),
         field('variable', $.hash),
-        field('variables', $._paren_list_of_variables))),
-    _variable: $ => choice($.scalar, $.array, $.hash, $.undef_expression),
-    _paren_list_of_variables: $ =>
-      seq('(', repeat(seq(optional($._variable), ',')), optional($._variable), ')'),
+        field('variables', $._variable_list))),
+    _variable_list: $ => paren_list_of(
+      choice($.scalar, $.array, $.hash, $.undef_expression)
+    ),
+    _decl_variable_list: $ => paren_list_of(
+      choice(
+        $.undef_expression,
+        alias($._declare_scalar, $.scalar),
+        alias($._declare_array, $.array),
+        alias($._declare_hash, $.hash),
+      )
+    ),
 
     stub_expression: $ => seq('(', ')'),
 
@@ -477,18 +491,19 @@ module.exports = grammar({
       prec.left(TERMPREC.REQUIRE, seq('require', optional($._term))),
 
     func0op_call_expression: $ =>
-      seq(field('function', $.func0op), optseq('(', ')')),
+      seq(field('function', $._func0op), optseq('(', ')')),
 
     func1op_call_expression: $ =>
       prec.left(TERMPREC.UNOP, seq(
-        field('function', $.func1op),
+        field('function', $._func1op),
         choice(optseq('(', optional($._expr), ')'), $._term),
       )),
 
+    _label_arg: $ => choice(alias($.identifier, $.label), $._term),
     loopex_expression: $ =>
-      prec.left(TERMPREC.LOOPEX, seq(field('loopex', $._LOOPEX), optional($._term))),
+      prec.left(TERMPREC.LOOPEX, seq(field('loopex', $._LOOPEX), optional($._label_arg))),
     goto_expression: $ =>
-      prec.left(TERMPREC.LOOPEX, seq('goto', $._term)),
+      prec.left(TERMPREC.LOOPEX, seq('goto', $._label_arg)),
     return_expression: $ => seq('return', choice($._PERLY_SEMICOLON_zw, $._high_prec_listexpr)),
 
     /* Perl just considers `undef` like any other UNIOP but it's quite likely
@@ -522,12 +537,16 @@ module.exports = grammar({
     )),
     method: $ => choice($._METHCALL0, $.scalar),
 
-    scalar:   $ => seq('$',  $._indirob),
-    array:    $ => seq('@',  $._indirob),
-    hash:     $ => seq(token(prec(2, '%')), $._indirob),
-    arraylen: $ => seq('$#', $._indirob),
+    scalar:   $ => seq('$',  $._var_indirob),
+    _declare_scalar:   $ => seq('$',  $._varname),
+    array:    $ => seq('@',  $._var_indirob),
+    _declare_array:    $ => seq('@',  $._varname),
+    hash:     $ => seq(token(prec(2, '%')), $._var_indirob),
+    _declare_hash:    $ => seq(token(prec(2, '%')),  $._varname),
+
+    arraylen: $ => seq('$#', $._var_indirob),
     // perly.y calls this `star`
-    glob:     $ => seq('*',  $._indirob),
+    glob:     $ => seq('*',  $._var_indirob),
 
     _indirob: $ => choice(
       $._bareword,
@@ -536,6 +555,19 @@ module.exports = grammar({
       $._ident_special,
       $.scalar,
       $.block,
+    ),
+    _varname: $ => choice(
+      $._identifier,
+      $._ident_special // TODO - not sure if we wanna make `my $1` error out
+    ),
+    // not all indirobs are alike; for variables, they have autoquoting behavior
+    _var_indirob: $ => choice(
+      $._indirob,
+      seq(
+        $._PERLY_BRACE_OPEN,
+        choice($._bareword, $._autoquotables, $._ident_special, /\^[A-Z]\w*/ ),
+        $._brace_end_zw, '}'
+      )
     ),
 
     attrlist: $ => prec.left(0, seq(
@@ -589,14 +621,14 @@ module.exports = grammar({
     _PHASE_NAME: $ => choice('BEGIN', 'INIT', 'CHECK', 'UNITCHECK', 'END'),
 
     // Anything toke.c calls FUN0 or FUN0OP; the distinction does not matter to us
-    func0op: $ => choice(
+    _func0op: $ => choice(
       '__FILE__', '__LINE__', '__PACKAGE__', '__SUB__',
       'break', 'fork', 'getppid', 'time', 'times', 'wait', 'wantarray',
       /* TODO: all the end*ent, get*ent, set*ent, etc... */
     ),
 
     // Anything toke.c calls FUN1 or UNIOP; the distinction does not matter to us
-    func1op: $ => choice(
+    _func1op: $ => choice(
       // UNI
       'abs', 'alarm', 'chop', 'chdir', 'close', 'closedir', 'caller', 'chomp',
       'chr', 'cos', 'chroot', 'defined', 'delete', 'dbmclose', 'exists', 'exit',
@@ -622,7 +654,6 @@ module.exports = grammar({
     //   https://github.com/tree-sitter/tree-sitter/issues/1910
     comment: $ => token(/#.*(\r?\n\s*#.*)*/),
 
-    ...primitives,
     // NOTE - not sure if this is a bug in tree-sitter, but choice here doesn't work, it
     // won't bother looking at the second choice. So we instead make one invisible node +
     // name the children appropriately
@@ -647,7 +678,6 @@ module.exports = grammar({
       $._gobbled_content
     ),
     */
-    _identifier: $ => /[a-zA-Z_]\w*/,
 
     // toke.c calls this a THING and that is such a generic unhelpful word,
     // we'll call it this instead
@@ -750,11 +780,32 @@ module.exports = grammar({
 
     package: $ => $._bareword,
     _version: $ => prec(1, choice($.number, $.version)),
-    version: $ => /v[0-9]+(?:\.[0-9]+)*/,
+    // we have to up the lexical prec here to prevent v5 from being read as a bareword
+    version: $ => token(prec(1, /v[0-9]+(?:\.[0-9]+)*/)),
+
+    // TODO - support - autoquoting; it's a drop confusing; takes barewords w/ ::, but
+    // eats over + and - so long as it doesn't become -- or ++
+    // NOTE - we MUST do it this way, b/c if we don't include every literal token, then TS
+    // will not even consider the consuming rules. Lexical precedence...
+    _autoquotables: $ => choice($._func0op, $._func1op, 'q', 'qq', 'qw'),
+    // NOTE - these have zw lookaheads so they override just being read as barewords
+    autoquoted_bareword: $ => seq(
+      choice($._identifier, $._autoquotables),
+      $._fat_comma_zw
+    ),
+    _brace_autoquoted: $ => seq(
+      alias(choice($._bareword, $._autoquotables), $.autoquoted_bareword),
+      $._brace_end_zw
+    ),
+
+    // prefer identifer to bareword where the grammar allows
+    identifier: $ => prec(2, $._identifier),
+    _identifier: $ => /[a-zA-Z_]\w*/,
+    _ident_special: $ => /[0-9]+|\^[A-Z]|./,
+
     // bareword is at the very end b/c the lexer prefers tokens defined earlier in the grammar 
     bareword: $ => $._bareword,
-    _bareword: $ => /[a-zA-Z_]\w*(?:::[a-zA-Z_]\w*)*/,  // TODO: unicode
-
-    _ident_special: $ => /[0-9]+|\^[A-Z]|./,
+    _bareword: $ => choice($._identifier, /((::)|([a-zA-Z_]\w*))+/),  // TODO: unicode
+    ...primitives,
   }
 })

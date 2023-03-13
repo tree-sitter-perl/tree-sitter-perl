@@ -1,0 +1,75 @@
+================================================================================
+AUTOQUOTED => EXPR
+================================================================================
+hello  # tree-sitter is magical!
+  => 'world';
+shift => 'up';
+plain::bareword => 'here';
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement (list_expression (autoquoted_bareword (comment)) (string_literal)))
+  (expression_statement (list_expression (autoquoted_bareword) (string_literal)))
+  (expression_statement (list_expression (bareword) (string_literal)))
+)
+================================================================================
+quotelike followed by =>
+================================================================================
+q = > only one string=;
+q => 'two strings';
+q=>'still two';
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement (string_literal))
+  (expression_statement (list_expression (autoquoted_bareword) (string_literal)))
+  (expression_statement (list_expression (autoquoted_bareword) (string_literal)))
+)
+================================================================================
+hash autoquoting
+================================================================================
+$hash{quoted};
+$hash{shift};
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement
+    (hash_element_expression
+      hash: (container_variable)
+      key: (autoquoted_bareword)))
+  (expression_statement
+    (hash_element_expression
+      hash: (container_variable)
+      key: (autoquoted_bareword)))
+)
+================================================================================
+hash autoquoting for quotelike
+================================================================================
+$hash{q{why would you do this?}};
+$hash{q};
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement
+    (hash_element_expression
+      hash: (container_variable)
+      key: (string_literal)))
+  (expression_statement
+    (hash_element_expression
+      hash: (container_variable)
+      key: (autoquoted_bareword)))
+)
+================================================================================
+indirob autoquoting
+================================================================================
+${bareword};
+${Long::Bareword};
+${q};
+${^O};
+${^MATCH};
+${1};
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement (scalar))
+  (expression_statement (scalar))
+  (expression_statement (scalar))
+  (expression_statement (scalar))
+  (expression_statement (scalar))
+  (expression_statement (scalar))
+)

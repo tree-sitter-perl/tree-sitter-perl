@@ -39,7 +39,7 @@
 (heredoc_end) @string.special
 [(escape_sequence) (escaped_delimiter)] @string.special
 
-(_ (bareword) @string.special . "=>")
+(autoquoted_bareword) @string.special
 
 (scalar) @variable.scalar
 (scalar_deref_expression ["->" "$" "*"] @variable.scalar)
@@ -59,14 +59,15 @@
 (subroutine_declaration_statement name: (_) @function)
 (attrlist (attribute) @decorator)
 
-(goto_expression (bareword) @label)
-(loopex_expression (bareword) @label)
+(goto_expression (label) @label)
+(loopex_expression (label) @label)
 
-(statement_label label: (bareword) @label)
+(statement_label label: _ @label)
 
 (function_call_expression (function) @function)
 (method_call_expression (method) @function.method)
 (method_call_expression invocant: (bareword) @type)
 
-(func0op_call_expression function: (_) @function.builtin)
-(func1op_call_expression function: (_) @function.builtin)
+(func0op_call_expression function: _ @function.builtin)
+(func1op_call_expression function: _ @function.builtin)
+(ERROR) @error
