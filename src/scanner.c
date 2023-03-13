@@ -765,7 +765,6 @@ bool tree_sitter_perl_external_scanner_scan(
     TOKEN(TOKEN_PROTOTYPE_OR_SIGNATURE);
   }
 
-  DEBUG("Starting zero-width lookahead for continue token\n", 0);
   lexer->mark_end(lexer);
   int c1 = c;
   /* let's get the next lookahead */
@@ -774,26 +773,31 @@ bool tree_sitter_perl_external_scanner_scan(
 #define EQ2(s)  (c1 == s[0] && c2 == s[1])
 
   if(valid_symbols[TOKEN_PERLY_SEMICOLON_ZW]) {
+    DEBUG("ZW-lookahead for ;\n", 0);
     if(c1 == ';' || c1 == '}')
       TOKEN(TOKEN_PERLY_SEMICOLON_ZW);
   }
 
   if(valid_symbols[TOKEN_FAT_COMMA_ZW]) {
+    DEBUG("ZW-lookahead for => autoquoting\n", 0);
     if(EQ2("=>"))
       TOKEN(TOKEN_FAT_COMMA_ZW);
   }
 
   if(valid_symbols[TOKEN_PERLY_COMMA_CONT]) {
+    DEBUG("ZW-lookahead for , high-prec listop\n", 0);
     if(c1 == ',' || EQ2("=>"))
       TOKEN(TOKEN_PERLY_COMMA_CONT);
   }
 
   if(valid_symbols[TOKEN_CHEQOP_CONT]) {
+    DEBUG("ZW-lookahead for equality ops\n", 0);
     if(EQ2("==") || EQ2("!=") || EQ2("eq") || EQ2("ne"))
       TOKEN(TOKEN_CHEQOP_CONT);
   }
 
   if(valid_symbols[TOKEN_CHRELOP_CONT]) {
+    DEBUG("ZW-lookahead for relational ops\n", 0);
     if(EQ2("lt") || EQ2("le") || EQ2("ge") || EQ2("gt"))
       TOKEN(TOKEN_CHRELOP_CONT);
 
@@ -805,9 +809,17 @@ bool tree_sitter_perl_external_scanner_scan(
 
       TOKEN(TOKEN_CHRELOP_CONT);
     }
+
+    if(c1 == '>' || c1 == '<') {
+      /* exclude <<, >> and other friends */
+      if(c2 == '<' || c2 == '>')
+        return false;
+      TOKEN(TOKEN_CHRELOP_CONT);
+    }
   }
 
   if(valid_symbols[TOKEN_BRACE_END_ZW]){
+    DEBUG("ZW-lookahead for brace-end in autoquote\n", 0);
     if(c1 == '}')
       TOKEN(TOKEN_BRACE_END_ZW);
   }
