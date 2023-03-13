@@ -272,6 +272,10 @@ bool tree_sitter_perl_external_scanner_scan(
     TOKEN(TOKEN_GOBBLED_CONTENT);
   }
 
+  /* we use this to force tree-sitter to stay on the error branch of a nonassoc operator */
+  if(!is_ERROR && valid_symbols[TOKEN_NONASSOC])
+    TOKEN(TOKEN_NONASSOC);
+
   // this is whitespace sensitive, so it must go before any whitespace is skipped
   if(valid_symbols[TOKEN_HEREDOC_MIDDLE] && !is_ERROR) {
     DEBUG("Beginning heredoc contents\n", 0);
@@ -534,10 +538,6 @@ bool tree_sitter_perl_external_scanner_scan(
   if(is_ERROR)
     return false;
 
-  /* we use this to force tree-sitter to stay on the error branch of a nonassoc operator */
-  if(valid_symbols[TOKEN_NONASSOC])
-    TOKEN(TOKEN_NONASSOC);
-
   if(valid_symbols[TOKEN_HEREDOC_DELIM] || valid_symbols[TOKEN_COMMAND_HEREDOC_DELIM]) {
     // by default, indentation is false and interpolation is true
     bool should_indent = false;
@@ -778,7 +778,7 @@ bool tree_sitter_perl_external_scanner_scan(
   }
 
   if(valid_symbols[TOKEN_PERLY_COMMA_CONT]) {
-    DEBUG("ZW-lookahead for , high-prec listop\n", 0);
+    DEBUG("ZW-lookahead for comma in term_rightwad\n", 0);
     if(c1 == ',' || EQ2("=>"))
       TOKEN(TOKEN_PERLY_COMMA_CONT);
   }
