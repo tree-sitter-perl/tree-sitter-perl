@@ -292,7 +292,7 @@ module.exports = grammar({
     ),
     coderef_call_expression: $ => choice(
       prec.left(TERMPREC.ARROW, seq($._term, '->', '(', optional(field('arguments', $._expr)), ')')),
-      seq($._subscripted,                           '(', optional(field('arguments', $._expr)), ')'),
+      seq($._subscripted,                          '(', optional(field('arguments', $._expr)), ')'),
     ),
     slice_expression: $ => choice(
       seq('(', optional(field('list', $._expr)), ')', '[', $._expr, ']'),
