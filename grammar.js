@@ -110,6 +110,7 @@ module.exports = grammar({
     /* zero-width lookahead tokens */
     $._CHEQOP_continue,
     $._CHRELOP_continue,
+    $._PERLY_COMMA_continue,
     $._fat_comma_zw,
     $._brace_end_zw,
     /* zero-width high priority token */
@@ -262,6 +263,9 @@ module.exports = grammar({
     list_expression: $ => seq(
       $._term, $._PERLY_COMMA, repeat(seq(optional($._term), $._PERLY_COMMA)), optional($._term)
     ),
+    _term_rightward: $ => prec.right(seq(
+      $._term, repeat(seq($._PERLY_COMMA_continue, $._PERLY_COMMA, optional($._term)))
+    )),
 
     _subscripted: $ => choice(
       /* TODO:
@@ -269,11 +273,7 @@ module.exports = grammar({
        */
       $.array_element_expression,
       $.hash_element_expression,
-      /* term -> ( )
-       * term -> ( expr )
-       * subscripted -> ( )
-       * subscripted -> ( expr )
-       */
+      $.coderef_call_expression,
       $.slice_expression,
     ),
 
@@ -289,6 +289,10 @@ module.exports = grammar({
       seq(field('hash', $.container_variable),     '{', field('key', $._hash_key), '}'),
       prec.left(TERMPREC.ARROW, seq($._term, '->', '{', field('key', $._hash_key), '}')),
       seq($._subscripted,                          '{', field('key', $._hash_key), '}'),
+    ),
+    coderef_call_expression: $ => choice(
+      prec.left(TERMPREC.ARROW, seq($._term, '->', '(', optional(field('arguments', $._expr)), ')')),
+      seq($._subscripted,                          '(', optional(field('arguments', $._expr)), ')'),
     ),
     slice_expression: $ => choice(
       seq('(', optional(field('list', $._expr)), ')', '[', $._expr, ']'),
@@ -341,6 +345,7 @@ module.exports = grammar({
       $.glob_deref_expression,
       $.loopex_expression,
       $.goto_expression,
+      $.return_expression,
       $.undef_expression,
       /* NOTOP listexpr
        * UNIOP
@@ -468,7 +473,8 @@ module.exports = grammar({
       )
     ),
 
-    stub_expression: $ => seq('(', ')'),
+    // this has negative prec b/c it's only if the parens weren't eaten elsewhere
+    stub_expression: $ => prec(-1, seq('(', ')')),
 
     scalar_deref_expression: $ =>
       prec.left(TERMPREC.ARROW, seq($._term, '->', '$', '*')),
@@ -498,6 +504,7 @@ module.exports = grammar({
       prec.left(TERMPREC.LOOPEX, seq(field('loopex', $._LOOPEX), optional($._label_arg))),
     goto_expression: $ =>
       prec.left(TERMPREC.LOOPEX, seq('goto', $._label_arg)),
+    return_expression: $ => prec.right(TERMPREC.LSTOP, seq('return', optional($._term_rightward))),
 
     /* Perl just considers `undef` like any other UNIOP but it's quite likely
      * that tree consumers and highlighters would want to handle it specially
@@ -516,10 +523,15 @@ module.exports = grammar({
        * LSTOPSUB block optlistexpr
        */
       $.function_call_expression,
+      $.ambiguous_function_call_expression,
     ),
 
+    // the usage of NONASSOC here is to make it that any parse of a paren after a func
+    // automatically becomes a non-ambiguous function call
     function_call_expression: $ =>
-      seq(field('function', $.function), '(', optional(field('arguments', $._expr)), ')'),
+      seq(field('function', $.function), '(', $._NONASSOC, optional(field('arguments', $._expr)), ')'),
+    ambiguous_function_call_expression: $ => 
+      prec.right(TERMPREC.LSTOP, seq(field('function', $.function), field('arguments', $._term_rightward))),
     function: $ => $._FUNC,
 
     method_call_expression: $ => prec.left(TERMPREC.ARROW, seq(
@@ -796,8 +808,8 @@ module.exports = grammar({
     _identifier: $ => /[a-zA-Z_]\w*/,
     _ident_special: $ => /[0-9]+|\^[A-Z]|./,
 
-    // bareword is at the very end b/c the lexer prefers tokens defined earlier in the grammar 
-    bareword: $ => $._bareword,
+    bareword: $ => prec(1, $._bareword),
+    // _bareword is at the very end b/c the lexer prefers tokens defined earlier in the grammar 
     _bareword: $ => choice($._identifier, /((::)|([a-zA-Z_]\w*))+/),  // TODO: unicode
     ...primitives,
   }
