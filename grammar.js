@@ -780,7 +780,9 @@ module.exports = grammar({
     // eats over + and - so long as it doesn't become -- or ++
     // NOTE - we MUST do it this way, b/c if we don't include every literal token, then TS
     // will not even consider the consuming rules. Lexical precedence...
-    _autoquotables: $ => choice($._func0op, $._func1op, 'q', 'qq', 'qw'),
+    _keywords: $ => choice('if', 'unless', 'while', 'until', $._KW_FOR, 'else', 'elsif', 'and', 'or', 'do', 'our', 'my', 'local', 'require', 'return', 'eq', 'ne', 'lt', 'le', 'ge', 'gt', 'cmp', 'isa', $._KW_USE, $._LOOPEX, $._PHASE_NAME, '__DATA__', '__END__'),
+    _quotelikes: $ => choice('q', 'qq', 'qw', 'qx'),
+    _autoquotables: $ => choice($._func0op, $._func1op, $._keywords, $._quotelikes),
     // NOTE - these have zw lookaheads so they override just being read as barewords
     autoquoted_bareword: $ => seq(
       choice($._identifier, $._autoquotables),
