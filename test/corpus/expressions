@@ -133,7 +133,7 @@ redo;
 
 (source_file
   (expression_statement (loopex_expression))
-  (expression_statement (loopex_expression (bareword)))
+  (expression_statement (loopex_expression (label)))
   (expression_statement (loopex_expression)))
 ================================================================================
 goto
@@ -142,7 +142,7 @@ goto LABEL;
 --------------------------------------------------------------------------------
 
 (source_file
-  (expression_statement (goto_expression (bareword))))
+  (expression_statement (goto_expression (label))))
 ================================================================================
 undef
 ================================================================================
@@ -161,3 +161,25 @@ local $var;
 
 (source_file
   (expression_statement (localization_expression (scalar))))
+================================================================================
+return
+================================================================================
+return;
+return 1, 2, 3;
+return 1, 2, 3 or die("never reached");
+return unless 9001;
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement (return_expression))
+  (expression_statement (return_expression (number) (number) (number) ))
+  (expression_statement
+    (lowprec_logical_expression
+      (return_expression (number) (number) (number) )
+      (function_call_expression (function) (interpolated_string_literal))
+    ))
+  (expression_statement
+    (postfix_unless_expression
+      (return_expression)
+      (number)
+      ))
+)

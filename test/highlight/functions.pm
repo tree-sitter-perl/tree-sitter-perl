@@ -59,3 +59,13 @@ keys %hash;
 #  ^ variable.scalar
 -x _;
 # <- function.builtin
+
+### Ambiguous function calls
+croak 'thing', 'stuff';
+# <- function
+#     ^- string
+print 'things', sum 1, 2, 3;
+# <- function
+#     ^ string
+#               ^ function
+#                   ^ number

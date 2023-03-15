@@ -10,6 +10,7 @@
   "require"
   "last" "next" "redo" "goto"
   "undef"
+  "return"
 ] @keyword
 
 [ "BEGIN" "INIT" "CHECK" "UNITCHECK" "END" ] @keyword.phaser
@@ -59,10 +60,10 @@
 (subroutine_declaration_statement name: (_) @function)
 (attrlist (attribute) @decorator)
 
-(goto_expression (bareword) @label)
-(loopex_expression (bareword) @label)
+(goto_expression (label) @label)
+(loopex_expression (label) @label)
 
-(statement_label label: (bareword) @label)
+(statement_label label: _ @label)
 
 (function_call_expression (function) @function)
 (method_call_expression (method) @function.method)
@@ -70,3 +71,7 @@
 
 (func0op_call_expression function: _ @function.builtin)
 (func1op_call_expression function: _ @function.builtin)
+
+(function) @function
+
+(ERROR) @error
