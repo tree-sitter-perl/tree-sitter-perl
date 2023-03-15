@@ -10,6 +10,7 @@
   "require"
   "last" "next" "redo" "goto"
   "undef"
+  "return"
 ] @keyword
 
 [ "BEGIN" "INIT" "CHECK" "UNITCHECK" "END" ] @keyword.phaser
