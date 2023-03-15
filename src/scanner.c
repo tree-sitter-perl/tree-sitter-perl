@@ -43,6 +43,7 @@ enum TokenType {
   /* zero-width lookahead tokens */
   TOKEN_CHEQOP_CONT,
   TOKEN_CHRELOP_CONT,
+  TOKEN_PERLY_COMMA_CONT,
   TOKEN_FAT_COMMA_ZW,
   TOKEN_BRACE_END_ZW,
   /* zero-width high priority token */
@@ -270,6 +271,10 @@ bool tree_sitter_perl_external_scanner_scan(
 
     TOKEN(TOKEN_GOBBLED_CONTENT);
   }
+
+  /* we use this to force tree-sitter to stay on the error branch of a nonassoc operator */
+  if(!is_ERROR && valid_symbols[TOKEN_NONASSOC])
+    TOKEN(TOKEN_NONASSOC);
 
   // this is whitespace sensitive, so it must go before any whitespace is skipped
   if(valid_symbols[TOKEN_HEREDOC_MIDDLE] && !is_ERROR) {
@@ -533,10 +538,6 @@ bool tree_sitter_perl_external_scanner_scan(
   if(is_ERROR)
     return false;
 
-  /* we use this to force tree-sitter to stay on the error branch of a nonassoc operator */
-  if(valid_symbols[TOKEN_NONASSOC])
-    TOKEN(TOKEN_NONASSOC);
-
   if(valid_symbols[TOKEN_HEREDOC_DELIM] || valid_symbols[TOKEN_COMMAND_HEREDOC_DELIM]) {
     // by default, indentation is false and interpolation is true
     bool should_indent = false;
@@ -763,52 +764,59 @@ bool tree_sitter_perl_external_scanner_scan(
     TOKEN(TOKEN_PROTOTYPE_OR_SIGNATURE);
   }
 
-  bool is_continue_op = valid_symbols[TOKEN_CHEQOP_CONT] || valid_symbols[TOKEN_CHRELOP_CONT] || valid_symbols[TOKEN_FAT_COMMA_ZW] || valid_symbols[TOKEN_BRACE_END_ZW];
-  if(is_continue_op) {
-    /* we're going all in on the evil: these are zero-width tokens w/ unbounded lookahead */
-    DEBUG("Starting zero-width lookahead for continue token\n", 0);
-    lexer->mark_end(lexer);
-    int c1 = c;
-    /* let's get the next lookahead */
-    ADVANCE_C;
-    int c2 = c;
+  lexer->mark_end(lexer);
+  int c1 = c;
+  /* let's get the next lookahead */
+  ADVANCE_C;
+  int c2 = c;
 #define EQ2(s)  (c1 == s[0] && c2 == s[1])
 
-    if(valid_symbols[TOKEN_CHEQOP_CONT]) {
-      if(EQ2("==") || EQ2("!=") || EQ2("eq") || EQ2("ne"))
-        TOKEN(TOKEN_CHEQOP_CONT);
+  if(valid_symbols[TOKEN_FAT_COMMA_ZW]) {
+    DEBUG("ZW-lookahead for => autoquoting\n", 0);
+    if(EQ2("=>"))
+      TOKEN(TOKEN_FAT_COMMA_ZW);
+  }
+
+  if(valid_symbols[TOKEN_PERLY_COMMA_CONT]) {
+    DEBUG("ZW-lookahead for comma in term_rightwad\n", 0);
+    if(c1 == ',' || EQ2("=>"))
+      TOKEN(TOKEN_PERLY_COMMA_CONT);
+  }
+
+  if(valid_symbols[TOKEN_CHEQOP_CONT]) {
+    DEBUG("ZW-lookahead for equality ops\n", 0);
+    if(EQ2("==") || EQ2("!=") || EQ2("eq") || EQ2("ne"))
+      TOKEN(TOKEN_CHEQOP_CONT);
+  }
+
+  if(valid_symbols[TOKEN_CHRELOP_CONT]) {
+    DEBUG("ZW-lookahead for relational ops\n", 0);
+    if(EQ2("lt") || EQ2("le") || EQ2("ge") || EQ2("gt"))
+      TOKEN(TOKEN_CHRELOP_CONT);
+
+    if(EQ2(">=") || EQ2("<=")) {
+      ADVANCE_C;
+      /* exclude <=>, >=>, <=< and other friends */
+      if(c == '<' || c == '>')
+        return false;
+
+      TOKEN(TOKEN_CHRELOP_CONT);
     }
 
-    if(valid_symbols[TOKEN_FAT_COMMA_ZW]) {
-      if(EQ2("=>"))
-        TOKEN(TOKEN_FAT_COMMA_ZW);
-    }
-    if(valid_symbols[TOKEN_BRACE_END_ZW]){
-      if(c1 == '}')
-        TOKEN(TOKEN_BRACE_END_ZW);
-    }
-
-    if(valid_symbols[TOKEN_CHRELOP_CONT]) {
-      if(EQ2("lt") || EQ2("le") || EQ2("ge") || EQ2("gt"))
-        TOKEN(TOKEN_CHRELOP_CONT);
-
-      if(EQ2(">=") || EQ2("<=")) {
-        ADVANCE_C;
-        /* exclude <=>, >=>, <=< and other friends */
-        if(c == '<' || c == '>')
-          return false;
-
-        TOKEN(TOKEN_CHRELOP_CONT);
-      }
-
-      if(c1 == '>' || c1 == '<') {
-        /* exclude <<, >> and other friends */
-        if(c2 == '<' || c2 == '>')
-          return false;
-        TOKEN(TOKEN_CHRELOP_CONT);
-      }
+    if(c1 == '>' || c1 == '<') {
+      /* exclude <<, >> and other friends */
+      if(c2 == '<' || c2 == '>')
+        return false;
+      TOKEN(TOKEN_CHRELOP_CONT);
     }
   }
+
+  if(valid_symbols[TOKEN_BRACE_END_ZW]){
+    DEBUG("ZW-lookahead for brace-end in autoquote\n", 0);
+    if(c1 == '}')
+      TOKEN(TOKEN_BRACE_END_ZW);
+  }
+
 
   return false;
 }

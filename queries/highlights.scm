@@ -10,6 +10,7 @@
   "require"
   "last" "next" "redo" "goto"
   "undef"
+  "return"
 ] @keyword
 
 [ "BEGIN" "INIT" "CHECK" "UNITCHECK" "END" ] @keyword.phaser
@@ -70,4 +71,7 @@
 
 (func0op_call_expression function: _ @function.builtin)
 (func1op_call_expression function: _ @function.builtin)
+
+(function) @function
+
 (ERROR) @error

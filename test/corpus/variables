@@ -123,6 +123,29 @@ $h{1}{2}{3};
         key: (number))
       key: (number))))
 ================================================================================
+coderef calls
+================================================================================
+$code->();
+$code->('args');
+$code->('args')(1)("and again")
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement
+    (coderef_call_expression
+      (scalar)))
+  (expression_statement
+    (coderef_call_expression
+      (scalar)
+      (string_literal)))
+  (expression_statement
+    (coderef_call_expression
+      (coderef_call_expression
+        (coderef_call_expression
+          (scalar)
+          (string_literal))
+        (number))
+      (interpolated_string_literal))))
+================================================================================
 special vars
 ================================================================================
 $1;
