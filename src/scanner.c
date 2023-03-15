@@ -47,6 +47,8 @@ enum TokenType {
   TOKEN_BRACE_END_ZW,
   /* zero-width high priority token */
   TOKEN_NONASSOC,
+  /* regexp related items */
+  TOKEN_REGEX_MATCH,
   /* error condition is always last */
   TOKEN_ERROR
 };
@@ -439,6 +441,53 @@ bool tree_sitter_perl_external_scanner_scan(
     }
     else {
       TOKEN(TOKEN_HASHBRACK);
+    }
+  }
+
+  // This could be the wrong spot to check this, but it hasn't changed
+  // anything in the test suite, so I think it's safe for now.
+  //
+  // A potential improvement would be to separate create separate match groups like:
+  // $string =~ s/foo/bar/g
+  //            ^ regex start
+  //             ^ operator
+  //              ^^^ regex pattern
+  //                 ^ operator
+  //                  ^^^ regex pattern
+  //                     ^ operator
+  //                      ^ regex modifier
+  //
+  // But for now, we'll leave that for another day (and perhaps upstream will do that
+  // at some point anyway in a more robust perl fashion).
+  if (valid_symbols[TOKEN_REGEX_MATCH]) {
+    // Next character *must* be a '/', otherwise it won't be valid.
+    if (lexer->lookahead == '/') {
+      ADVANCE_C;
+
+      while (lexer->lookahead != '/' && lexer->lookahead != '\n' && !lexer->eof(lexer)) {
+        if (lexer->lookahead == '\\') {
+          ADVANCE_C;
+        }
+        ADVANCE_C;
+      }
+
+      if (lexer->lookahead == '/') {
+        ADVANCE_C;
+        while (lexer->lookahead != '/' && lexer->lookahead != '\n' && !lexer->eof(lexer)) {
+          if (lexer->lookahead == '\\') {
+            ADVANCE_C;
+          }
+          ADVANCE_C;
+        }
+
+        if (lexer->lookahead == '/') {
+          ADVANCE_C;
+
+          TOKEN(TOKEN_REGEX_MATCH);
+        }
+      }
+
+      return false;
     }
   }
 

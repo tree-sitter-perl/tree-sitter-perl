@@ -170,6 +170,10 @@
           "named": true
         },
         {
+          "type": "regex_literal",
+          "named": true
+        },
+        {
           "type": "relational_expression",
           "named": true
         },
@@ -373,6 +377,10 @@
           "named": true
         },
         {
+          "type": "regex_literal",
+          "named": true
+        },
+        {
           "type": "relational_expression",
           "named": true
         },
@@ -573,6 +581,10 @@
         },
         {
           "type": "refgen_expression",
+          "named": true
+        },
+        {
+          "type": "regex_literal",
           "named": true
         },
         {
@@ -834,6 +846,10 @@
           "named": true
         },
         {
+          "type": "regex_literal",
+          "named": true
+        },
+        {
           "type": "relational_expression",
           "named": true
         },
@@ -1055,6 +1071,10 @@
             "named": true
           },
           {
+            "type": "regex_literal",
+            "named": true
+          },
+          {
             "type": "relational_expression",
             "named": true
           },
@@ -1251,6 +1271,10 @@
         },
         {
           "type": "refgen_expression",
+          "named": true
+        },
+        {
+          "type": "regex_literal",
           "named": true
         },
         {
@@ -1484,6 +1508,10 @@
             "named": true
           },
           {
+            "type": "regex_literal",
+            "named": true
+          },
+          {
             "type": "relational_expression",
             "named": true
           },
@@ -1575,6 +1603,10 @@
           },
           {
             "type": "=",
+            "named": false
+          },
+          {
+            "type": "=~",
             "named": false
           },
           {
@@ -1761,6 +1793,10 @@
           },
           {
             "type": "refgen_expression",
+            "named": true
+          },
+          {
+            "type": "regex_literal",
             "named": true
           },
           {
@@ -2032,6 +2068,10 @@
             "named": true
           },
           {
+            "type": "regex_literal",
+            "named": true
+          },
+          {
             "type": "relational_expression",
             "named": true
           },
@@ -2297,6 +2337,10 @@
           },
           {
             "type": "refgen_expression",
+            "named": true
+          },
+          {
+            "type": "regex_literal",
             "named": true
           },
           {
@@ -2686,6 +2730,10 @@
             "named": true
           },
           {
+            "type": "regex_literal",
+            "named": true
+          },
+          {
             "type": "relational_expression",
             "named": true
           },
@@ -2892,6 +2940,10 @@
             "named": true
           },
           {
+            "type": "regex_literal",
+            "named": true
+          },
+          {
             "type": "relational_expression",
             "named": true
           },
@@ -3095,6 +3147,10 @@
           },
           {
             "type": "refgen_expression",
+            "named": true
+          },
+          {
+            "type": "regex_literal",
             "named": true
           },
           {
@@ -3329,6 +3385,10 @@
             "named": true
           },
           {
+            "type": "regex_literal",
+            "named": true
+          },
+          {
             "type": "relational_expression",
             "named": true
           },
@@ -3535,6 +3595,10 @@
             "named": true
           },
           {
+            "type": "regex_literal",
+            "named": true
+          },
+          {
             "type": "relational_expression",
             "named": true
           },
@@ -3738,6 +3802,10 @@
           },
           {
             "type": "refgen_expression",
+            "named": true
+          },
+          {
+            "type": "regex_literal",
             "named": true
           },
           {
@@ -4004,6 +4072,10 @@
             "named": true
           },
           {
+            "type": "regex_literal",
+            "named": true
+          },
+          {
             "type": "relational_expression",
             "named": true
           },
@@ -4230,6 +4302,10 @@
             "named": true
           },
           {
+            "type": "regex_literal",
+            "named": true
+          },
+          {
             "type": "relational_expression",
             "named": true
           },
@@ -4433,6 +4509,10 @@
           },
           {
             "type": "refgen_expression",
+            "named": true
+          },
+          {
+            "type": "regex_literal",
             "named": true
           },
           {
@@ -4676,6 +4756,10 @@
             "named": true
           },
           {
+            "type": "regex_literal",
+            "named": true
+          },
+          {
             "type": "relational_expression",
             "named": true
           },
@@ -4897,6 +4981,10 @@
         },
         {
           "type": "refgen_expression",
+          "named": true
+        },
+        {
+          "type": "regex_literal",
           "named": true
         },
         {
@@ -5122,6 +5210,10 @@
           },
           {
             "type": "refgen_expression",
+            "named": true
+          },
+          {
+            "type": "regex_literal",
             "named": true
           },
           {
@@ -5820,6 +5912,10 @@
           "named": true
         },
         {
+          "type": "regex_literal",
+          "named": true
+        },
+        {
           "type": "relational_expression",
           "named": true
         },
@@ -6033,6 +6129,10 @@
           },
           {
             "type": "refgen_expression",
+            "named": true
+          },
+          {
+            "type": "regex_literal",
             "named": true
           },
           {
@@ -6269,6 +6369,10 @@
           "named": true
         },
         {
+          "type": "regex_literal",
+          "named": true
+        },
+        {
           "type": "relational_expression",
           "named": true
         },
@@ -6469,6 +6573,10 @@
         },
         {
           "type": "refgen_expression",
+          "named": true
+        },
+        {
+          "type": "regex_literal",
           "named": true
         },
         {
@@ -6694,6 +6802,10 @@
           "named": true
         },
         {
+          "type": "regex_literal",
+          "named": true
+        },
+        {
           "type": "relational_expression",
           "named": true
         },
@@ -6915,6 +7027,10 @@
             "named": true
           },
           {
+            "type": "regex_literal",
+            "named": true
+          },
+          {
             "type": "relational_expression",
             "named": true
           },
@@ -7111,6 +7227,10 @@
         },
         {
           "type": "refgen_expression",
+          "named": true
+        },
+        {
+          "type": "regex_literal",
           "named": true
         },
         {
@@ -7367,6 +7487,10 @@
             "named": true
           },
           {
+            "type": "regex_literal",
+            "named": true
+          },
+          {
             "type": "relational_expression",
             "named": true
           },
@@ -7609,6 +7733,10 @@
         },
         {
           "type": "refgen_expression",
+          "named": true
+        },
+        {
+          "type": "regex_literal",
           "named": true
         },
         {
@@ -7892,6 +8020,10 @@
           "named": true
         },
         {
+          "type": "regex_literal",
+          "named": true
+        },
+        {
           "type": "relational_expression",
           "named": true
         },
@@ -8100,6 +8232,10 @@
           },
           {
             "type": "refgen_expression",
+            "named": true
+          },
+          {
+            "type": "regex_literal",
             "named": true
           },
           {
@@ -8320,6 +8456,10 @@
           },
           {
             "type": "refgen_expression",
+            "named": true
+          },
+          {
+            "type": "regex_literal",
             "named": true
           },
           {
@@ -8550,6 +8690,10 @@
             "named": true
           },
           {
+            "type": "regex_literal",
+            "named": true
+          },
+          {
             "type": "relational_expression",
             "named": true
           },
@@ -8753,6 +8897,10 @@
           },
           {
             "type": "refgen_expression",
+            "named": true
+          },
+          {
+            "type": "regex_literal",
             "named": true
           },
           {
@@ -9065,6 +9213,10 @@
             "named": true
           },
           {
+            "type": "regex_literal",
+            "named": true
+          },
+          {
             "type": "relational_expression",
             "named": true
           },
@@ -9261,6 +9413,10 @@
         },
         {
           "type": "refgen_expression",
+          "named": true
+        },
+        {
+          "type": "regex_literal",
           "named": true
         },
         {
@@ -9475,6 +9631,10 @@
             "named": true
           },
           {
+            "type": "regex_literal",
+            "named": true
+          },
+          {
             "type": "relational_expression",
             "named": true
           },
@@ -9671,6 +9831,10 @@
         },
         {
           "type": "refgen_expression",
+          "named": true
+        },
+        {
+          "type": "regex_literal",
           "named": true
         },
         {
@@ -9885,6 +10049,10 @@
             "named": true
           },
           {
+            "type": "regex_literal",
+            "named": true
+          },
+          {
             "type": "relational_expression",
             "named": true
           },
@@ -10081,6 +10249,10 @@
         },
         {
           "type": "refgen_expression",
+          "named": true
+        },
+        {
+          "type": "regex_literal",
           "named": true
         },
         {
@@ -10295,6 +10467,10 @@
             "named": true
           },
           {
+            "type": "regex_literal",
+            "named": true
+          },
+          {
             "type": "relational_expression",
             "named": true
           },
@@ -10491,6 +10667,10 @@
         },
         {
           "type": "refgen_expression",
+          "named": true
+        },
+        {
+          "type": "regex_literal",
           "named": true
         },
         {
@@ -10705,6 +10885,10 @@
             "named": true
           },
           {
+            "type": "regex_literal",
+            "named": true
+          },
+          {
             "type": "relational_expression",
             "named": true
           },
@@ -10901,6 +11085,10 @@
         },
         {
           "type": "refgen_expression",
+          "named": true
+        },
+        {
+          "type": "regex_literal",
           "named": true
         },
         {
@@ -11112,6 +11300,10 @@
           },
           {
             "type": "refgen_expression",
+            "named": true
+          },
+          {
+            "type": "regex_literal",
             "named": true
           },
           {
@@ -11338,6 +11530,10 @@
           },
           {
             "type": "refgen_expression",
+            "named": true
+          },
+          {
+            "type": "regex_literal",
             "named": true
           },
           {
@@ -11578,6 +11774,10 @@
           "named": true
         },
         {
+          "type": "regex_literal",
+          "named": true
+        },
+        {
           "type": "relational_expression",
           "named": true
         },
@@ -11619,6 +11819,30 @@
         }
       ]
     }
+  },
+  {
+    "type": "regex_literal",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "regex_modifier",
+          "named": true
+        },
+        {
+          "type": "regex_start",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "regex_start",
+    "named": true,
+    "fields": {}
   },
   {
     "type": "relational_expression",
@@ -11786,6 +12010,10 @@
           },
           {
             "type": "refgen_expression",
+            "named": true
+          },
+          {
+            "type": "regex_literal",
             "named": true
           },
           {
@@ -11992,6 +12220,10 @@
           },
           {
             "type": "refgen_expression",
+            "named": true
+          },
+          {
+            "type": "regex_literal",
             "named": true
           },
           {
@@ -12243,6 +12475,10 @@
             "named": true
           },
           {
+            "type": "regex_literal",
+            "named": true
+          },
+          {
             "type": "relational_expression",
             "named": true
           },
@@ -12444,6 +12680,10 @@
         },
         {
           "type": "refgen_expression",
+          "named": true
+        },
+        {
+          "type": "regex_literal",
           "named": true
         },
         {
@@ -12658,6 +12898,10 @@
             "named": true
           },
           {
+            "type": "regex_literal",
+            "named": true
+          },
+          {
             "type": "relational_expression",
             "named": true
           },
@@ -12854,6 +13098,10 @@
         },
         {
           "type": "refgen_expression",
+          "named": true
+        },
+        {
+          "type": "regex_literal",
           "named": true
         },
         {
@@ -13068,6 +13316,10 @@
             "named": true
           },
           {
+            "type": "regex_literal",
+            "named": true
+          },
+          {
             "type": "relational_expression",
             "named": true
           },
@@ -13264,6 +13516,10 @@
         },
         {
           "type": "refgen_expression",
+          "named": true
+        },
+        {
+          "type": "regex_literal",
           "named": true
         },
         {
@@ -13467,6 +13723,10 @@
         },
         {
           "type": "refgen_expression",
+          "named": true
+        },
+        {
+          "type": "regex_literal",
           "named": true
         },
         {
@@ -13705,6 +13965,10 @@
             "named": true
           },
           {
+            "type": "regex_literal",
+            "named": true
+          },
+          {
             "type": "relational_expression",
             "named": true
           },
@@ -13901,6 +14165,10 @@
         },
         {
           "type": "refgen_expression",
+          "named": true
+        },
+        {
+          "type": "regex_literal",
           "named": true
         },
         {
@@ -14115,6 +14383,10 @@
             "named": true
           },
           {
+            "type": "regex_literal",
+            "named": true
+          },
+          {
             "type": "relational_expression",
             "named": true
           },
@@ -14311,6 +14583,10 @@
         },
         {
           "type": "refgen_expression",
+          "named": true
+        },
+        {
+          "type": "regex_literal",
           "named": true
         },
         {
@@ -14525,6 +14801,10 @@
             "named": true
           },
           {
+            "type": "regex_literal",
+            "named": true
+          },
+          {
             "type": "relational_expression",
             "named": true
           },
@@ -14721,6 +15001,10 @@
         },
         {
           "type": "refgen_expression",
+          "named": true
+        },
+        {
+          "type": "regex_literal",
           "named": true
         },
         {
@@ -14946,6 +15230,10 @@
           "named": true
         },
         {
+          "type": "regex_literal",
+          "named": true
+        },
+        {
           "type": "relational_expression",
           "named": true
         },
@@ -15157,6 +15445,10 @@
             "named": true
           },
           {
+            "type": "regex_literal",
+            "named": true
+          },
+          {
             "type": "relational_expression",
             "named": true
           },
@@ -15353,6 +15645,10 @@
         },
         {
           "type": "refgen_expression",
+          "named": true
+        },
+        {
+          "type": "regex_literal",
           "named": true
         },
         {
@@ -15794,6 +16090,10 @@
             "named": true
           },
           {
+            "type": "regex_literal",
+            "named": true
+          },
+          {
             "type": "relational_expression",
             "named": true
           },
@@ -16020,6 +16320,10 @@
           "named": true
         },
         {
+          "type": "regex_literal",
+          "named": true
+        },
+        {
           "type": "relational_expression",
           "named": true
         },
@@ -16238,6 +16542,10 @@
           },
           {
             "type": "refgen_expression",
+            "named": true
+          },
+          {
+            "type": "regex_literal",
             "named": true
           },
           {
@@ -16477,6 +16785,10 @@
             "named": true
           },
           {
+            "type": "regex_literal",
+            "named": true
+          },
+          {
             "type": "relational_expression",
             "named": true
           },
@@ -16703,6 +17015,10 @@
         },
         {
           "type": "refgen_expression",
+          "named": true
+        },
+        {
+          "type": "regex_literal",
           "named": true
         },
         {
@@ -17012,6 +17328,10 @@
           },
           {
             "type": "refgen_expression",
+            "named": true
+          },
+          {
+            "type": "regex_literal",
             "named": true
           },
           {
@@ -17329,6 +17649,10 @@
   },
   {
     "type": "=>",
+    "named": false
+  },
+  {
+    "type": "=~",
     "named": false
   },
   {
@@ -17788,6 +18112,10 @@
     "named": false
   },
   {
+    "type": "regex_modifier",
+    "named": true
+  },
+  {
     "type": "require",
     "named": false
   },
@@ -17805,6 +18133,10 @@
   },
   {
     "type": "rmdir",
+    "named": false
+  },
+  {
+    "type": "s",
     "named": false
   },
   {
@@ -17861,6 +18193,10 @@
   },
   {
     "type": "times",
+    "named": false
+  },
+  {
+    "type": "tr",
     "named": false
   },
   {
@@ -17925,6 +18261,10 @@
   },
   {
     "type": "x=",
+    "named": false
+  },
+  {
+    "type": "y",
     "named": false
   },
   {

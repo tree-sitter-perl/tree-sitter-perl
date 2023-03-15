@@ -1,0 +1,77 @@
+================================================================================
+other assignments
+================================================================================
+
+$string =~ s/pattern/replacement/;
+$string =~ s/pattern/replacement/g;
+$string =~ s/pattern/replacement/gc;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      (scalar)
+      (regex_literal
+        (regex_start))))
+  (expression_statement
+    (assignment_expression
+      (scalar)
+      (regex_literal
+        (regex_start)
+        (regex_modifier))))
+  (expression_statement
+    (assignment_expression
+      (scalar)
+      (regex_literal
+        (regex_start)
+        (regex_modifier)
+        (regex_modifier)))))
+
+================================================================================
+handles escaped slashes
+================================================================================
+
+
+$string =~ s/my\/pattern/replacement/;
+
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      (scalar)
+      (regex_literal
+        (regex_start)))))
+
+================================================================================
+broken regex recovers somewhat gracefully
+================================================================================
+
+
+$string = "hello world";
+$string =~ s/pattern/replacement;
+$string = "hello world";
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      (scalar)
+      (interpolated_string_literal)))
+  (expression_statement
+    (assignment_expression
+      (scalar)
+      (binary_expression
+        (binary_expression
+          (regex_literal
+            (regex_start)
+            (MISSING _external_regex_match))
+          (bareword))
+        (bareword))))
+  (expression_statement
+    (assignment_expression
+      (scalar)
+      (interpolated_string_literal))))

@@ -1723,6 +1723,10 @@
         },
         {
           "type": "SYMBOL",
+          "name": "regex_literal"
+        },
+        {
+          "type": "SYMBOL",
           "name": "primitive"
         },
         {
@@ -1730,6 +1734,111 @@
           "name": "_literal"
         }
       ]
+    },
+    "regex_literal": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "regex_start"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_external_regex_match"
+        },
+        {
+          "type": "REPEAT",
+          "content": {
+            "type": "SYMBOL",
+            "name": "regex_modifier"
+          }
+        }
+      ]
+    },
+    "regex_start": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "s"
+        },
+        {
+          "type": "STRING",
+          "value": "tr"
+        },
+        {
+          "type": "STRING",
+          "value": "y"
+        }
+      ]
+    },
+    "regex_modifier": {
+      "type": "IMMEDIATE_TOKEN",
+      "content": {
+        "type": "CHOICE",
+        "members": [
+          {
+            "type": "STRING",
+            "value": "m"
+          },
+          {
+            "type": "STRING",
+            "value": "s"
+          },
+          {
+            "type": "STRING",
+            "value": "i"
+          },
+          {
+            "type": "STRING",
+            "value": "x"
+          },
+          {
+            "type": "STRING",
+            "value": "p"
+          },
+          {
+            "type": "STRING",
+            "value": "o"
+          },
+          {
+            "type": "STRING",
+            "value": "d"
+          },
+          {
+            "type": "STRING",
+            "value": "u"
+          },
+          {
+            "type": "STRING",
+            "value": "a"
+          },
+          {
+            "type": "STRING",
+            "value": "l"
+          },
+          {
+            "type": "STRING",
+            "value": "n"
+          },
+          {
+            "type": "STRING",
+            "value": "g"
+          },
+          {
+            "type": "STRING",
+            "value": "c"
+          },
+          {
+            "type": "STRING",
+            "value": "e"
+          },
+          {
+            "type": "STRING",
+            "value": "r"
+          }
+        ]
+      }
     },
     "assignment_expression": {
       "type": "PREC_RIGHT",
@@ -3656,6 +3765,10 @@
         {
           "type": "STRING",
           "value": "//="
+        },
+        {
+          "type": "STRING",
+          "value": "=~"
         }
       ]
     },
@@ -5454,6 +5567,10 @@
     {
       "type": "SYMBOL",
       "name": "_NONASSOC"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_external_regex_match"
     },
     {
       "type": "SYMBOL",
