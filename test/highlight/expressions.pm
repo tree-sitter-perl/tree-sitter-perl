@@ -22,3 +22,8 @@ undef $var;
 local $var;
 # <- keyword
 #     ^ variable.scalar
+return;
+# <- keyword
+return 1, 2, 3;
+# <- keyword
+#      ^ number
