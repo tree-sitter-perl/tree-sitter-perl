@@ -149,11 +149,9 @@ module.exports = grammar({
       $.use_statement,
       $.subroutine_declaration_statement,
       $.phaser_statement,
-      $.if_statement,
-      $.unless_statement,
+      $.conditional_statement,
       /* TODO: given/when/default */
-      $.while_statement,
-      $.until_statement,
+      $.loop_statement,
       $.cstyle_for_statement,
       $.for_statement,
       alias($.block, $.block_statement),
@@ -186,22 +184,13 @@ module.exports = grammar({
     // to care about distinguishing it
     phaser_statement: $ => seq(field('phase', $._PHASE_NAME), $.block),
 
-    if_statement: $ =>
-      seq('if', '(', field('condition', $._expr), ')',
+    conditional_statement: $ =>
+      seq($._conditionals, '(', field('condition', $._expr), ')',
         field('block', $.block),
         optional($._else)
       ),
-    unless_statement: $ =>
-      seq('unless', '(', field('condition', $._expr), ')',
-        field('block', $.block),
-        optional($._else)
-      ),
-    while_statement: $ =>
-      seq('while', '(', field('condition', $._expr), ')',
-        field('block', $.block),
-      ),
-    until_statement: $ =>
-      seq('until', '(', field('condition', $._expr), ')',
+    loop_statement: $ =>
+      seq($._loops, '(', field('condition', $._expr), ')',
         field('block', $.block),
       ),
     cstyle_for_statement: $ =>
@@ -226,17 +215,13 @@ module.exports = grammar({
     // perly.y calls this `sideff`
     expression_statement: $ => choice(
       $._expr,
-      $.postfix_if_expression,
-      $.postfix_unless_expression,
-      $.postfix_while_expression,
-      $.postfix_until_expression,
+      $.postfix_conditional_expression,
+      $.postfix_loop_expression,
       $.postfix_for_expression,
       $.yadayada,
     ),
-    postfix_if_expression:     $ => seq($._expr, 'if',     field('condition', $._expr)),
-    postfix_unless_expression: $ => seq($._expr, 'unless', field('condition', $._expr)),
-    postfix_while_expression:  $ => seq($._expr, 'while',  field('condition', $._expr)),
-    postfix_until_expression:  $ => seq($._expr, 'until',  field('condition', $._expr)),
+    postfix_conditional_expression:     $ => seq($._expr, $._conditionals,   field('condition', $._expr)),
+    postfix_loop_expression:  $ => seq($._expr, $._loops,  field('condition', $._expr)),
     postfix_for_expression:    $ => seq($._expr, $._KW_FOR, field('list', $._expr)),
     yadayada: $ => '...',
 
@@ -792,7 +777,11 @@ module.exports = grammar({
     // eats over + and - so long as it doesn't become -- or ++
     // NOTE - we MUST do it this way, b/c if we don't include every literal token, then TS
     // will not even consider the consuming rules. Lexical precedence...
-    _keywords: $ => choice('if', 'unless', 'while', 'until', $._KW_FOR, 'else', 'elsif', 'and', 'or', 'do', 'our', 'my', 'local', 'require', 'return', 'eq', 'ne', 'lt', 'le', 'ge', 'gt', 'cmp', 'isa', $._KW_USE, $._LOOPEX, $._PHASE_NAME, '__DATA__', '__END__'),
+    // another NOTE - a lot of these tokens need an intermediate state to reduce to so
+    // that ts will lookahead another token
+    _conditionals: $ => choice('if', 'unless'),
+    _loops: $ => choice('while', 'until'),
+    _keywords: $ => choice($._conditionals, $._loops, $._KW_FOR, 'else', 'elsif', 'and', 'or', 'do', 'our', 'my', 'local', 'require', 'return', 'eq', 'ne', 'lt', 'le', 'ge', 'gt', 'cmp', 'isa', $._KW_USE, $._LOOPEX, $._PHASE_NAME, '__DATA__', '__END__'),
     _quotelikes: $ => choice('q', 'qq', 'qw', 'qx'),
     _autoquotables: $ => choice($._func0op, $._func1op, $._keywords, $._quotelikes),
     // NOTE - these have zw lookaheads so they override just being read as barewords
