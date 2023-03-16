@@ -225,29 +225,6 @@ module.exports = grammar({
         field('block', $.block),
       ),
 
-    // return_statement: $ =>
-    //   seq('return', optional($.expression_statement), ';'),
-    //
-    // return_statement: $ => seq(
-    //     'return',
-    //     choice(
-    //         optional($._expr),
-    //         $.return_if_expression,
-    //         $.return_unless_expression,
-    //         $.return_while_expression,
-    //         $.return_until_expression,
-    //         $.return_for_expression,
-    //         $.yadayada,
-    //     ),
-    //    ';'
-    // ),
-    //
-    // return_if_expression:     $ => seq(optional($._expr), 'if',     field('condition', $._expr)),
-    // return_unless_expression: $ => seq(optional($._expr), 'unless', field('condition', $._expr)),
-    // return_while_expression:  $ => seq(optional($._expr), 'while',  field('condition', $._expr)),
-    // return_until_expression:  $ => seq(optional($._expr), 'until',  field('condition', $._expr)),
-    // return_for_expression:    $ => seq(optional($._expr), $._KW_FOR, field('list', $._expr)),
-
     // perly.y calls this `sideff`
     expression_statement: $ => choice(
       $._expr,
