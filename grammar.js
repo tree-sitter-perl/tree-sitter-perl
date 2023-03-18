@@ -138,7 +138,7 @@ module.exports = grammar({
      ****/
     block: $ => seq($._PERLY_BRACE_OPEN, stmtseq($), '}'),
 
-    _fullstmt: $ => choice($._barestmt, $.statement_label),
+    _fullstmt: $ => choice($._barestmt, $.statement_label, $.__DATA__, $.__END__),
 
     // perly.y calls this labfullstmt
     statement_label: $ => seq(field('label', $.identifier), ':', field('statement', $._fullstmt)),
@@ -489,9 +489,7 @@ module.exports = grammar({
       prec.left(TERMPREC.LOOPEX, seq(field('loopex', $._LOOPEX), optional($._label_arg))),
     goto_expression: $ =>
       prec.left(TERMPREC.LOOPEX, seq('goto', $._label_arg)),
-    // NOTE - this is kinda evil, but otherwise return gets overzealous and breaks postfix
-    // stuff
-    return_expression: $ => prec.right(TERMPREC.LSTOP, seq('return', choice($._term_rightward, ''))),
+    return_expression: $ => prec.right(TERMPREC.LSTOP, seq('return', optional($._term_rightward))),
 
     /* Perl just considers `undef` like any other UNIOP but it's quite likely
      * that tree consumers and highlighters would want to handle it specially
@@ -651,7 +649,6 @@ module.exports = grammar({
     // name the children appropriately
     __DATA__: $ => seq(
       alias('__DATA__', $.eof_marker),
-      /.*/, // ignore til end of line - not part of the DATA filehandle
       alias($._gobbled_content, $.data_section)
     ),
     __END__: $ => seq(
