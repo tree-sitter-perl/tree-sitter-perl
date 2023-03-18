@@ -13,7 +13,7 @@ postfix if
 --------------------------------------------------------------------------------
 
 (source_file
-  (expression_statement (postfix_if_expression (number) (number))))
+  (expression_statement (postfix_conditional_expression (number) (number))))
 ================================================================================
 postfix unless
 ================================================================================
@@ -21,7 +21,7 @@ postfix unless
 --------------------------------------------------------------------------------
 
 (source_file
-  (expression_statement (postfix_unless_expression (number) (number))))
+  (expression_statement (postfix_conditional_expression (number) (number))))
 ================================================================================
 postfix while
 ================================================================================
@@ -29,7 +29,7 @@ postfix while
 --------------------------------------------------------------------------------
 
 (source_file
-  (expression_statement (postfix_while_expression (number) (number))))
+  (expression_statement (postfix_loop_expression (number) (number))))
 ================================================================================
 postfix until
 ================================================================================
@@ -37,7 +37,7 @@ postfix until
 --------------------------------------------------------------------------------
 
 (source_file
-  (expression_statement (postfix_until_expression (number) (number))))
+  (expression_statement (postfix_loop_expression (number) (number))))
 ================================================================================
 postfix for
 ================================================================================
@@ -55,7 +55,7 @@ if(1) { 123; }
 --------------------------------------------------------------------------------
 
 (source_file
-  (if_statement (number)
+  (conditional_statement (number)
     (block
       (expression_statement (number)))))
 ================================================================================
@@ -65,7 +65,7 @@ if(1) { 123; } else { 456; }
 --------------------------------------------------------------------------------
 
 (source_file
-  (if_statement (number)
+  (conditional_statement (number)
     (block
       (expression_statement (number)))
     (else
@@ -78,7 +78,7 @@ if(1) { 123; } elsif(2) { 456; }
 --------------------------------------------------------------------------------
 
 (source_file
-  (if_statement (number)
+  (conditional_statement (number)
     (block
       (expression_statement (number)))
     (elsif (number)
@@ -91,7 +91,7 @@ if(1) { 123; } elsif(2) { 456; } else { 789; }
 --------------------------------------------------------------------------------
 
 (source_file
-  (if_statement (number)
+  (conditional_statement (number)
     (block
       (expression_statement (number)))
     (elsif (number)
@@ -107,7 +107,7 @@ unless(1) { 123; }
 --------------------------------------------------------------------------------
 
 (source_file
-  (unless_statement (number)
+  (conditional_statement (number)
     (block
       (expression_statement (number)))))
 ================================================================================
@@ -117,7 +117,7 @@ while(1) { 123; }
 --------------------------------------------------------------------------------
 
 (source_file
-  (while_statement (number)
+  (loop_statement (number)
     (block
       (expression_statement (number)))))
 ================================================================================
@@ -127,7 +127,7 @@ until(1) { 123; }
 --------------------------------------------------------------------------------
 
 (source_file
-  (until_statement (number)
+  (loop_statement (number)
     (block
       (expression_statement (number)))))
 ================================================================================
@@ -243,7 +243,7 @@ ITEM: while(@items) { }
       block: (block)))
   (statement_label
     label: (identifier)
-    statement: (while_statement
+    statement: (loop_statement
       condition: (array)
       block: (block))))
 ================================================================================

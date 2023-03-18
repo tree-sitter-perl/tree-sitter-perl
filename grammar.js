@@ -185,10 +185,10 @@ module.exports = grammar({
     phaser_statement: $ => seq(field('phase', $._PHASE_NAME), $.block),
 
     conditional_statement: $ =>
-      seq($._conditionals, '(', field('condition', $._expr), ')',
+      prec.right(seq($._conditionals, '(', field('condition', $._expr), ')',
         field('block', $.block),
         optional($._else)
-      ),
+      )),
     loop_statement: $ =>
       seq($._loops, '(', field('condition', $._expr), ')',
         field('block', $.block),
@@ -220,7 +220,7 @@ module.exports = grammar({
       $.postfix_for_expression,
       $.yadayada,
     ),
-    postfix_conditional_expression:     $ => seq($._expr, $._conditionals,   field('condition', $._expr)),
+    postfix_conditional_expression:     $ => seq($._expr, $._conditionals, field('condition', $._expr)),
     postfix_loop_expression:  $ => seq($._expr, $._loops,  field('condition', $._expr)),
     postfix_for_expression:    $ => seq($._expr, $._KW_FOR, field('list', $._expr)),
     yadayada: $ => '...',
@@ -228,10 +228,10 @@ module.exports = grammar({
     _else: $ => choice($.else, $.elsif),
     else: $ => seq('else', field('block', $.block)),
     elsif: $ =>
-      seq('elsif', '(', field('condition', $._expr), ')',
+      prec.right(seq('elsif', '(', field('condition', $._expr), ')',
         field('block', $.block),
         optional($._else)
-      ),
+      )),
 
     _expr: $ => choice($.lowprec_logical_expression, $._listexpr),
     lowprec_logical_expression: $ => choice(
@@ -245,9 +245,9 @@ module.exports = grammar({
     ),
     /* ensure that an entire list expression's contents appear in one big flat
     * list, while permitting multiple internal commas and an optional trailing one */
-    list_expression: $ => seq(
+    list_expression: $ => prec.right(seq(
       $._term, $._PERLY_COMMA, repeat(seq(optional($._term), $._PERLY_COMMA)), optional($._term)
-    ),
+    )),
     _term_rightward: $ => prec.right(seq(
       $._term, repeat(seq($._PERLY_COMMA_continue, $._PERLY_COMMA, optional($._term)))
     )),
