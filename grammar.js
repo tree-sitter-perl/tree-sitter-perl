@@ -220,7 +220,7 @@ module.exports = grammar({
       $.postfix_for_expression,
       $.yadayada,
     ),
-    postfix_conditional_expression:     $ => seq($._expr, $._conditionals, field('condition', $._expr)),
+    postfix_conditional_expression:     $ => seq($._expr, choice('if', 'unless'), field('condition', $._expr)),
     postfix_loop_expression:  $ => seq($._expr, $._loops,  field('condition', $._expr)),
     postfix_for_expression:    $ => seq($._expr, $._KW_FOR, field('list', $._expr)),
     yadayada: $ => '...',
@@ -489,7 +489,9 @@ module.exports = grammar({
       prec.left(TERMPREC.LOOPEX, seq(field('loopex', $._LOOPEX), optional($._label_arg))),
     goto_expression: $ =>
       prec.left(TERMPREC.LOOPEX, seq('goto', $._label_arg)),
-    return_expression: $ => prec.right(TERMPREC.LSTOP, seq('return', optional($._term_rightward))),
+    // NOTE - this is kinda evil, but otherwise return gets overzealous and breaks postfix
+    // stuff
+    return_expression: $ => prec.right(TERMPREC.LSTOP, seq('return', choice($._term_rightward, ''))),
 
     /* Perl just considers `undef` like any other UNIOP but it's quite likely
      * that tree consumers and highlighters would want to handle it specially
