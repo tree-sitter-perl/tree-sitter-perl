@@ -489,6 +489,8 @@ module.exports = grammar({
       prec.left(TERMPREC.LOOPEX, seq(field('loopex', $._LOOPEX), optional($._label_arg))),
     goto_expression: $ =>
       prec.left(TERMPREC.LOOPEX, seq('goto', $._label_arg)),
+    // TODO - the issue here is that we already pick a _term_rightward by looking at the
+    // next token, we don't have the chance anymore to have it be postfix
     return_expression: $ => prec.right(TERMPREC.LSTOP, seq('return', optional($._term_rightward))),
 
     /* Perl just considers `undef` like any other UNIOP but it's quite likely
