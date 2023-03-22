@@ -491,7 +491,7 @@ module.exports = grammar({
       prec.left(TERMPREC.LOOPEX, seq('goto', $._label_arg)),
     // TODO - the issue here is that we already pick a _term_rightward by looking at the
     // next token, we don't have the chance anymore to have it be postfix
-    return_expression: $ => prec.right(TERMPREC.LSTOP, seq('return', optional($._term_rightward))),
+    return_expression: $ => prec.left(TERMPREC.LSTOP, seq('return', optional($._term_rightward))),
 
     /* Perl just considers `undef` like any other UNIOP but it's quite likely
      * that tree consumers and highlighters would want to handle it specially
@@ -518,7 +518,7 @@ module.exports = grammar({
     function_call_expression: $ =>
       seq(field('function', $.function), '(', $._NONASSOC, optional(field('arguments', $._expr)), ')'),
     ambiguous_function_call_expression: $ => 
-      prec.right(TERMPREC.LSTOP, seq(field('function', $.function), field('arguments', $._term_rightward))),
+      prec.left(TERMPREC.LSTOP, seq(field('function', $.function), field('arguments', $._term_rightward))),
     function: $ => $._FUNC,
 
     method_call_expression: $ => prec.left(TERMPREC.ARROW, seq(
