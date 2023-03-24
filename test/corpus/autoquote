@@ -73,3 +73,15 @@ ${1};
   (expression_statement (scalar))
   (expression_statement (scalar))
 )
+=================================================================================
+autoquoting keywords
+=================================================================================
+if =>;
+else =>;
+return unless =>;
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement (list_expression (autoquoted_bareword)))
+  (expression_statement (list_expression (autoquoted_bareword)))
+  (expression_statement (return_expression (autoquoted_bareword)))
+)
