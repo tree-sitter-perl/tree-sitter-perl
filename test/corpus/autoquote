@@ -77,11 +77,37 @@ ${1};
 autoquoting keywords
 =================================================================================
 if =>;
-return unless =>;
+for =>;
+return =>;
 --------------------------------------------------------------------------------
 (source_file
   (expression_statement (list_expression (autoquoted_bareword)))
+  (expression_statement (list_expression (autoquoted_bareword)))
+  (expression_statement (list_expression (autoquoted_bareword)))
+)
+=================================================================================
+autoquoting postfix
+=================================================================================
+return unless 9001;
+return unless =>;
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement
+    (postfix_conditional_expression
+      (return_expression)
+      (number)
+      ))
   (expression_statement (return_expression (autoquoted_bareword)))
+)
+=================================================================================
+autoquoting lowprec
+=================================================================================
+1, or die;
+1, or => die;
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement (lowprec_logical_expression (number) (bareword)))
+  (expression_statement (list_expression (number) (autoquoted_bareword) (bareword)))
 )
 =================================================================================
 autoquoting else blocks
