@@ -102,10 +102,12 @@ return unless =>;
 =================================================================================
 autoquoting lowprec
 =================================================================================
+1 or die;
 1, or die;
 1, or => die;
 --------------------------------------------------------------------------------
 (source_file
+  (expression_statement (lowprec_logical_expression (number) (bareword)))
   (expression_statement (lowprec_logical_expression (number) (bareword)))
   (expression_statement (list_expression (number) (autoquoted_bareword) (bareword)))
 )

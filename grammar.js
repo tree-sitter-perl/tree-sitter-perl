@@ -130,6 +130,7 @@ module.exports = grammar({
   ],
   conflicts: $ => [
     [ $.preinc_expression, $.postinc_expression ],
+    [ $.return_expression ],
   ],
   rules: {
     source_file: $ => stmtseq($),
@@ -215,10 +216,13 @@ module.exports = grammar({
     // perly.y calls this `sideff`
     expression_statement: $ => choice(
       $._expr,
+      $._postfix_expressions,
+      $.yadayada,
+    ),
+    _postfix_expressions: $ => choice(
       $.postfix_conditional_expression,
       $.postfix_loop_expression,
       $.postfix_for_expression,
-      $.yadayada,
     ),
     postfix_conditional_expression:     $ => seq($._expr, choice('if', 'unless'), field('condition', $._expr)),
     postfix_loop_expression:  $ => seq($._expr, $._loops,  field('condition', $._expr)),
@@ -489,9 +493,7 @@ module.exports = grammar({
       prec.left(TERMPREC.LOOPEX, seq(field('loopex', $._LOOPEX), optional($._label_arg))),
     goto_expression: $ =>
       prec.left(TERMPREC.LOOPEX, seq('goto', $._label_arg)),
-    // TODO - the issue here is that we already pick a _term_rightward by looking at the
-    // next token, we don't have the chance anymore to have it be postfix
-    return_expression: $ => prec.left(TERMPREC.LSTOP, seq('return', optional($._term_rightward))),
+    return_expression: $ => prec(TERMPREC.LSTOP, seq('return', optional($._term_rightward))),
 
     /* Perl just considers `undef` like any other UNIOP but it's quite likely
      * that tree consumers and highlighters would want to handle it specially
@@ -518,7 +520,7 @@ module.exports = grammar({
     function_call_expression: $ =>
       seq(field('function', $.function), '(', $._NONASSOC, optional(field('arguments', $._expr)), ')'),
     ambiguous_function_call_expression: $ => 
-      prec.left(TERMPREC.LSTOP, seq(field('function', $.function), field('arguments', $._term_rightward))),
+      prec(TERMPREC.LSTOP, seq(field('function', $.function), field('arguments', $._term_rightward))),
     function: $ => $._FUNC,
 
     method_call_expression: $ => prec.left(TERMPREC.ARROW, seq(
@@ -782,7 +784,8 @@ module.exports = grammar({
     // that ts will lookahead another token
     _conditionals: $ => choice('if', 'unless'),
     _loops: $ => choice('while', 'until'),
-    _keywords: $ => choice($._conditionals, $._loops, $._KW_FOR, 'else', 'elsif', 'and', 'or', 'do', 'our', 'my', 'local', 'require', 'return', 'eq', 'ne', 'lt', 'le', 'ge', 'gt', 'cmp', 'isa', $._KW_USE, $._LOOPEX, $._PHASE_NAME, '__DATA__', '__END__'),
+    _postfixables: $ => choice($._conditionals, $._loops, $._KW_FOR, 'and', 'or'),
+    _keywords: $ => choice($._postfixables, 'else', 'elsif', 'do', 'our', 'my', 'local', 'require', 'return', 'eq', 'ne', 'lt', 'le', 'ge', 'gt', 'cmp', 'isa', $._KW_USE, $._LOOPEX, $._PHASE_NAME, '__DATA__', '__END__'),
     _quotelikes: $ => choice('q', 'qq', 'qw', 'qx'),
     _autoquotables: $ => choice($._func0op, $._func1op, $._keywords, $._quotelikes),
     // NOTE - these have zw lookaheads so they override just being read as barewords
