@@ -130,11 +130,11 @@ module.exports = grammar({
   ],
   conflicts: $ => [
     [ $.preinc_expression, $.postinc_expression ],
-    // return goes GLR to disambiguate postfix stuff from autoquote
+    // all of the following go GLR b/c they need extra tokens to allow postfixy autoquotes
     [ $.return_expression ],
-    // conditional goes GLR so else can disambiguate from autoquote
     [ $.conditional_statement ],
-    [ $.elsif ]
+    [ $.elsif ],
+    [ $.list_expression ],
   ],
   rules: {
     source_file: $ => stmtseq($),
@@ -253,9 +253,9 @@ module.exports = grammar({
     ),
     /* ensure that an entire list expression's contents appear in one big flat
     * list, while permitting multiple internal commas and an optional trailing one */
-    list_expression: $ => prec.right(seq(
+    list_expression: $ => seq(
       $._term, $._PERLY_COMMA, repeat(seq(optional($._term), $._PERLY_COMMA)), optional($._term)
-    )),
+    ),
     _term_rightward: $ => prec.right(seq(
       $._term, repeat(seq($._PERLY_COMMA_continue, $._PERLY_COMMA, optional($._term)))
     )),

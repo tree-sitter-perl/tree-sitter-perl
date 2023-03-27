@@ -100,7 +100,7 @@ return unless =>;
   (expression_statement (return_expression (autoquoted_bareword)))
 )
 =================================================================================
-autoquoting lowprec
+autoquoting lowprec (list-expr)
 =================================================================================
 1 or die;
 1, or die;
@@ -108,8 +108,37 @@ autoquoting lowprec
 --------------------------------------------------------------------------------
 (source_file
   (expression_statement (lowprec_logical_expression (number) (bareword)))
-  (expression_statement (lowprec_logical_expression (number) (bareword)))
+  (expression_statement (lowprec_logical_expression (list_expression (number)) (bareword)))
   (expression_statement (list_expression (number) (autoquoted_bareword) (bareword)))
+)
+=================================================================================
+autoquoting lowprec (ambiguous_func)
+=================================================================================
+die or die;
+die or => die;
+die 1, or die;
+die 1, or => die;
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement
+    (lowprec_logical_expression
+      (bareword)
+      (bareword)))
+  (expression_statement
+    (ambiguous_function_call_expression (function) (autoquoted_bareword) (bareword))
+    )
+  (expression_statement
+    (lowprec_logical_expression
+      (ambiguous_function_call_expression
+        (function)
+        (number))
+      (bareword)))
+  (expression_statement
+    (ambiguous_function_call_expression
+      (function)
+      (number)
+      (autoquoted_bareword)
+      (bareword)))
 )
 =================================================================================
 autoquoting else blocks
