@@ -115,8 +115,18 @@ autoquoting lowprec
 autoquoting else blocks
 =================================================================================
 if (1) { ... } else =>;
+if (1) { ... } elsif (1) { ... } else =>;
+if (1) { ... } elsif =>;
 --------------------------------------------------------------------------------
 (source_file
   (conditional_statement (number) (block (expression_statement (yadayada)) ))
   (expression_statement (list_expression (autoquoted_bareword)))
+
+  (conditional_statement (number) (block (expression_statement (yadayada)) )
+    (elsif (number) (block (expression_statement (yadayada))))
   )
+  (expression_statement (list_expression (autoquoted_bareword)))
+
+  (conditional_statement (number) (block (expression_statement (yadayada)) ))
+  (expression_statement (list_expression (autoquoted_bareword)))
+)

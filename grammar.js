@@ -133,7 +133,8 @@ module.exports = grammar({
     // return goes GLR to disambiguate postfix stuff from autoquote
     [ $.return_expression ],
     // conditional goes GLR so else can disambiguate from autoquote
-    [ $.conditional_statement ]
+    [ $.conditional_statement ],
+    [ $.elsif ]
   ],
   rules: {
     source_file: $ => stmtseq($),
@@ -235,10 +236,10 @@ module.exports = grammar({
     _else: $ => choice($.else, $.elsif),
     else: $ => seq('else', field('block', $.block)),
     elsif: $ =>
-      prec.right(seq('elsif', '(', field('condition', $._expr), ')',
+      seq('elsif', '(', field('condition', $._expr), ')',
         field('block', $.block),
         optional($._else)
-      )),
+      ),
 
     _expr: $ => choice($.lowprec_logical_expression, $._listexpr),
     lowprec_logical_expression: $ => choice(
