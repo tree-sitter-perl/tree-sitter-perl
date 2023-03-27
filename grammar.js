@@ -135,6 +135,7 @@ module.exports = grammar({
     [ $.conditional_statement ],
     [ $.elsif ],
     [ $.list_expression ],
+    [ $._FUNC, $.bareword ]
   ],
   rules: {
     source_file: $ => stmtseq($),
@@ -807,7 +808,7 @@ module.exports = grammar({
     _identifier: $ => /[a-zA-Z_]\w*/,
     _ident_special: $ => /[0-9]+|\^[A-Z]|./,
 
-    bareword: $ => prec(1, $._bareword),
+    bareword: $ => prec.dynamic(1, $._bareword),
     // _bareword is at the very end b/c the lexer prefers tokens defined earlier in the grammar 
     _bareword: $ => choice($._identifier, /((::)|([a-zA-Z_]\w*))+/),  // TODO: unicode
     ...primitives,
