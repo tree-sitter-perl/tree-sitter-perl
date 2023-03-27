@@ -133,6 +133,8 @@ die 1, or => die;
         (function)
         (number))
       (bareword)))
+  -- this one is tricky; it seems like TS insists on reducing the repeat w/o the _term,
+  -- b/c it's a valid rule, so we're forced to one interpretation of the following 'or'
   (expression_statement
     (ambiguous_function_call_expression
       (function)

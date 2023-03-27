@@ -258,6 +258,8 @@ module.exports = grammar({
       $._term, $._PERLY_COMMA, repeat(seq(optional($._term), $._PERLY_COMMA)), optional($._term)
     ),
     _term_rightward: $ => prec.right(seq(
+      // maybe try some incantation using NONASSOC? otherwise we fail to read the _term in
+      // the `die 1, or => die` case
       $._term, repeat(seq($._PERLY_COMMA_continue, $._PERLY_COMMA, optional($._term)))
     )),
 
