@@ -130,7 +130,10 @@ module.exports = grammar({
   ],
   conflicts: $ => [
     [ $.preinc_expression, $.postinc_expression ],
+    // return goes GLR to disambiguate postfix stuff from autoquote
     [ $.return_expression ],
+    // conditional goes GLR so else can disambiguate from autoquote
+    [ $.conditional_statement ]
   ],
   rules: {
     source_file: $ => stmtseq($),
@@ -186,10 +189,10 @@ module.exports = grammar({
     phaser_statement: $ => seq(field('phase', $._PHASE_NAME), $.block),
 
     conditional_statement: $ =>
-      prec.right(seq($._conditionals, '(', field('condition', $._expr), ')',
+      seq($._conditionals, '(', field('condition', $._expr), ')',
         field('block', $.block),
         optional($._else)
-      )),
+      ),
     loop_statement: $ =>
       seq($._loops, '(', field('condition', $._expr), ')',
         field('block', $.block),
