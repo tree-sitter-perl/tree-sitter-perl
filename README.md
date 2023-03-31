@@ -68,7 +68,11 @@ parser_config.perl = {
 ```
 
 Then you just `:TSInstall perl`. You'll need to copy the queries in the `queries`
-directory of this repo into a `queries/perl` directory somewhere in you `rtp`.
+directory of this repo into a `queries/perl` directory somewhere in your `rtp`
+(`runtimepath`).
+
+See `:h 'rtp'` for more information. Additionally `:echo &rtp` to see your
+current `runtimepath`.
 
 ### Emacs
 
