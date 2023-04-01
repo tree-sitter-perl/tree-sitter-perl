@@ -230,7 +230,7 @@ module.exports = grammar({
       $.postfix_loop_expression,
       $.postfix_for_expression,
     ),
-    postfix_conditional_expression:     $ => seq($._expr, choice('if', 'unless'), field('condition', $._expr)),
+    postfix_conditional_expression:     $ => seq($._expr, $._conditionals, field('condition', $._expr)),
     postfix_loop_expression:  $ => seq($._expr, $._loops,  field('condition', $._expr)),
     postfix_for_expression:    $ => seq($._expr, $._KW_FOR, field('list', $._expr)),
     yadayada: $ => '...',
@@ -259,8 +259,6 @@ module.exports = grammar({
       $._term, $._PERLY_COMMA, repeat(seq(optional($._term), $._PERLY_COMMA)), optional($._term)
     ),
     _term_rightward: $ => prec.right(seq(
-      // maybe try some incantation using NONASSOC? otherwise we fail to read the _term in
-      // the `die 1, or => die` case
       $._term,
       repeat(seq($._PERLY_COMMA_continue, $._PERLY_COMMA, optional($._term))),
       // NOTE - we need this here to create a conflict in order to go GLR to handle
@@ -665,6 +663,7 @@ module.exports = grammar({
     // name the children appropriately
     __DATA__: $ => seq(
       alias('__DATA__', $.eof_marker),
+      /.*/, // ignore til end of line
       alias($._gobbled_content, $.data_section)
     ),
     __END__: $ => seq(
