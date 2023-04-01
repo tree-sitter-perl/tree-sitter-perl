@@ -135,6 +135,7 @@ module.exports = grammar({
     [ $.conditional_statement ],
     [ $.elsif ],
     [ $.list_expression ],
+    [ $._term_rightward ],
     [ $._FUNC, $.bareword ]
   ],
   rules: {
@@ -260,7 +261,11 @@ module.exports = grammar({
     _term_rightward: $ => prec.right(seq(
       // maybe try some incantation using NONASSOC? otherwise we fail to read the _term in
       // the `die 1, or => die` case
-      $._term, repeat(seq($._PERLY_COMMA_continue, $._PERLY_COMMA, optional($._term)))
+      $._term,
+      repeat(seq($._PERLY_COMMA_continue, $._PERLY_COMMA, optional($._term))),
+      // NOTE - we need this here to create a conflict in order to go GLR to handle
+      // `die 1, or => die` correctly
+      optional(seq($._PERLY_COMMA_continue, $._PERLY_COMMA))
     )),
 
     _subscripted: $ => choice(
@@ -787,8 +792,6 @@ module.exports = grammar({
     // eats over + and - so long as it doesn't become -- or ++
     // NOTE - we MUST do it this way, b/c if we don't include every literal token, then TS
     // will not even consider the consuming rules. Lexical precedence...
-    // another NOTE - a lot of these tokens need an intermediate state to reduce to so
-    // that ts will lookahead another token
     _conditionals: $ => choice('if', 'unless'),
     _loops: $ => choice('while', 'until'),
     _postfixables: $ => choice($._conditionals, $._loops, $._KW_FOR, 'and', 'or'),
