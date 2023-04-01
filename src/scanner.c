@@ -24,6 +24,7 @@ enum TokenType {
   PERLY_SEMICOLON,
   PERLY_BRACE_OPEN,
   TOKEN_HASHBRACK,
+  TOKEN_CTRL_Z,
   /* immediates */
   TOKEN_QUOTELIKE_BEGIN,
   TOKEN_QUOTELIKE_END,
@@ -271,6 +272,9 @@ bool tree_sitter_perl_external_scanner_scan(
 
     TOKEN(TOKEN_GOBBLED_CONTENT);
   }
+
+  if(c == 26)
+    TOKEN(TOKEN_CTRL_Z);
 
   /* we use this to force tree-sitter to stay on the error branch of a nonassoc operator */
   if(!is_ERROR && valid_symbols[TOKEN_NONASSOC])

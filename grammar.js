@@ -91,6 +91,7 @@ module.exports = grammar({
     $._PERLY_SEMICOLON,
     $._PERLY_BRACE_OPEN,
     $._HASHBRACK,
+    $._ctrl_z_hack,
     /* immediates */
     $._quotelike_begin,
     $._quotelike_end,
@@ -125,7 +126,7 @@ module.exports = grammar({
     $.__DATA__,
     $.__END__,
     $._CTRL_D,
-    // $._CTRL_Z // borken on windoze, sigh
+    $._CTRL_Z,
     $.heredoc_content
   ],
   conflicts: $ => [
@@ -675,13 +676,11 @@ module.exports = grammar({
       alias('\x04', $.eof_marker),
       $._gobbled_content
     ),
-    /* borken on windoze b/c visual studio ends the input on the literal ctrl-z in
-     * parser.c -- a tree-sitter bug?
-    _CTRL_Z: seq(
-      alias('\x1a', $.eof_marker),
+    // we use the scanner b/c otherwise the ctrl-z breaks compilation on windows
+    _CTRL_Z: $ => seq(
+      alias($._ctrl_z_hack, $.eof_marker),
       $._gobbled_content
     ),
-    */
 
     // toke.c calls this a THING and that is such a generic unhelpful word,
     // we'll call it this instead
