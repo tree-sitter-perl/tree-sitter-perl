@@ -91,6 +91,7 @@ module.exports = grammar({
     $._PERLY_SEMICOLON,
     $._PERLY_BRACE_OPEN,
     $._HASHBRACK,
+    $._ctrl_z_hack,
     /* immediates */
     $._quotelike_begin,
     $._quotelike_end,
@@ -125,11 +126,18 @@ module.exports = grammar({
     $.__DATA__,
     $.__END__,
     $._CTRL_D,
-    // $._CTRL_Z // borken on windoze, sigh
+    $._CTRL_Z,
     $.heredoc_content
   ],
   conflicts: $ => [
     [ $.preinc_expression, $.postinc_expression ],
+    // all of the following go GLR b/c they need extra tokens to allow postfixy autoquotes
+    [ $.return_expression ],
+    [ $.conditional_statement ],
+    [ $.elsif ],
+    [ $.list_expression ],
+    [ $._term_rightward ],
+    [ $._FUNC, $.bareword ]
   ],
   rules: {
     source_file: $ => stmtseq($),
@@ -138,7 +146,7 @@ module.exports = grammar({
      ****/
     block: $ => seq($._PERLY_BRACE_OPEN, stmtseq($), '}'),
 
-    _fullstmt: $ => choice($._barestmt, $.statement_label),
+    _fullstmt: $ => choice($._barestmt, $.statement_label, $.__DATA__, $.__END__),
 
     // perly.y calls this labfullstmt
     statement_label: $ => seq(field('label', $.identifier), ':', field('statement', $._fullstmt)),
@@ -149,11 +157,9 @@ module.exports = grammar({
       $.use_statement,
       $.subroutine_declaration_statement,
       $.phaser_statement,
-      $.if_statement,
-      $.unless_statement,
+      $.conditional_statement,
       /* TODO: given/when/default */
-      $.while_statement,
-      $.until_statement,
+      $.loop_statement,
       $.cstyle_for_statement,
       $.for_statement,
       alias($.block, $.block_statement),
@@ -186,22 +192,13 @@ module.exports = grammar({
     // to care about distinguishing it
     phaser_statement: $ => seq(field('phase', $._PHASE_NAME), $.block),
 
-    if_statement: $ =>
-      seq('if', '(', field('condition', $._expr), ')',
+    conditional_statement: $ =>
+      seq($._conditionals, '(', field('condition', $._expr), ')',
         field('block', $.block),
         optional($._else)
       ),
-    unless_statement: $ =>
-      seq('unless', '(', field('condition', $._expr), ')',
-        field('block', $.block),
-        optional($._else)
-      ),
-    while_statement: $ =>
-      seq('while', '(', field('condition', $._expr), ')',
-        field('block', $.block),
-      ),
-    until_statement: $ =>
-      seq('until', '(', field('condition', $._expr), ')',
+    loop_statement: $ =>
+      seq($._loops, '(', field('condition', $._expr), ')',
         field('block', $.block),
       ),
     cstyle_for_statement: $ =>
@@ -226,17 +223,16 @@ module.exports = grammar({
     // perly.y calls this `sideff`
     expression_statement: $ => choice(
       $._expr,
-      $.postfix_if_expression,
-      $.postfix_unless_expression,
-      $.postfix_while_expression,
-      $.postfix_until_expression,
-      $.postfix_for_expression,
+      $._postfix_expressions,
       $.yadayada,
     ),
-    postfix_if_expression:     $ => seq($._expr, 'if',     field('condition', $._expr)),
-    postfix_unless_expression: $ => seq($._expr, 'unless', field('condition', $._expr)),
-    postfix_while_expression:  $ => seq($._expr, 'while',  field('condition', $._expr)),
-    postfix_until_expression:  $ => seq($._expr, 'until',  field('condition', $._expr)),
+    _postfix_expressions: $ => choice(
+      $.postfix_conditional_expression,
+      $.postfix_loop_expression,
+      $.postfix_for_expression,
+    ),
+    postfix_conditional_expression:     $ => seq($._expr, $._conditionals, field('condition', $._expr)),
+    postfix_loop_expression:  $ => seq($._expr, $._loops,  field('condition', $._expr)),
     postfix_for_expression:    $ => seq($._expr, $._KW_FOR, field('list', $._expr)),
     yadayada: $ => '...',
 
@@ -264,7 +260,11 @@ module.exports = grammar({
       $._term, $._PERLY_COMMA, repeat(seq(optional($._term), $._PERLY_COMMA)), optional($._term)
     ),
     _term_rightward: $ => prec.right(seq(
-      $._term, repeat(seq($._PERLY_COMMA_continue, $._PERLY_COMMA, optional($._term)))
+      $._term,
+      repeat(seq($._PERLY_COMMA_continue, $._PERLY_COMMA, optional($._term))),
+      // NOTE - we need this here to create a conflict in order to go GLR to handle
+      // `die 1, or => die` correctly
+      optional(seq($._PERLY_COMMA_continue, $._PERLY_COMMA))
     )),
 
     _subscripted: $ => choice(
@@ -504,7 +504,7 @@ module.exports = grammar({
       prec.left(TERMPREC.LOOPEX, seq(field('loopex', $._LOOPEX), optional($._label_arg))),
     goto_expression: $ =>
       prec.left(TERMPREC.LOOPEX, seq('goto', $._label_arg)),
-    return_expression: $ => prec.right(TERMPREC.LSTOP, seq('return', optional($._term_rightward))),
+    return_expression: $ => prec(TERMPREC.LSTOP, seq('return', optional($._term_rightward))),
 
     /* Perl just considers `undef` like any other UNIOP but it's quite likely
      * that tree consumers and highlighters would want to handle it specially
@@ -531,7 +531,7 @@ module.exports = grammar({
     function_call_expression: $ =>
       seq(field('function', $.function), '(', $._NONASSOC, optional(field('arguments', $._expr)), ')'),
     ambiguous_function_call_expression: $ => 
-      prec.right(TERMPREC.LSTOP, seq(field('function', $.function), field('arguments', $._term_rightward))),
+      prec(TERMPREC.LSTOP, seq(field('function', $.function), field('arguments', $._term_rightward))),
     function: $ => $._FUNC,
 
     method_call_expression: $ => prec.left(TERMPREC.ARROW, seq(
@@ -664,7 +664,7 @@ module.exports = grammar({
     // name the children appropriately
     __DATA__: $ => seq(
       alias('__DATA__', $.eof_marker),
-      /.*/, // ignore til end of line - not part of the DATA filehandle
+      /.*/, // ignore til end of line
       alias($._gobbled_content, $.data_section)
     ),
     __END__: $ => seq(
@@ -676,13 +676,11 @@ module.exports = grammar({
       alias('\x04', $.eof_marker),
       $._gobbled_content
     ),
-    /* borken on windoze b/c visual studio ends the input on the literal ctrl-z in
-     * parser.c -- a tree-sitter bug?
-    _CTRL_Z: seq(
-      alias('\x1a', $.eof_marker),
+    // we use the scanner b/c otherwise the ctrl-z breaks compilation on windows
+    _CTRL_Z: $ => seq(
+      alias($._ctrl_z_hack, $.eof_marker),
       $._gobbled_content
     ),
-    */
 
     // toke.c calls this a THING and that is such a generic unhelpful word,
     // we'll call it this instead
@@ -792,7 +790,12 @@ module.exports = grammar({
     // eats over + and - so long as it doesn't become -- or ++
     // NOTE - we MUST do it this way, b/c if we don't include every literal token, then TS
     // will not even consider the consuming rules. Lexical precedence...
-    _autoquotables: $ => choice($._func0op, $._func1op, 'q', 'qq', 'qw'),
+    _conditionals: $ => choice('if', 'unless'),
+    _loops: $ => choice('while', 'until'),
+    _postfixables: $ => choice($._conditionals, $._loops, $._KW_FOR, 'and', 'or'),
+    _keywords: $ => choice($._postfixables, 'else', 'elsif', 'do', 'our', 'my', 'local', 'require', 'return', 'eq', 'ne', 'lt', 'le', 'ge', 'gt', 'cmp', 'isa', $._KW_USE, $._LOOPEX, $._PHASE_NAME, '__DATA__', '__END__'),
+    _quotelikes: $ => choice('q', 'qq', 'qw', 'qx'),
+    _autoquotables: $ => choice($._func0op, $._func1op, $._keywords, $._quotelikes),
     // NOTE - these have zw lookaheads so they override just being read as barewords
     autoquoted_bareword: $ => seq(
       choice($._identifier, $._autoquotables),
@@ -808,7 +811,7 @@ module.exports = grammar({
     _identifier: $ => /[a-zA-Z_]\w*/,
     _ident_special: $ => /[0-9]+|\^[A-Z]|./,
 
-    bareword: $ => prec(1, $._bareword),
+    bareword: $ => prec.dynamic(1, $._bareword),
     // _bareword is at the very end b/c the lexer prefers tokens defined earlier in the grammar 
     _bareword: $ => choice($._identifier, /((::)|([a-zA-Z_]\w*))+/),  // TODO: unicode
     ...primitives,

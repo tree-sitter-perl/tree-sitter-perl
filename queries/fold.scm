@@ -5,10 +5,8 @@
 (package_statement (block)) @fold
 
 [(subroutine_declaration_statement)
- (if_statement)
- (unless_statement)
- (while_statement)
- (until_statement)
+ (conditional_statement)
+ (loop_statement)
  (for_statement)
  (cstyle_for_statement)
  (block_statement)

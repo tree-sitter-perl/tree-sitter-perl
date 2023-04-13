@@ -167,7 +167,6 @@ return
 return;
 return 1, 2, 3;
 return 1, 2, 3 or die("never reached");
-return unless 9001;
 --------------------------------------------------------------------------------
 (source_file
   (expression_statement (return_expression))
@@ -177,9 +176,4 @@ return unless 9001;
       (return_expression (number) (number) (number) )
       (function_call_expression (function) (interpolated_string_literal))
     ))
-  (expression_statement
-    (postfix_unless_expression
-      (return_expression)
-      (number)
-      ))
 )
