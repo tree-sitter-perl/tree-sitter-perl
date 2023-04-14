@@ -722,6 +722,7 @@ module.exports = grammar({
     _interpolated_string_content: $ => repeat1(
       choice(
         $._qq_string_content,
+        seq(choice('$', '@'), /\s/),
         $.escape_sequence,
         $.escaped_delimiter,
         $._interpolations
