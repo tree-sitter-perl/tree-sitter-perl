@@ -711,7 +711,7 @@ bool tree_sitter_perl_external_scanner_scan(
         else
           break;
       }
-      else if(is_qq && (c == '$' || c == '@'))
+      else if(is_qq && (c == '$' || c == '@' || c == '-' || c == '{' || c == '[' ))
         break;
 
       valid = true;

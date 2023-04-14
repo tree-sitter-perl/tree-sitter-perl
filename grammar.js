@@ -137,7 +137,9 @@ module.exports = grammar({
     [ $.elsif ],
     [ $.list_expression ],
     [ $._term_rightward ],
-    [ $._FUNC, $.bareword ]
+    [ $._FUNC, $.bareword ],
+    // for fancy interpolations
+    [ $._interpolations, $._array_interpolation ],
   ],
   rules: {
     source_file: $ => stmtseq($),
@@ -707,9 +709,14 @@ module.exports = grammar({
       optional($._interpolated_string_content),
       $._quotelike_end
     ),
+    // hmmm, we can't simply put in the array_elem rule b/c that includes _term, which
+    // isn't actually valid here
+    _array_interpolation: $ => 
+        seq(field('array', alias($.scalar, $.container_variable)),    '[', field('index', $._expr), ']'),
     _interpolations: $ => choice(
+      $.array,
       $.scalar,
-      $.array
+      alias($._array_interpolation, $.array_element_expression),
       // TODO: $arr[123], $hash{key}, ${expr}, @{expr}, ...
     ),
     _noninterpolated_string_content: $ => repeat1(
@@ -723,6 +730,9 @@ module.exports = grammar({
       choice(
         $._qq_string_content,
         seq(choice('$', '@'), /\s/),
+        '-',
+        '{',
+        '[',
         $.escape_sequence,
         $.escaped_delimiter,
         $._interpolations
