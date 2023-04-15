@@ -47,6 +47,32 @@ Array element interpolation
           (number))))
 )
 ================================================================================
+Hash element interpolation
+================================================================================
+"a $hash{key}";
+"an $hash->{key} deref";
+"an deep $hash->{key}{deref}";
+--------------------------------------------------------------------------------
+(source_file
+      (expression_statement
+        (interpolated_string_literal
+          (hash_element_expression
+            (container_variable)
+            (autoquoted_bareword))))
+      (expression_statement
+        (interpolated_string_literal
+          (hash_element_expression
+            (scalar)
+            (autoquoted_bareword))))
+      (expression_statement
+        (interpolated_string_literal
+          (hash_element_expression
+            (hash_element_expression
+              (scalar)
+              (autoquoted_bareword))
+            (autoquoted_bareword)))))
+
+================================================================================
 Space skips interpolation
 ================================================================================
 "an array $elem [0]";

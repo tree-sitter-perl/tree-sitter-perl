@@ -140,6 +140,7 @@ module.exports = grammar({
     [ $._FUNC, $.bareword ],
     // for fancy interpolations
     [ $._interpolations, $._array_element_interpolation ],
+    [ $._interpolations, $._hash_element_interpolation ],
   ],
   rules: {
     source_file: $ => stmtseq($),
@@ -713,11 +714,17 @@ module.exports = grammar({
     // isn't actually valid here
     _subscripted_interpolations: $ => choice(
       alias($._array_element_interpolation, $.array_element_expression),
+      alias($._hash_element_interpolation, $.hash_element_expression),
     ),
     _array_element_interpolation: $ => choice( 
         seq(field('array', alias($.scalar, $.container_variable)),     '[', field('index', $._expr), ']'),
         prec.left(TERMPREC.ARROW, seq($.scalar, '->', '[', field('index', $._expr), ']')),
         seq($._subscripted_interpolations,            '[', field('index', $._expr), ']'),
+      ),
+    _hash_element_interpolation: $ => choice( 
+        seq(field('hash', alias($.scalar, $.container_variable)),     '{', field('key', $._hash_key), '}'),
+        prec.left(TERMPREC.ARROW, seq($.scalar, '->', '{', field('key', $._hash_key), '}')),
+        seq($._subscripted_interpolations,            '{', field('key', $._hash_key), '}'),
       ),
     _interpolations: $ => choice(
       $.array,
