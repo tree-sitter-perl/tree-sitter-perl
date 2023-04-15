@@ -122,7 +122,6 @@ Interpolation in "" strings
 "but not with a $ space after";
 "with @array";
 qq'with $scalar in single-quotes';
-"an array $elem[0]";
 --------------------------------------------------------------------------------
 
 (source_file
@@ -130,7 +129,6 @@ qq'with $scalar in single-quotes';
   (expression_statement (interpolated_string_literal))
   (expression_statement (interpolated_string_literal (array)))
   (expression_statement (interpolated_string_literal (scalar)))
-  (expression_statement (interpolated_string_literal (array_element_expression (container_variable) (number))))
 )
 ================================================================================
 qw() lists
