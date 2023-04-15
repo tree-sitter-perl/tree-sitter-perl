@@ -717,14 +717,14 @@ module.exports = grammar({
       alias($._hash_element_interpolation, $.hash_element_expression),
     ),
     _array_element_interpolation: $ => choice( 
-        seq(field('array', alias($.scalar, $.container_variable)),     token.immediate('['), field('index', $._expr), ']'),
-        prec.left(TERMPREC.ARROW, seq($.scalar, token.immediate('->['), field('index', $._expr), ']')),
-        seq($._subscripted_interpolations,            token.immediate('['), field('index', $._expr), ']'),
+        seq(field('array', alias($.scalar, $.container_variable)), token.immediate('['),   field('index', $._expr), ']'),
+        prec.left(TERMPREC.ARROW, seq($.scalar,                    token.immediate('->['), field('index', $._expr), ']')),
+        seq($._subscripted_interpolations,                         token.immediate('['),   field('index', $._expr), ']'),
       ),
     _hash_element_interpolation: $ => choice( 
-        seq(field('hash', alias($.scalar, $.container_variable)),     token.immediate('{'), field('key', $._hash_key), '}'),
-        prec.left(TERMPREC.ARROW, seq($.scalar, token.immediate('->{'), field('key', $._hash_key), '}')),
-        seq($._subscripted_interpolations,            token.immediate('{'), field('key', $._hash_key), '}'),
+        seq(field('hash', alias($.scalar, $.container_variable)), token.immediate('{'),   field('key', $._hash_key), '}'),
+        prec.left(TERMPREC.ARROW, seq($.scalar,                   token.immediate('->{'), field('key', $._hash_key), '}')),
+        seq($._subscripted_interpolations,                        token.immediate('{'),   field('key', $._hash_key), '}'),
       ),
     _interpolations: $ => choice(
       $.array,
