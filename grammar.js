@@ -710,8 +710,8 @@ module.exports = grammar({
       optional($._interpolated_string_content),
       $._quotelike_end
     ),
-    // hmmm, we can't simply put in the array_elem rule b/c that includes _term, which
-    // isn't actually valid here
+    // we make a copy of the relevant rules b/c this must be more constrained (or else TS
+    // just explodes)
     _subscripted_interpolations: $ => choice(
       alias($._array_element_interpolation, $.array_element_expression),
       alias($._hash_element_interpolation, $.hash_element_expression),
