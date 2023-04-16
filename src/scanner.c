@@ -273,7 +273,8 @@ bool tree_sitter_perl_external_scanner_scan(
     TOKEN(TOKEN_GOBBLED_CONTENT);
   }
 
-  if(c == 26)
+  // TODO - i think this is wrong; we need to skip whitespace to get here!
+  if(c == 26 && valid_symbols[TOKEN_CTRL_Z])
     TOKEN(TOKEN_CTRL_Z);
 
   /* we use this to force tree-sitter to stay on the error branch of a nonassoc operator */

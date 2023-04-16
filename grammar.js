@@ -146,6 +146,9 @@ module.exports = grammar({
      ****/
     block: $ => seq($._PERLY_BRACE_OPEN, stmtseq($), '}'),
 
+    // TODO - somehow, the __DATA__ sections are reducing to their own source_file. does
+    // that even make sense? I think it's b/c they're an extra, and thus they reduce up
+    // ignoring the original context. 🤔
     _fullstmt: $ => choice($._barestmt, $.statement_label, $.__DATA__, $.__END__),
 
     // perly.y calls this labfullstmt
