@@ -30,11 +30,6 @@ const TERMPREC = {
   PAREN: 25,
 };
 
-/* perl.y defines a `stmtseq` rule, which can match empty. tree-sitter does
- * not allow this normally, so we'll have to be slightly more complex about it
- */
-const stmtseq = $ => repeat($._fullstmt);
-
 const unop_pre = (op, term) =>
   seq(field('operator', op), field('operand', term));
 const unop_post = (op, term) =>
@@ -123,8 +118,6 @@ module.exports = grammar({
     /\s|\\\r?\n/,
     $.comment,
     $.pod,
-    $.__DATA__,
-    $.__END__,
     $._CTRL_D,
     $._CTRL_Z,
     $.heredoc_content
@@ -140,16 +133,13 @@ module.exports = grammar({
     [ $._FUNC, $.bareword ]
   ],
   rules: {
-    source_file: $ => stmtseq($),
+    source_file: $ => seq(repeat($._fullstmt), optional($.__DATA__)),
     /****
      * Main grammar rules taken from perly.y.
      ****/
-    block: $ => seq($._PERLY_BRACE_OPEN, stmtseq($), '}'),
+    block: $ => seq($._PERLY_BRACE_OPEN, repeat($._fullstmt), '}'),
 
-    // TODO - somehow, the __DATA__ sections are reducing to their own source_file. does
-    // that even make sense? I think it's b/c they're an extra, and thus they reduce up
-    // ignoring the original context. 🤔
-    _fullstmt: $ => choice($._barestmt, $.statement_label, $.__DATA__, $.__END__),
+    _fullstmt: $ => choice($._barestmt, $.statement_label),
 
     // perly.y calls this labfullstmt
     statement_label: $ => seq(field('label', $.identifier), ':', field('statement', $._fullstmt)),
@@ -166,7 +156,7 @@ module.exports = grammar({
       $.cstyle_for_statement,
       $.for_statement,
       alias($.block, $.block_statement),
-      seq($.expression_statement, $._PERLY_SEMICOLON),
+      seq($.expression_statement, choice($._PERLY_SEMICOLON, $.__DATA__)),
       ';', // this is not _PERLY_SEMICOLON so as not to generate an infinite stream of them
     ),
     package_statement: $ => choice(
@@ -666,12 +656,7 @@ module.exports = grammar({
     // won't bother looking at the second choice. So we instead make one invisible node +
     // name the children appropriately
     __DATA__: $ => seq(
-      alias('__DATA__', $.eof_marker),
-      /.*/, // ignore til end of line
-      alias($._gobbled_content, $.data_section)
-    ),
-    __END__: $ => seq(
-      alias('__END__', $.eof_marker),
+      alias(choice('__DATA__', '__END__'), $.eof_marker),
       /.*/, // ignore til end of line
       alias($._gobbled_content, $.data_section)
     ),
