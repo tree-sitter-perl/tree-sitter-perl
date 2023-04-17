@@ -273,10 +273,6 @@ bool tree_sitter_perl_external_scanner_scan(
     TOKEN(TOKEN_GOBBLED_CONTENT);
   }
 
-  // TODO - i think this is wrong; we need to skip whitespace to get here!
-  if(c == 26 && valid_symbols[TOKEN_CTRL_Z])
-    TOKEN(TOKEN_CTRL_Z);
-
   /* we use this to force tree-sitter to stay on the error branch of a nonassoc operator */
   if(!is_ERROR && valid_symbols[TOKEN_NONASSOC])
     TOKEN(TOKEN_NONASSOC);
@@ -379,6 +375,10 @@ bool tree_sitter_perl_external_scanner_scan(
     skip_whitespace(lexer);
     c = lexer->lookahead;
   }
+
+  if(c == 26 && valid_symbols[TOKEN_CTRL_Z])
+    TOKEN(TOKEN_CTRL_Z);
+
 
   if(valid_symbols[TOKEN_ATTRIBUTE_VALUE]) {
     /* the '(' must be immediate, before any whitespace */
