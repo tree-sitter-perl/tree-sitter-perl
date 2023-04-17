@@ -376,6 +376,7 @@ bool tree_sitter_perl_external_scanner_scan(
     c = lexer->lookahead;
   }
 
+  // CTRL-Z must be here, b/c it cares about whitespace
   if(c == 26 && valid_symbols[TOKEN_CTRL_Z])
     TOKEN(TOKEN_CTRL_Z);
 
