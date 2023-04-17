@@ -24,6 +24,7 @@ __DATA__
 $this = not `code`
 --------------------------------------------------------------------------------
 (source_file 
+  (expression_statement (binary_expression (number) (number)))
   (eof_marker)
   (data_section)
 )
