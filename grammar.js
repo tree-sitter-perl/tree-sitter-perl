@@ -118,9 +118,7 @@ module.exports = grammar({
     /\s|\\\r?\n/,
     $.comment,
     $.pod,
-    $._CTRL_D,
-    $._CTRL_Z,
-    $.heredoc_content
+    $.heredoc_content,
   ],
   conflicts: $ => [
     [ $.preinc_expression, $.postinc_expression ],
@@ -652,22 +650,20 @@ module.exports = grammar({
     //   https://github.com/tree-sitter/tree-sitter/issues/1910
     comment: $ => token(/#.*(\r?\n\s*#.*)*/),
 
-    // NOTE - not sure if this is a bug in tree-sitter, but choice here doesn't work, it
-    // won't bother looking at the second choice. So we instead make one invisible node +
-    // name the children appropriately
     __DATA__: $ => seq(
-      alias(choice('__DATA__', '__END__'), $.eof_marker),
-      /.*/, // ignore til end of line
-      alias($._gobbled_content, $.data_section)
-    ),
-    _CTRL_D: $ => seq(
-      alias('\x04', $.eof_marker),
-      $._gobbled_content
-    ),
-    // we use the scanner b/c otherwise the ctrl-z breaks compilation on windows
-    _CTRL_Z: $ => seq(
-      alias($._ctrl_z_hack, $.eof_marker),
-      $._gobbled_content
+      choice(
+        seq(
+          alias(choice('__DATA__', '__END__'), $.eof_marker),
+          /.*/, // ignore til end of line
+          alias($._gobbled_content, $.data_section)
+        ),
+        // we need to use a hack for CTRL-Z or else it can't compile on windoze
+        // these don't create a __DATA__ fh, so their _gobbled_content stays hidden
+        seq(
+          alias(choice('\x04', $._ctrl_z_hack), $.eof_marker),
+          $._gobbled_content
+        )
+      ),
     ),
 
     // toke.c calls this a THING and that is such a generic unhelpful word,
