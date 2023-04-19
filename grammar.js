@@ -781,9 +781,9 @@ module.exports = grammar({
     _quotelikes: $ => choice('q', 'qq', 'qw', 'qx'),
     _autoquotables: $ => choice($._func0op, $._func1op, $._keywords, $._quotelikes),
     // NOTE - these have zw lookaheads so they override just being read as barewords
-    autoquoted_bareword: $ => seq(
-      choice($._identifier, $._autoquotables),
-      $._fat_comma_zw
+    autoquoted_bareword: $ => choice(
+      seq(choice($._identifier, $._autoquotables), $._fat_comma_zw),
+      seq('-', choice($._bareword, $._autoquotables)),
     ),
     _brace_autoquoted: $ => seq(
       alias(choice($._bareword, $._autoquotables), $.autoquoted_bareword),
