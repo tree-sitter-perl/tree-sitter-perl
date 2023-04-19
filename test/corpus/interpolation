@@ -1,0 +1,86 @@
+================================================================================
+Fancy indirob interpolation
+================================================================================
+"${\$obj->method}";
+"@{[1,2,3]}";
+--------------------------------------------------------------------------------
+ (source_file
+      (expression_statement
+        (interpolated_string_literal
+          (scalar
+            (block
+              (expression_statement
+                (refgen_expression
+                  (method_call_expression
+                    (scalar)
+                    (method))))))))
+      (expression_statement
+        (interpolated_string_literal
+          (array
+            (block
+              (expression_statement
+                (anonymous_array_expression
+                  (list_expression
+                    (number)
+                    (number)
+                    (number)))))))))
+================================================================================
+Array element interpolation
+================================================================================
+"an array $elem[0]";
+"an array $elem->[1] deref";
+"an deep $elem->[1][0] deref";
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement
+    (interpolated_string_literal
+      (array_element_expression (container_variable) (number))))
+  (expression_statement
+    (interpolated_string_literal
+      (array_element_expression (scalar) (number))))
+  (expression_statement
+    (interpolated_string_literal
+      (array_element_expression
+        (array_element_expression
+          (scalar)
+          (number))
+          (number))))
+)
+================================================================================
+Hash element interpolation
+================================================================================
+"a $hash{key}";
+"an $hash->{key} deref";
+"an deep $hash->{key}{deref}";
+--------------------------------------------------------------------------------
+(source_file
+      (expression_statement
+        (interpolated_string_literal
+          (hash_element_expression
+            (container_variable)
+            (autoquoted_bareword))))
+      (expression_statement
+        (interpolated_string_literal
+          (hash_element_expression
+            (scalar)
+            (autoquoted_bareword))))
+      (expression_statement
+        (interpolated_string_literal
+          (hash_element_expression
+            (hash_element_expression
+              (scalar)
+              (autoquoted_bareword))
+            (autoquoted_bareword)))))
+
+================================================================================
+Space skips interpolation
+================================================================================
+"an array $elem [0]";
+"an array $elem ->[1] deref";
+"an array $elem-> [1] deref";
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement (interpolated_string_literal (scalar)))
+  (expression_statement (interpolated_string_literal (scalar)))
+  (expression_statement (interpolated_string_literal (scalar)))
+)
