@@ -221,6 +221,12 @@ static bool isidcont(int c)
   return isidfirst(c) || iswdigit(c);
 }
 
+// in any intepolatable case, we wanna stop parsing on these chars
+// there's a matching rule in the grammar to catch when it doesn't match a rule
+static bool is_interpolation_escape(int c) {
+  return c < 256 && strchr("$@-[{\\", c);
+}
+
 void *tree_sitter_perl_external_scanner_create()
 {
   return malloc(sizeof(struct LexerState));
@@ -332,19 +338,11 @@ bool tree_sitter_perl_external_scanner_scan(
         ADVANCE_C;
       }
     } else {
-      DEBUG("Entering heredoc interp mode\n", 0);
+      DEBUG("Entering heredoc continue mode\n", 0);
       // handle the continue case; read ahead until we get a \n or an escape
       bool saw_chars = false;
       while(1) {
-        if(strchr("$@", c)) {
-          // string interp is whitespace sensitive, so we need to do an extra lookahead
-          lexer->mark_end(lexer);
-          ADVANCE_C;
-          if(!iswspace(c)) {
-            break;
-          }
-        }
-        if(c == '\\') {
+        if(is_interpolation_escape(c)) {
           lexer->mark_end(lexer);
           break;
         }
@@ -412,15 +410,6 @@ bool tree_sitter_perl_external_scanner_scan(
     }
   }
 
-  bool allow_identalike = false;
-  /* disabling for now, b/c we moved identalikes into the DSL
-  for(int sym = 0; sym <= TOKEN_Q_STRING_BEGIN; sym++)
-    if(valid_symbols[sym]) {
-      allow_identalike = true;
-      break;
-    }
-  */
-
   if(valid_symbols[PERLY_SEMICOLON]) {
     if(c == ';') {
       ADVANCE_C;
@@ -448,29 +437,6 @@ bool tree_sitter_perl_external_scanner_scan(
     }
     else {
       TOKEN(TOKEN_HASHBRACK);
-    }
-  }
-
-  int ident_len = 0;
-  char ident[MAX_IDENT_LEN+1];
-  if(allow_identalike && isidfirst(c)) {
-    /* All the identifiers we care about are US-ASCII */
-    ident[0] = c;
-    ident[1] = 0;
-    ident_len++;
-    ADVANCE_C;
-
-    while(c && isidcont(c)) {
-      if(ident_len < MAX_IDENT_LEN) {
-        ident[ident_len] = c;
-        ident[ident_len+1] = 0;
-      }
-
-      ADVANCE_C;
-      ident_len++;
-    }
-    if(ident_len) {
-      DEBUG("IDENT \"%.*s\"\n", ident_len, ident);
     }
   }
 
@@ -713,7 +679,7 @@ bool tree_sitter_perl_external_scanner_scan(
         else
           break;
       }
-      else if(is_qq && (c == '$' || c == '@'))
+      else if(is_qq && is_interpolation_escape(c))
         break;
 
       valid = true;

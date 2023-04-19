@@ -119,14 +119,17 @@ q # this is a comment
 Interpolation in "" strings
 ================================================================================
 "with $scalar";
+"but not with a $ space after";
 "with @array";
 qq'with $scalar in single-quotes';
 --------------------------------------------------------------------------------
 
 (source_file
   (expression_statement (interpolated_string_literal (scalar)))
+  (expression_statement (interpolated_string_literal))
   (expression_statement (interpolated_string_literal (array)))
-  (expression_statement (interpolated_string_literal (scalar))))
+  (expression_statement (interpolated_string_literal (scalar)))
+)
 ================================================================================
 qw() lists
 ================================================================================

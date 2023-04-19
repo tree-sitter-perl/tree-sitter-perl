@@ -128,7 +128,10 @@ module.exports = grammar({
     [ $.elsif ],
     [ $.list_expression ],
     [ $._term_rightward ],
-    [ $._FUNC, $.bareword ]
+    [ $._FUNC, $.bareword ],
+    // for fancy interpolations
+    [ $._interpolations, $._array_element_interpolation ],
+    [ $._interpolations, $._hash_element_interpolation ],
   ],
   rules: {
     source_file: $ => seq(repeat($._fullstmt), optional($.__DATA__)),
@@ -691,10 +694,28 @@ module.exports = grammar({
       optional($._interpolated_string_content),
       $._quotelike_end
     ),
+    // we make a copy of the relevant rules b/c this must be more constrained (or else TS
+    // just explodes)
+    _subscripted_interpolations: $ => choice(
+      alias($._array_element_interpolation, $.array_element_expression),
+      alias($._hash_element_interpolation, $.hash_element_expression),
+    ),
+    _array_element_interpolation: $ => choice( 
+        seq(field('array', alias($.scalar, $.container_variable)), token.immediate('['),   field('index', $._expr), ']'),
+        prec.left(TERMPREC.ARROW, seq($.scalar,                    token.immediate('->['), field('index', $._expr), ']')),
+        seq($._subscripted_interpolations,                         token.immediate('['),   field('index', $._expr), ']'),
+      ),
+    _hash_element_interpolation: $ => choice( 
+        seq(field('hash', alias($.scalar, $.container_variable)), token.immediate('{'),   field('key', $._hash_key), '}'),
+        prec.left(TERMPREC.ARROW, seq($.scalar,                   token.immediate('->{'), field('key', $._hash_key), '}')),
+        seq($._subscripted_interpolations,                        token.immediate('{'),   field('key', $._hash_key), '}'),
+      ),
     _interpolations: $ => choice(
+      $.array,
       $.scalar,
-      $.array
-      // TODO: $arr[123], $hash{key}, ${expr}, @{expr}, ...
+      $._subscripted_interpolations,
+      // TODO: @arr[123], @hash{key}, $arr->@*; pending on general support for those
+      // sytaxes 
     ),
     _noninterpolated_string_content: $ => repeat1(
       choice(
@@ -706,6 +727,10 @@ module.exports = grammar({
     _interpolated_string_content: $ => repeat1(
       choice(
         $._qq_string_content,
+        seq(choice('$', '@'), /\s/),
+        '-',
+        '{',
+        '[',
         $.escape_sequence,
         $.escaped_delimiter,
         $._interpolations
