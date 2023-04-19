@@ -714,7 +714,8 @@ module.exports = grammar({
       $.array,
       $.scalar,
       $._subscripted_interpolations,
-      // TODO: $arr[123], $hash{key}, ${expr}, @{expr}, ...
+      // TODO: @arr[123], @hash{key}, $arr->@*; pending on general support for those
+      // sytaxes 
     ),
     _noninterpolated_string_content: $ => repeat1(
       choice(
