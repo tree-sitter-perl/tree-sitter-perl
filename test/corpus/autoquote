@@ -159,3 +159,29 @@ if (1) { ... } elsif =>;
   (conditional_statement (number) (block (expression_statement (yadayada)) ))
   (expression_statement (list_expression (autoquoted_bareword)))
 )
+=================================================================================
+unary minus autoquoting
+=================================================================================
+-next;
+-next and 1;
+say -next;
+print -next and 1;
+--------------------------------------------------------------------------------
+(source_file
+ (expression_statement
+  (autoquoted_bareword))
+ (expression_statement
+  (lowprec_logical_expression
+   (autoquoted_bareword)
+   (number)))
+ (expression_statement
+   (ambiguous_function_call_expression
+    (function)
+    (autoquoted_bareword)))
+ (expression_statement
+  (lowprec_logical_expression
+   (ambiguous_function_call_expression
+    (function)
+    (autoquoted_bareword))
+   (number)))
+)
