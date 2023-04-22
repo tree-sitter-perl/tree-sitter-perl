@@ -815,12 +815,13 @@ module.exports = grammar({
     _keywords: $ => choice($._postfixables, 'else', 'elsif', 'do', 'our', 'my', 'local', 'require', 'return', 'eq', 'ne', 'lt', 'le', 'ge', 'gt', 'cmp', 'isa', $._KW_USE, $._LOOPEX, $._PHASE_NAME, '__DATA__', '__END__'),
     _quotelikes: $ => choice('q', 'qq', 'qw', 'qx'),
     _autoquotables: $ => choice($._func0op, $._func1op, $._keywords, $._quotelikes),
-    // NOTE - these have zw lookaheads so they override just being read as barewords
-    autoquoted_bareword: $ => choice(
+    // we need dynamic precedence here so we can resolve things like `print -next`
+    autoquoted_bareword: $ => prec.dynamic(2, choice(
+      // NOTE - these have zw lookaheads so they override just being read as barewords
       seq(choice($._identifier, $._autoquotables), $._fat_comma_zw),
       // give this autoquote the highest precedence we gots
       prec(TERMPREC.PAREN, seq('-', choice($._bareword, $._autoquotables))),
-    ),
+    )),
     _brace_autoquoted: $ => seq(
       alias(choice($._bareword, $._autoquotables), $.autoquoted_bareword),
       $._brace_end_zw
