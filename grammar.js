@@ -77,6 +77,16 @@ module.exports = grammar({
   supertypes: $ => [
     $.primitive
   ],
+  inline: $ => [
+    $._conditionals,
+    $._loops,
+    $._postfixables,
+    $._keywords,
+    $._quotelikes,
+    $._func0op,
+    $._func1op,
+    $._autoquotables,
+  ],
   externals: $ => [
     /* ident-alikes */
     /* non-ident tokens */
@@ -627,6 +637,7 @@ module.exports = grammar({
     ),
 
     // Anything toke.c calls FUN1 or UNIOP; the distinction does not matter to us
+    // NOTE - undef is handled separately
     _func1op: $ => choice(
       // UNI
       'abs', 'alarm', 'chop', 'chdir', 'close', 'closedir', 'caller', 'chomp',
@@ -638,10 +649,10 @@ module.exports = grammar({
       'prototype', 'pop', 'pos', 'quotemeta', 'reset', 'rand', 'rmdir',
       'readdir', 'readline', 'readpipe', 'rewinddir', 'readlink', 'ref',
       'scalar', 'shift', 'sin', 'sleep', 'sqrt', 'srand', 'stat', 'study',
-      'tell', 'telldir', 'tied', 'uc', 'ucfirst', 'untie', 'undef', 'umask',
+      'tell', 'telldir', 'tied', 'uc', 'ucfirst', 'untie', 'umask',
       'values', 'write',
       // filetest operators
-      ...("rwxoRWXOezsfdlpSbctugkTBMAC".split("").map(x => "-"+x))
+      seq('-', token.immediate(/[rwxoRWXOezsfdlpSbctugkTBMAC]/))
       /* TODO: all the set*ent */
     ),
 
@@ -795,21 +806,22 @@ module.exports = grammar({
     // we have to up the lexical prec here to prevent v5 from being read as a bareword
     version: $ => token(prec(1, /v[0-9]+(?:\.[0-9]+)*/)),
 
-    // TODO - support - autoquoting; it's a drop confusing; takes barewords w/ ::, but
-    // eats over + and - so long as it doesn't become -- or ++
     // NOTE - we MUST do it this way, b/c if we don't include every literal token, then TS
     // will not even consider the consuming rules. Lexical precedence...
+    // also, all of these rules are inlined up top
     _conditionals: $ => choice('if', 'unless'),
     _loops: $ => choice('while', 'until'),
     _postfixables: $ => choice($._conditionals, $._loops, $._KW_FOR, 'and', 'or'),
     _keywords: $ => choice($._postfixables, 'else', 'elsif', 'do', 'our', 'my', 'local', 'require', 'return', 'eq', 'ne', 'lt', 'le', 'ge', 'gt', 'cmp', 'isa', $._KW_USE, $._LOOPEX, $._PHASE_NAME, '__DATA__', '__END__'),
     _quotelikes: $ => choice('q', 'qq', 'qw', 'qx'),
     _autoquotables: $ => choice($._func0op, $._func1op, $._keywords, $._quotelikes),
-    // NOTE - these have zw lookaheads so they override just being read as barewords
-    autoquoted_bareword: $ => seq(
-      choice($._identifier, $._autoquotables),
-      $._fat_comma_zw
-    ),
+    // we need dynamic precedence here so we can resolve things like `print -next`
+    autoquoted_bareword: $ => prec.dynamic(2, choice(
+      // NOTE - these have zw lookaheads so they override just being read as barewords
+      seq(choice($._identifier, $._autoquotables), $._fat_comma_zw),
+      // give this autoquote the highest precedence we gots
+      prec(TERMPREC.PAREN, seq('-', choice($._bareword, $._autoquotables))),
+    )),
     _brace_autoquoted: $ => seq(
       alias(choice($._bareword, $._autoquotables), $.autoquoted_bareword),
       $._brace_end_zw
