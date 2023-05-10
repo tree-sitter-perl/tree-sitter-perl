@@ -306,7 +306,7 @@ module.exports = grammar({
       seq(field('list', $.quoted_word_list),            '[', $._expr, ']'),
     ),
     slice_container_variable: $ => seq('@', $._var_indirob),
-    slice_expression: $ => seq(
+    slice_expression: $ => choice(
       seq(field('array', $.slice_container_variable),   '[', $._expr, ']'),
       seq(field('hash',  $.slice_container_variable),   '{', $._expr, '}'),
       prec.left(TERMPREC.ARROW,
