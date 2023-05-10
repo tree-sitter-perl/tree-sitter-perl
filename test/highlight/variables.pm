@@ -64,6 +64,14 @@ $aref->[ 123 ]{ 456 }[ 789 ];
 #                    ^ variable.array
 #                      ^^^ number
 #                          ^ variable.array
+@ary[1,2,3];
+#^^ variable.array
+@hash{1,2,3};
+#^^^ variable.hash
+%ary[1,2,3];
+#^^ variable.array
+%hash{1,2,3};
+#^^ variable.hash
 $1;
 # <- variable.scalar
 $^X;
