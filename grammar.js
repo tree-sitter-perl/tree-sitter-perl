@@ -278,7 +278,7 @@ module.exports = grammar({
       $.array_element_expression,
       $.hash_element_expression,
       $.coderef_call_expression,
-      $.slice_expression,
+      $.anonymous_slice_expression,
     ),
 
     // NOTE - we have container_variable as a named node so we can match against it nicely
@@ -301,10 +301,12 @@ module.exports = grammar({
       prec.left(TERMPREC.ARROW, seq($._term, '->', '(', optional(field('arguments', $._expr)), ')')),
       seq($._subscripted,                          '(', optional(field('arguments', $._expr)), ')'),
     ),
-    slice_container_variable: $ => seq('@', $._var_indirob),
-    slice_expression: $ => choice(
+    anonymous_slice_expression: $ => choice(
       seq('(', optional(field('list', $._expr)), ')',   '[', $._expr, ']'),
       seq(field('list', $.quoted_word_list),            '[', $._expr, ']'),
+    ),
+    slice_container_variable: $ => seq('@', $._var_indirob),
+    slice_expression: $ => seq(
       seq(field('array', $.slice_container_variable),   '[', $._expr, ']'),
       seq(field('hash',  $.slice_container_variable),   '{', $._expr, '}'),
       prec.left(TERMPREC.ARROW,
@@ -349,11 +351,9 @@ module.exports = grammar({
       $.array,
       $.arraylen,
       $._subscripted,
-      /* sliceme '[' expr ']'
-       * kvslice '[' expr ']'
-       * sliceme '{' expr '}'
-       * kvslice '{' expr '}'
-       * THING
+      $.slice_expression,
+      $.keyval_expression,
+      /* THING
        * amper
        * amper '(' ')'
        * amper '(' expr ')'
