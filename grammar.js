@@ -739,12 +739,19 @@ module.exports = grammar({
         prec.left(TERMPREC.ARROW, seq($.scalar,                   token.immediate('->{'), field('key', $._hash_key), '}')),
         seq($._subscripted_interpolations,                        token.immediate('{'),   field('key', $._hash_key), '}'),
       ),
+    _slice_expression_interpolation: $ => choice(
+      seq(field('array', alias($.array, $.slice_container_variable)),   token.immediate('['), $._expr, ']'),
+      seq(field('hash',  alias($.array, $.slice_container_variable)),   token.immediate('{'), $._expr, '}'),
+      prec.left(TERMPREC.ARROW,
+        seq(field('arrayref', $.scalar), token.immediate('->@['), $._expr, ']')),
+      prec.left(TERMPREC.ARROW,
+        seq(field('hashref',  $.scalar), token.immediate('->@{'), $._expr, '}')),
+    ),
     _interpolations: $ => choice(
       $.array,
       $.scalar,
       $._subscripted_interpolations,
-      // TODO: @arr[123], @hash{key}, $arr->@*; pending on general support for those
-      // sytaxes 
+      alias($._slice_expression_interpolation, $.slice_expression),
     ),
     _noninterpolated_string_content: $ => repeat1(
       choice(
