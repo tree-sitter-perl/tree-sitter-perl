@@ -281,6 +281,9 @@ module.exports = grammar({
       $.slice_expression,
     ),
 
+    // NOTE - we have container_variable as a named node so we can match against it nicely
+    // for highlighting.
+    container_variable: $ => seq('$', $._var_indirob),
     array_element_expression: $ => choice(
       // perly.y matches scalar '[' expr ']' here but that would yield a scalar var node
       seq(field('array', $.container_variable),    '[', field('index', $._expr), ']'),
@@ -298,12 +301,26 @@ module.exports = grammar({
       prec.left(TERMPREC.ARROW, seq($._term, '->', '(', optional(field('arguments', $._expr)), ')')),
       seq($._subscripted,                          '(', optional(field('arguments', $._expr)), ')'),
     ),
+    slice_container_variable: $ => seq('@', $._var_indirob),
     slice_expression: $ => choice(
-      seq('(', optional(field('list', $._expr)), ')', '[', $._expr, ']'),
-      seq(field('list', $.quoted_word_list), '[', $._expr, ']'),
+      seq('(', optional(field('list', $._expr)), ')',   '[', $._expr, ']'),
+      seq(field('list', $.quoted_word_list),            '[', $._expr, ']'),
+      seq(field('array', $.slice_container_variable),   '[', $._expr, ']'),
+      seq(field('hash',  $.slice_container_variable),   '{', $._expr, '}'),
+      prec.left(TERMPREC.ARROW,
+        seq(field('arrayref', $._term), '->', '@',       '[', $._expr, ']')),
+      prec.left(TERMPREC.ARROW,
+        seq(field('hashref',  $._term), '->', '@',       '{', $._expr, '}')),
     ),
-    // this needs to be a named node so highlights.scm can capture it
-    container_variable: $ => seq('$', $._var_indirob),
+    keyval_container_variable: $ => seq($._HASH_PERCENT, $._var_indirob),
+    keyval_expression: $ => choice(
+      seq(field('array', $.keyval_container_variable),   '[', $._expr, ']'),
+      seq(field('hash',  $.keyval_container_variable),   '{', $._expr, '}'),
+      prec.left(TERMPREC.ARROW,
+        seq(field('arrayref', $._term), '->', '%',       '[', $._expr, ']')),
+      prec.left(TERMPREC.ARROW,
+        seq(field('hashref',  $._term), '->', '%',       '{', $._expr, '}')),
+    ),
 
     _term: $ => choice(
       $.assignment_expression,
@@ -550,8 +567,9 @@ module.exports = grammar({
     _declare_scalar:   $ => seq('$',  $._varname),
     array:    $ => seq('@',  $._var_indirob),
     _declare_array:    $ => seq('@',  $._varname),
-    hash:     $ => seq(token(prec(2, '%')), $._var_indirob),
-    _declare_hash:    $ => seq(token(prec(2, '%')),  $._varname),
+    _HASH_PERCENT: $ => token(prec(2, '%')),
+    hash:     $ => seq($._HASH_PERCENT, $._var_indirob),
+    _declare_hash:    $ => seq($._HASH_PERCENT,  $._varname),
 
     arraylen: $ => seq('$#', $._var_indirob),
     // perly.y calls this `star`
