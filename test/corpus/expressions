@@ -49,14 +49,68 @@ $var = 12, 34;
   (expression_statement
     (list_expression (assignment_expression (scalar) (number)) (number))))
 ================================================================================
-Slices
+Anonymous Slices
 ================================================================================
 (1, 2, 3)[0];
+qw/one two/[0];
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement
+    (anonymous_slice_expression list: (list_expression (number) (number) (number)) (number)))
+  (expression_statement
+    (anonymous_slice_expression list: (quoted_word_list) (number)))
+    )
+================================================================================
+Slices
+================================================================================
+@ary[0,1];
+@hash{qw/key1 key2/};
+$aryref->@[0,1];
+[0,1]->@[0];
+$hashref->@{qw/key1 key2/};
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement
+    (slice_expression array: (slice_container_variable) (list_expression (number) (number))))
+  (expression_statement
+    (slice_expression hash: (slice_container_variable) (quoted_word_list)))
+  (expression_statement
+    (slice_expression arrayref: (scalar) (list_expression (number) (number))))
+  (expression_statement
+    (slice_expression
+      arrayref: (anonymous_array_expression
+        (list_expression (number) (number))
+      )
+      (number)))
+  (expression_statement
+    (slice_expression hashref: (scalar) (quoted_word_list)))
+    )
+================================================================================
+Keyval Slices
+================================================================================
+%ary[0,1];
+%hash{qw/key1 key2/};
+$aryref->%[0,1];
+[0,1]->%[0];
+$hashref->%{qw/key1 key2/};
 --------------------------------------------------------------------------------
 
 (source_file
   (expression_statement
-    (slice_expression (list_expression (number) (number) (number)) (number))))
+    (keyval_expression array: (keyval_container_variable) (list_expression (number) (number))))
+  (expression_statement
+    (keyval_expression hash: (keyval_container_variable) (quoted_word_list)))
+  (expression_statement
+    (keyval_expression arrayref: (scalar) (list_expression (number) (number))))
+  (expression_statement
+    (keyval_expression
+      arrayref: (anonymous_array_expression
+        (list_expression (number) (number))
+      )
+      (number)))
+  (expression_statement
+    (keyval_expression hashref: (scalar) (quoted_word_list)))
+    )
 ================================================================================
 Stub
 ================================================================================

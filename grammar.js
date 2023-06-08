@@ -278,9 +278,12 @@ module.exports = grammar({
       $.array_element_expression,
       $.hash_element_expression,
       $.coderef_call_expression,
-      $.slice_expression,
+      $.anonymous_slice_expression,
     ),
 
+    // NOTE - we have container_variable as a named node so we can match against it nicely
+    // for highlighting.
+    container_variable: $ => seq('$', $._var_indirob),
     array_element_expression: $ => choice(
       // perly.y matches scalar '[' expr ']' here but that would yield a scalar var node
       seq(field('array', $.container_variable),    '[', field('index', $._expr), ']'),
@@ -298,12 +301,28 @@ module.exports = grammar({
       prec.left(TERMPREC.ARROW, seq($._term, '->', '(', optional(field('arguments', $._expr)), ')')),
       seq($._subscripted,                          '(', optional(field('arguments', $._expr)), ')'),
     ),
-    slice_expression: $ => choice(
-      seq('(', optional(field('list', $._expr)), ')', '[', $._expr, ']'),
-      seq(field('list', $.quoted_word_list), '[', $._expr, ']'),
+    anonymous_slice_expression: $ => choice(
+      seq('(', optional(field('list', $._expr)), ')',   '[', $._expr, ']'),
+      seq(field('list', $.quoted_word_list),            '[', $._expr, ']'),
     ),
-    // this needs to be a named node so highlights.scm can capture it
-    container_variable: $ => seq('$', $._var_indirob),
+    slice_container_variable: $ => seq('@', $._var_indirob),
+    slice_expression: $ => choice(
+      seq(field('array', $.slice_container_variable),   '[', $._expr, ']'),
+      seq(field('hash',  $.slice_container_variable),   '{', $._expr, '}'),
+      prec.left(TERMPREC.ARROW,
+        seq(field('arrayref', $._term), '->', '@',       '[', $._expr, ']')),
+      prec.left(TERMPREC.ARROW,
+        seq(field('hashref',  $._term), '->', '@',       '{', $._expr, '}')),
+    ),
+    keyval_container_variable: $ => seq($._HASH_PERCENT, $._var_indirob),
+    keyval_expression: $ => choice(
+      seq(field('array', $.keyval_container_variable),   '[', $._expr, ']'),
+      seq(field('hash',  $.keyval_container_variable),   '{', $._expr, '}'),
+      prec.left(TERMPREC.ARROW,
+        seq(field('arrayref', $._term), '->', '%',       '[', $._expr, ']')),
+      prec.left(TERMPREC.ARROW,
+        seq(field('hashref',  $._term), '->', '%',       '{', $._expr, '}')),
+    ),
 
     _term: $ => choice(
       $.assignment_expression,
@@ -332,11 +351,9 @@ module.exports = grammar({
       $.array,
       $.arraylen,
       $._subscripted,
-      /* sliceme '[' expr ']'
-       * kvslice '[' expr ']'
-       * sliceme '{' expr '}'
-       * kvslice '{' expr '}'
-       * THING
+      $.slice_expression,
+      $.keyval_expression,
+      /* THING
        * amper
        * amper '(' ')'
        * amper '(' expr ')'
@@ -550,8 +567,9 @@ module.exports = grammar({
     _declare_scalar:   $ => seq('$',  $._varname),
     array:    $ => seq('@',  $._var_indirob),
     _declare_array:    $ => seq('@',  $._varname),
-    hash:     $ => seq(token(prec(2, '%')), $._var_indirob),
-    _declare_hash:    $ => seq(token(prec(2, '%')),  $._varname),
+    _HASH_PERCENT: $ => token(prec(2, '%')),
+    hash:     $ => seq($._HASH_PERCENT, $._var_indirob),
+    _declare_hash:    $ => seq($._HASH_PERCENT,  $._varname),
 
     arraylen: $ => seq('$#', $._var_indirob),
     // perly.y calls this `star`
@@ -721,12 +739,19 @@ module.exports = grammar({
         prec.left(TERMPREC.ARROW, seq($.scalar,                   token.immediate('->{'), field('key', $._hash_key), '}')),
         seq($._subscripted_interpolations,                        token.immediate('{'),   field('key', $._hash_key), '}'),
       ),
+    _slice_expression_interpolation: $ => choice(
+      seq(field('array', alias($.array, $.slice_container_variable)),   token.immediate('['), $._expr, ']'),
+      seq(field('hash',  alias($.array, $.slice_container_variable)),   token.immediate('{'), $._expr, '}'),
+      prec.left(TERMPREC.ARROW,
+        seq(field('arrayref', $.scalar), token.immediate('->@['), $._expr, ']')),
+      prec.left(TERMPREC.ARROW,
+        seq(field('hashref',  $.scalar), token.immediate('->@{'), $._expr, '}')),
+    ),
     _interpolations: $ => choice(
       $.array,
       $.scalar,
       $._subscripted_interpolations,
-      // TODO: @arr[123], @hash{key}, $arr->@*; pending on general support for those
-      // sytaxes 
+      alias($._slice_expression_interpolation, $.slice_expression),
     ),
     _noninterpolated_string_content: $ => repeat1(
       choice(
