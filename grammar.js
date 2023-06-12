@@ -705,6 +705,7 @@ module.exports = grammar({
       $.interpolated_string_literal,
       $.command_string,
       $.quoted_regexp,
+      $.match_regexp,
     ),
 
     string_literal: $ => choice($._q_string),
@@ -816,7 +817,25 @@ module.exports = grammar({
       )
     ),
 
+    match_regexp: $ => choice(
+      // TODO: recognise /pattern/ as a match regexp as well
+      seq(
+        seq('m', $._quotelike_begin),
+        optional($._interpolated_string_content), // TODO: regexp content
+        $._quotelike_end,
+        optional(field('modifiers', $.match_regexp_modifiers))
+      ),
+      seq(
+        'm',
+        $._apostrophe,
+        optional($._noninterpolated_string_content), // TODO: regexp content
+        $._quotelike_end,
+        optional(field('modifiers', $.match_regexp_modifiers))
+      )
+    ),
+
     quoted_regexp_modifiers: $ => token(/[msixpadlun]+/),
+    match_regexp_modifiers:  $ => token(/[msixpadluncg]+/),
 
     /* quick overview of the heredoc logic
      * 1. we parse the heredoc token (given all of its rules and varieties). We store that in the
