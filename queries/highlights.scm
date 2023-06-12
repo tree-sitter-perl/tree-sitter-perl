@@ -40,6 +40,8 @@
 (heredoc_end) @string.special
 [(escape_sequence) (escaped_delimiter)] @string.special
 
+(quoted_regexp) @string.regexp
+
 (autoquoted_bareword) @string.special
 
 [(scalar) (arraylen)] @variable.scalar

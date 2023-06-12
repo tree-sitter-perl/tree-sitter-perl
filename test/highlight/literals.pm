@@ -84,3 +84,13 @@ q # this is a comment
 #             ^ variable.scalar
 qx(command);
 # <- string
+
+qr/pattern/;
+# <- string.regexp
+qr/pattern with (parens)/;
+# <- string.regexp
+qr/pattern with $interpolation/;
+# <- string.regexp
+#               ^ variable.scalar
+qr'pattern with no $interpolation';
+# <- string.regexp
