@@ -704,6 +704,7 @@ module.exports = grammar({
       $.string_literal,
       $.interpolated_string_literal,
       $.command_string,
+      $.quoted_regexp,
     ),
 
     string_literal: $ => choice($._q_string),
@@ -798,7 +799,21 @@ module.exports = grammar({
         $._quotelike_end
       )
     ),
-    
+
+    quoted_regexp: $ => choice(
+      seq(
+        seq('qr', $._quotelike_begin),
+        optional($._interpolated_string_content), // TODO: regexp content
+        $._quotelike_end
+      ),
+      seq(
+        'qr',
+        $._apostrophe,
+        optional($._noninterpolated_string_content), // TODO: regexp content
+        $._quotelike_end
+      )
+    ),
+
     /* quick overview of the heredoc logic
      * 1. we parse the heredoc token (given all of its rules and varieties). We store that in the
      *    lexer state for comparing later
