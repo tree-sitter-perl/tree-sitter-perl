@@ -94,3 +94,5 @@ qr/pattern with $interpolation/;
 #               ^ variable.scalar
 qr'pattern with no $interpolation';
 # <- string.regexp
+qr/pattern/i;
+# ^^^^^^^^^^ string.regexp
