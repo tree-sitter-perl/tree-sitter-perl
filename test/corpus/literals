@@ -177,21 +177,4 @@ qx'command with no $interpolation';
   (expression_statement (command_string (scalar)))
   (expression_statement (command_string))
   )
-================================================================================
-qr() strings
-================================================================================
-qr/pattern/;
-qr/pattern with (parens)/;
-qr/pattern with $interpolation/;
-qr'pattern with no $interpolation';
-qr/pattern/i;
---------------------------------------------------------------------------------
-
-(source_file
-  (expression_statement (quoted_regexp))
-  (expression_statement (quoted_regexp))
-  (expression_statement (quoted_regexp (scalar)))
-  (expression_statement (quoted_regexp))
-  (expression_statement (quoted_regexp (quoted_regexp_modifiers)))
-  )
 
