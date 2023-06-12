@@ -804,15 +804,19 @@ module.exports = grammar({
       seq(
         seq('qr', $._quotelike_begin),
         optional($._interpolated_string_content), // TODO: regexp content
-        $._quotelike_end
+        $._quotelike_end,
+        optional(field('modifiers', $.quoted_regexp_modifiers))
       ),
       seq(
         'qr',
         $._apostrophe,
         optional($._noninterpolated_string_content), // TODO: regexp content
-        $._quotelike_end
+        $._quotelike_end,
+        optional(field('modifiers', $.quoted_regexp_modifiers))
       )
     ),
+
+    quoted_regexp_modifiers: $ => token(/[msixpadlun]+/),
 
     /* quick overview of the heredoc logic
      * 1. we parse the heredoc token (given all of its rules and varieties). We store that in the
