@@ -21,3 +21,7 @@ m'pattern with no $interpolation';
 # <- string.regexp
 m/pattern/i;
 # ^^^^^^^^^^ string.regexp
+m/^anchored pattern$/;
+# ^^^^^^^^^^^^^^^^^^ string.regexp
+m/^pattern(?:$|,)/;
+# ^^^^^^^^^^^^^^^ string.regexp

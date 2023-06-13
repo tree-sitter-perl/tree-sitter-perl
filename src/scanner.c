@@ -474,7 +474,13 @@ bool tree_sitter_perl_external_scanner_scan(
     if(c == state->delim_close)
       TOKEN(TOKEN_DOLLAR_IN_REGEXP);
 
-    /* TODO: Also accept things like $) and $| */
+    /* Several other situations are interpreted literally */
+    switch(c) {
+      case '(':
+      case ')':
+      case '|':
+        TOKEN(TOKEN_DOLLAR_IN_REGEXP);
+    }
 
     return false;
   }
