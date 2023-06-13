@@ -32,6 +32,7 @@ enum TokenType {
   TOKEN_QQ_STRING_CONTENT,
   TOKEN_ESCAPE_SEQUENCE,
   TOKEN_ESCAPED_DELIMITER,
+  TOKEN_DOLLAR_IN_REGEXP,
   TOKEN_POD,
   TOKEN_GOBBLED_CONTENT,
   TOKEN_ATTRIBUTE_VALUE,
@@ -463,6 +464,19 @@ bool tree_sitter_perl_external_scanner_scan(
     state->delim_count = 0;
 
     TOKEN(TOKEN_BACKTICK);
+  }
+
+  if(valid_symbols[TOKEN_DOLLAR_IN_REGEXP] && c == '$') {
+    DEBUG("Dollar in regexp\n", 0);
+    ADVANCE_C;
+
+    /* Accept this literal dollar if it's followed by closing delimiter */
+    if(c == state->delim_close)
+      TOKEN(TOKEN_DOLLAR_IN_REGEXP);
+
+    /* TODO: Also accept things like $) and $| */
+
+    return false;
   }
 
   if(valid_symbols[TOKEN_POD]) {

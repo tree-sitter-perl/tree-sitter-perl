@@ -104,6 +104,7 @@ module.exports = grammar({
     $._qq_string_content,
     $.escape_sequence,
     $.escaped_delimiter,
+    $._dollar_in_regexp,
     $.pod,
     $._gobbled_content,
     $.attribute_value,
@@ -842,6 +843,7 @@ module.exports = grammar({
         '[',
         $.escape_sequence,
         $.escaped_delimiter,
+        $._dollar_in_regexp,
         $._interpolations,
       )
     ),
