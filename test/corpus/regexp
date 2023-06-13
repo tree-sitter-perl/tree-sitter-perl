@@ -6,6 +6,7 @@ qr/pattern with (parens)/;
 qr/pattern with $interpolation/;
 qr'pattern with no $interpolation';
 qr/pattern/i;
+qr/^anchored pattern$/;
 --------------------------------------------------------------------------------
 
 (source_file
@@ -14,6 +15,7 @@ qr/pattern/i;
   (expression_statement (quoted_regexp (scalar)))
   (expression_statement (quoted_regexp))
   (expression_statement (quoted_regexp (quoted_regexp_modifiers)))
+  (expression_statement (quoted_regexp))
   )
 ================================================================================
 Regexp match
@@ -23,6 +25,7 @@ m/pattern with (parens)/;
 m/pattern with $interpolation/;
 m'pattern with no $interpolation';
 m/pattern/i;
+m/^anchored pattern$/;
 --------------------------------------------------------------------------------
 
 (source_file
@@ -31,4 +34,5 @@ m/pattern/i;
   (expression_statement (match_regexp (scalar)))
   (expression_statement (match_regexp))
   (expression_statement (match_regexp (match_regexp_modifiers)))
+  (expression_statement (match_regexp))
   )
