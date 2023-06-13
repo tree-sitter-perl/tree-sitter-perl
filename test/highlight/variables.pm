@@ -2,6 +2,8 @@ $s; @a; %h;
 # <- variable.scalar
 #   ^ variable.array
 #       ^ variable.hash
+$#arrlen;
+# <- variable.scalar
 $one + $two;
 # <- variable.scalar
 #      ^ variable.scalar
