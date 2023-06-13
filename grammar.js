@@ -764,6 +764,8 @@ module.exports = grammar({
       choice(
         $._qq_string_content,
         seq(choice('$', '@'), /\s/),
+        // Most array punctuation vars do not interpolate
+        seq('@', /[^A-Za-z0-9_\$'+:-]/),
         '-',
         '{',
         '[',

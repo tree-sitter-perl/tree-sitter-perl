@@ -128,3 +128,27 @@ Slice interpolation
           (number)
           (number)
           (number))))))
+================================================================================
+Punctuation vars that interpolate
+================================================================================
+"@+";
+"@-";
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (interpolated_string_literal (array)))
+  (expression_statement
+    (interpolated_string_literal (array))))
+================================================================================
+Punctuation vars that do not interpolate
+================================================================================
+"@(";
+"@)";
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (interpolated_string_literal))
+  (expression_statement
+    (interpolated_string_literal)))
