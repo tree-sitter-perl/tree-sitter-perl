@@ -1,3 +1,9 @@
+ "$+";
+# ^^ variable.scalar
+ "$(";
+# ^^ variable.scalar
+ "$!";
+# ^^ variable.scalar
  "@+";
 # ^^ variable.array
  "@-";

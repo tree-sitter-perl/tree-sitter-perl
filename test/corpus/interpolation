@@ -131,11 +131,20 @@ Slice interpolation
 ================================================================================
 Punctuation vars that interpolate
 ================================================================================
+"$+";
+"$(";
+"$!";
 "@+";
 "@-";
 --------------------------------------------------------------------------------
 
 (source_file
+  (expression_statement
+    (interpolated_string_literal (scalar)))
+  (expression_statement
+    (interpolated_string_literal (scalar)))
+  (expression_statement
+    (interpolated_string_literal (scalar)))
   (expression_statement
     (interpolated_string_literal (array)))
   (expression_statement
