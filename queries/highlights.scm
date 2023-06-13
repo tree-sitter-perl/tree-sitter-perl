@@ -42,7 +42,7 @@
 
 (autoquoted_bareword) @string.special
 
-(scalar) @variable.scalar
+[(scalar) (arraylen)] @variable.scalar
 (scalar_deref_expression ["->" "$" "*"] @variable.scalar)
 (array) @variable.array
 (array_deref_expression ["->" "@" "*"] @variable.array)
