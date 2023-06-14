@@ -10,6 +10,7 @@
  (for_statement)
  (cstyle_for_statement)
  (block_statement)
+ (defer_statement)
  (phaser_statement)] @fold
 
 (try_statement (block) @fold)
