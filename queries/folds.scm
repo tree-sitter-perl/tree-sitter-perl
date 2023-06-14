@@ -12,6 +12,8 @@
  (block_statement)
  (phaser_statement)] @fold
 
+(try_statement (block) @fold)
+
 (anonymous_subroutine_expression) @fold
 
 ; perhaps folks want to fold these too?
