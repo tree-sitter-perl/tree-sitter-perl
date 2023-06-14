@@ -12,6 +12,8 @@
 #  ^ operator
 12 isa 34;
 #  ^ operator
+$obj isa SomeClass;
+#        ^^^^^^^^^ type
 %hash = (foo => "bar", shift => 'thing', qq => 'thing');
 # <- variable.hash
 #        ^^^ string.special
