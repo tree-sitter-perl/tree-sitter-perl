@@ -409,7 +409,7 @@ module.exports = grammar({
       prec.left(TERMPREC.SHIFTOP,  binop($._SHIFTOP, $._term)),
       prec.left(TERMPREC.ADDOP,    binop($._ADDOP, $._term)),
       prec.left(TERMPREC.MULOP,    binop($._MULOP, $._term)),
-      // prec.left(10, MATCHOP,
+      prec.left(TERMPREC.MATCHOP,  binop($._MATCHOP, $._term)),
       prec.right(TERMPREC.POWOP,   binop($._POWOP, $._term)),
     ),
 
@@ -631,6 +631,7 @@ module.exports = grammar({
     _SHIFTOP: $ => choice('<<', '>>'),
     _ADDOP: $ => choice('+', '-', '.'),
     _MULOP: $ => choice('*', '/', '%', 'x'),
+    _MATCHOP: $ => choice('=~', '!~'),
     _POWOP: $ => '**',
     // these chaining ops have high precedence versions ALSO defined in the scanner, name _{name}_continue
     _CHEQOP: $ => choice('==', '!=', 'eq', 'ne'),
