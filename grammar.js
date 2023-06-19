@@ -219,6 +219,8 @@ module.exports = grammar({
       seq($._KW_FOR,
         optional(choice(
           seq('my', field('my_var', $.scalar)),
+          seq('state', field('state_var', $.scalar)),
+          seq('our', field('var', $.scalar)),
           field('var', $.scalar)
         )),
         '(', field('list', $._expr), ')',
