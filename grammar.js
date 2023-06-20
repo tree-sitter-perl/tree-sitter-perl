@@ -341,8 +341,7 @@ module.exports = grammar({
       $.do_expression,
       $.conditional_expression,
       $.refgen_expression,
-      /* KW_LOCAL
-       */
+      $.localization_expression,
       seq('(', $._expr, ')'),
       $.quoted_word_list,
       $.heredoc_token,
@@ -390,7 +389,6 @@ module.exports = grammar({
        * toke.c but we'll have to do it differently here
        */
       $.variable_declaration,
-      $.localization_expression,
 
       // legacy
       $.primitive,
@@ -479,15 +477,7 @@ module.exports = grammar({
           field('variables', $._decl_variable_list)),
         optseq(':', optional(field('attributes', $.attrlist))))
     ),
-    localization_expression: $ =>
-      seq('local', choice(
-        field('variable', $.scalar),
-        field('variable', $.array),
-        field('variable', $.hash),
-        field('variables', $._variable_list))),
-    _variable_list: $ => paren_list_of(
-      choice($.scalar, $.array, $.hash, $.undef_expression)
-    ),
+
     _decl_variable_list: $ => paren_list_of(
       choice(
         $.undef_expression,
@@ -496,6 +486,9 @@ module.exports = grammar({
         alias($._declare_hash, $.hash),
       )
     ),
+
+    localization_expression: $ =>
+      prec(TERMPREC.UNOP, seq('local', $._term)),
 
     // this has negative prec b/c it's only if the parens weren't eaten elsewhere
     stub_expression: $ => prec(-1, seq('(', ')')),
