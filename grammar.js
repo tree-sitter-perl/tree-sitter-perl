@@ -221,7 +221,8 @@ module.exports = grammar({
           seq('my', field('my_var', $.scalar)),
           seq('state', field('state_var', $.scalar)),
           seq('our', field('var', $.scalar)),
-          field('var', $.scalar)
+          field('var', $.scalar),
+          seq('my', paren_list_of($.scalar)),
         )),
         '(', field('list', $._expr), ')',
         field('block', $.block),
