@@ -51,11 +51,17 @@ enum TokenType {
   TOKEN_BRACE_END_ZW,
   TOKEN_DOLLAR_IDENT_ZW,
   TOKEN_NO_INTERP_WHITESPACE_ZW,
+  /* feature guards */
+  TOKEN_FEATURE_TRY,
+  TOKEN_FEATURE_DEFER,
   /* zero-width high priority token */
   TOKEN_NONASSOC,
   /* error condition is always last */
   TOKEN_ERROR
 };
+
+#define TOKEN_FEATURE_first (TOKEN_FEATURE_TRY)
+#define TOKEN_FEATURE_max   (TOKEN_NONASSOC-1)
 
 #define MAX_TSPSTRING_LEN 8
 /* this is a arbitrary string where we only care about the first MAX_TSPSTRING_LEN chars */
@@ -548,6 +554,14 @@ bool tree_sitter_perl_external_scanner_scan(
    * for the remaining ones when in an error condition */
   if(is_ERROR)
     return false;
+
+  for(int sym = TOKEN_FEATURE_first; sym <= TOKEN_FEATURE_max; sym++) {
+    if(valid_symbols[sym]) {
+      /* TODO: implement feature tests. For now all features are always
+       * recognised */
+      TOKEN(sym);
+    }
+  }
 
   if(valid_symbols[TOKEN_HEREDOC_DELIM] || valid_symbols[TOKEN_COMMAND_HEREDOC_DELIM]) {
     // by default, indentation is false and interpolation is true
