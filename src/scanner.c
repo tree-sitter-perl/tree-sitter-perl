@@ -157,6 +157,26 @@ static void lexerstate_enable_named_feature(struct LexerState *state, const char
     lexerstate_enable_feature(state, FEATURE_DEFER);
 }
 
+static void lexerstate_enable_feature_from_module(struct LexerState *state, const char *name, int len)
+{
+  enum Features feat = -1;
+
+  if(len == 20 && strneq(name, "Feature::Compat::Try", 20))
+    feat = FEATURE_TRY;
+  else if(len == 22 && strneq(name, "Feature::Compat::Defer", 22))
+    feat = FEATURE_DEFER;
+  /* TODO: Can insert more detection of 'use MODULE...' here to detect
+   *   Object::Pad
+   *   Syntax::Keyword::...
+   */
+
+  if(feat == -1)
+    return;
+
+  DEBUG("use <%.*s> enables feature=%d\n", len, name, feat);
+  lexerstate_enable_feature(state, feat);
+}
+
 #define ADVANCE_C \
   do {                                         \
     if(lexer->lookahead == '\r')               \
@@ -283,9 +303,18 @@ static int peek_chunk(char *token, int maxlen, TSLexer *lexer)
 #define PUSH_C  do { if(len < maxlen) token[len++] = c; } while(0)
 
   if(isidfirst(c)) {
+bareword_again:
     while(isidcont(c)) {
       PUSH_C;
       ADVANCE_C;
+    }
+    if(c == ':') {
+      ADVANCE_C;
+      if(c == ':') {
+        PUSH_C; PUSH_C;
+        ADVANCE_C;
+        goto bareword_again;
+      }
     }
     if(len > 1 && token[0] == 'v' && iswdigit(token[1])) {
       while(iswdigit(c) || c == '.') {
@@ -560,8 +589,8 @@ bool tree_sitter_perl_external_scanner_scan(
   if(!is_ERROR && valid_symbols[TOKEN_PEEK_AFTER_USE]) {
     lexer->mark_end(lexer);
 
-    char token[16];
-    int len = peek_chunk(token, 16, lexer);
+    char token[24];
+    int len = peek_chunk(token, sizeof(token), lexer);
 
     state->peeking = PEEK_NONE;
 
@@ -580,14 +609,12 @@ bool tree_sitter_perl_external_scanner_scan(
        */
     }
     else if(len == 7 && strneq(token, "feature", 7)) {
+      /* TODO: Also accept 'use experimental ...' */
       DEBUG("use feature\n", 0);
       state->peeking = PEEK_AFTER_USE_FEATURE;
     }
-    /* TODO: Can insert more detection of 'use MODULE...' here to detect
-     *   experimental
-     *   Object::Pad
-     *   Syntax::Keyword::...
-     */
+    else
+      lexerstate_enable_feature_from_module(state, token, len);
 
     TOKEN(TOKEN_PEEK_AFTER_USE);
   }
