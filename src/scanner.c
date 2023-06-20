@@ -609,8 +609,11 @@ bool tree_sitter_perl_external_scanner_scan(
        */
     }
     else if(len == 7 && strneq(token, "feature", 7)) {
-      /* TODO: Also accept 'use experimental ...' */
       DEBUG("use feature\n", 0);
+      state->peeking = PEEK_AFTER_USE_FEATURE;
+    }
+    else if(len == 12 && strneq(token, "experimental", 12)) {
+      DEBUG("use experimental (treat as use feature)\n", 0);
       state->peeking = PEEK_AFTER_USE_FEATURE;
     }
     else
