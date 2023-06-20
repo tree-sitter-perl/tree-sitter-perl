@@ -1,3 +1,19 @@
+use 5.014;
+# <- keyword
+#   ^ number
+use v5.14;
+# <- keyword
+#   ^ number
+use v5;
+# <- keyword
+#   ^ number
+use strict;
+# <- keyword
+#   ^ type
+use List::Util 1.23;
+# <- keyword
+#   ^^^^^^^^^^ type
+#              ^ number
 123 if 45;
 #   ^ keyword
 123 unless 45;
@@ -44,22 +60,6 @@ for (my $i = 0; $i < 10; $i++) { 123; }
 #       ^ variable.scalar
 #               ^ variable.scalar
 #                        ^ variable.scalar
-use 5.014;
-# <- keyword
-#   ^ number
-use v5.14;
-# <- keyword
-#   ^ number
-use v5;
-# <- keyword
-#   ^ number
-use strict;
-# <- keyword
-#   ^ type
-use List::Util 1.23;
-# <- keyword
-#   ^^^^^^^^^^ type
-#              ^ number
 package AAA;
 # <- keyword
 #       ^ type
