@@ -60,6 +60,10 @@ for (my $i = 0; $i < 10; $i++) { 123; }
 #       ^ variable.scalar
 #               ^ variable.scalar
 #                        ^ variable.scalar
+try { A(); } catch($e) { B(); }
+# <- exception
+#            ^^^^^ exception
+#                  ^^ variable.scalar
 package AAA;
 # <- include
 #       ^ type

@@ -3,7 +3,7 @@
 
 // What version of perl grammar do we target? Lower version numbers here will
 // disable newer features
-const PERL_VER = 5.32;
+const PERL_VER = 5.34;
 
 const IF_PERL_VER = (ver, code) =>
   (PERL_VER >= ver) ? [code] : [];
@@ -190,6 +190,7 @@ module.exports = grammar({
       $.loop_statement,
       $.cstyle_for_statement,
       $.for_statement,
+      ...IF_PERL_VER(5.34, $.try_statement),
       alias($.block, $.block_statement),
       seq($.expression_statement, choice($._semicolon, $.__DATA__)),
       ';', // this is not _semicolon so as not to generate an infinite stream of them
@@ -247,6 +248,13 @@ module.exports = grammar({
         '(', field('list', $._expr), ')',
         field('block', $.block),
       ),
+
+    try_statement: $ => seq(
+      'try',
+      field('try_block', $.block),
+      'catch', '(', field('catch_variable', $.scalar), ')',
+      field('catch_block', $.block),
+    ),
 
     // perly.y calls this `sideff`
     expression_statement: $ => choice(

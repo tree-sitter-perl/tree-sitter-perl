@@ -9,6 +9,8 @@
 
 [ "while" "until" "for" "foreach" ] @repeat
 
+[ "try" "catch" ] @exception
+
 "return" @keyword.return
 
 "sub" @keyword.function
