@@ -363,12 +363,18 @@ for (my $i = 0; $i < 10; $i++) { 123; }
 try / catch
 ================================================================================
 try { A(); } catch($e) { B(); }
+try { A(); } catch($e) { B(); } finally { C(); }
 --------------------------------------------------------------------------------
 
 (source_file
   (try_statement
     (block (expression_statement (function_call_expression (function))))
     (scalar (varname))
+    (block (expression_statement (function_call_expression (function)))))
+  (try_statement
+    (block (expression_statement (function_call_expression (function))))
+    (scalar (varname))
+    (block (expression_statement (function_call_expression (function))))
     (block (expression_statement (function_call_expression (function)))))
     )
 ================================================================================

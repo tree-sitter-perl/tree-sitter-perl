@@ -9,7 +9,7 @@
 
 [ "while" "until" "for" "foreach" ] @repeat
 
-[ "try" "catch" ] @exception
+[ "try" "catch" "finally" ] @exception
 
 "return" @keyword.return
 

@@ -64,6 +64,8 @@ try { A(); } catch($e) { B(); }
 # <- exception
 #            ^^^^^ exception
 #                  ^^ variable.scalar
+try { A(); } catch($e) { B(); } finally { C(); }
+#                               ^^^^^^^ exception
 package AAA;
 # <- include
 #       ^ type
