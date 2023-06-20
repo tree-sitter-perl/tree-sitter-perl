@@ -13,7 +13,7 @@
   "return"
 ] @keyword
 
-[ "BEGIN" "INIT" "CHECK" "UNITCHECK" "END" ] @keyword.phaser
+(phaser_statement phase: _ @keyword.phaser)
 
 [
   "or" "and"
