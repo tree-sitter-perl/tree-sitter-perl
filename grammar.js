@@ -193,6 +193,7 @@ module.exports = grammar({
       ...IF_PERL_VER(5.34, $.try_statement),
       alias($.block, $.block_statement),
       seq($.expression_statement, choice($._semicolon, $.__DATA__)),
+      ...IF_PERL_VER(5.36, $.defer_statement),
       ';', // this is not _semicolon so as not to generate an infinite stream of them
     ),
     package_statement: $ => choice(
@@ -257,6 +258,11 @@ module.exports = grammar({
       ...IF_PERL_VER(5.36,
         optseq('finally', field('finally_block', $.block))
       ),
+    ),
+
+    defer_statement: $ => seq(
+      'defer',
+      field('block', $.block),
     ),
 
     // perly.y calls this `sideff`

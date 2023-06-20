@@ -20,6 +20,7 @@
 "package" @include
 
 [
+  "defer"
   "do"
   "my" "our" "local" "state"
   "last" "next" "redo" "goto"

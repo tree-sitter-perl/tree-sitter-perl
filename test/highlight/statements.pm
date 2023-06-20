@@ -66,6 +66,8 @@ try { A(); } catch($e) { B(); }
 #                  ^^ variable.scalar
 try { A(); } catch($e) { B(); } finally { C(); }
 #                               ^^^^^^^ exception
+defer { A(); }
+# <- keyword
 package AAA;
 # <- include
 #       ^ type
