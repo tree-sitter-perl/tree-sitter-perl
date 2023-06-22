@@ -223,7 +223,7 @@ static bool isidcont(int c)
   return isidfirst(c) || iswdigit(c);
 }
 
-// in any intepolatable case, we wanna stop parsing on these chars
+// in any interpolatable case, we wanna stop parsing on these chars
 // there's a matching rule in the grammar to catch when it doesn't match a rule
 static bool is_interpolation_escape(int c) {
   return c < 256 && strchr("$@-[{\\", c);

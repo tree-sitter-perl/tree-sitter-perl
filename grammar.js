@@ -761,15 +761,18 @@ module.exports = grammar({
         $.escaped_delimiter,
       )
     ),
+    _interpolation_fallbacks: $ => choice(
+      seq(choice('$', '@'), /\s/),
+      // Most array punctuation vars do not interpolate
+      seq('@', /[^A-Za-z0-9_\$'+:-]/),
+      '-',
+      '{',
+      '[',
+    ),
     _interpolated_string_content: $ => repeat1(
       choice(
         $._qq_string_content,
-        seq(choice('$', '@'), /\s/),
-        // Most array punctuation vars do not interpolate
-        seq('@', /[^A-Za-z0-9_\$'+:-]/),
-        '-',
-        '{',
-        '[',
+        $._interpolation_fallbacks,
         $.escape_sequence,
         $.escaped_delimiter,
         $._interpolations
@@ -875,7 +878,8 @@ module.exports = grammar({
       repeat(choice(
         $._heredoc_middle,
         $.escape_sequence,
-        $._interpolations
+        $._interpolations,
+        $._interpolation_fallbacks
       )),
       $.heredoc_end
     ),

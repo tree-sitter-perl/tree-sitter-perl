@@ -91,7 +91,7 @@ heredocs after a statement (gh#92)
 ================================================================================
 my $ting;
 print <<EOF;
-tings
+$tings --tings
 EOF
 --------------------------------------------------------------------------------
 (source_file
@@ -99,5 +99,6 @@ EOF
   (expression_statement 
     (ambiguous_function_call_expression (function) (heredoc_token)))
   (heredoc_content
+   (scalar)
    (heredoc_end))
 )
