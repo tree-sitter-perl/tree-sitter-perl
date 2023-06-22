@@ -95,6 +95,7 @@ module.exports = grammar({
     $._backtick,
     $._PERLY_SEMICOLON,
     $._PERLY_BRACE_OPEN,
+    $._PERLY_HEREDOC,
     $._HASHBRACK,
     $._ctrl_z_hack,
     /* immediates */
@@ -760,15 +761,18 @@ module.exports = grammar({
         $.escaped_delimiter,
       )
     ),
+    _interpolation_fallbacks: $ => choice(
+      seq(choice('$', '@'), /\s/),
+      // Most array punctuation vars do not interpolate
+      seq('@', /[^A-Za-z0-9_\$'+:-]/),
+      '-',
+      '{',
+      '[',
+    ),
     _interpolated_string_content: $ => repeat1(
       choice(
         $._qq_string_content,
-        seq(choice('$', '@'), /\s/),
-        // Most array punctuation vars do not interpolate
-        seq('@', /[^A-Za-z0-9_\$'+:-]/),
-        '-',
-        '{',
-        '[',
+        $._interpolation_fallbacks,
         $.escape_sequence,
         $.escaped_delimiter,
         $._interpolations
@@ -864,15 +868,18 @@ module.exports = grammar({
      *       and re-parse the ending line in "end" mode, where we finally finish our
      *       heredoc
      */
-    heredoc_token: $ => seq('<<', $._heredoc_delimiter),
+    // NOTE - we need our own HEREDOC token for <<, so that even in GLR mode all sides
+    // will see that << followed by a valid heredoc is a heredoc, and not a shift
+    heredoc_token: $ => seq($._PERLY_HEREDOC, $._heredoc_delimiter),
     // in the event that it's in ``, we want it to be a different node
-    command_heredoc_token: $ => seq('<<', $._command_heredoc_delimiter),
+    command_heredoc_token: $ => seq($._PERLY_HEREDOC, $._command_heredoc_delimiter),
     heredoc_content: $ => seq(
       $._heredoc_start,
       repeat(choice(
         $._heredoc_middle,
         $.escape_sequence,
-        $._interpolations
+        $._interpolations,
+        $._interpolation_fallbacks
       )),
       $.heredoc_end
     ),

@@ -86,3 +86,19 @@ WHY?$CUZ
   (expression_statement (heredoc_token))
   (heredoc_content (scalar) (heredoc_end))
   )
+================================================================================
+heredocs after a statement (gh#92)
+================================================================================
+my $ting;
+print <<EOF;
+$tings --tings
+EOF
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement (variable_declaration (scalar)))
+  (expression_statement 
+    (ambiguous_function_call_expression (function) (heredoc_token)))
+  (heredoc_content
+   (scalar)
+   (heredoc_end))
+)

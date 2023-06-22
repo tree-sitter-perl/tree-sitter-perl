@@ -23,6 +23,7 @@ enum TokenType {
   TOKEN_BACKTICK,
   PERLY_SEMICOLON,
   PERLY_BRACE_OPEN,
+  PERLY_HEREDOC,
   TOKEN_HASHBRACK,
   TOKEN_CTRL_Z,
   /* immediates */
@@ -222,7 +223,7 @@ static bool isidcont(int c)
   return isidfirst(c) || iswdigit(c);
 }
 
-// in any intepolatable case, we wanna stop parsing on these chars
+// in any interpolatable case, we wanna stop parsing on these chars
 // there's a matching rule in the grammar to catch when it doesn't match a rule
 static bool is_interpolation_escape(int c) {
   return c < 256 && strchr("$@-[{\\", c);
@@ -762,6 +763,23 @@ bool tree_sitter_perl_external_scanner_scan(
   ADVANCE_C;
   int c2 = c;
 #define EQ2(s)  (c1 == s[0] && c2 == s[1])
+
+  /* NOTE - we need this to NOT be valid_symbol guarded, b/c we need this to crash errant
+   * GLR branches, see gh#92 */
+  if(EQ2("<<")) {
+    DEBUG("checking if << is indeed a heredoc\n", 0);
+    ADVANCE_C;
+    lexer->mark_end(lexer);
+    if(c == '\\' || c == '~' || isidfirst(c)) {
+      TOKEN(PERLY_HEREDOC);
+    }
+    skip_whitespace(lexer);
+    c = lexer->lookahead;
+    if(c == '\'' || c == '"' || c == '`') {
+      TOKEN(PERLY_HEREDOC);
+    }
+    return false;
+  }
 
   if(valid_symbols[TOKEN_FAT_COMMA_ZW]) {
     DEBUG("ZW-lookahead for => autoquoting\n", 0);
