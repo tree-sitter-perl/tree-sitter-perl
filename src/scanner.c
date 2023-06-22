@@ -770,7 +770,6 @@ bool tree_sitter_perl_external_scanner_scan(
     DEBUG("checking if << is indeed a heredoc\n", 0);
     ADVANCE_C;
     lexer->mark_end(lexer);
-    /* TODO - check for immediate \ or ~ or idfirst */
     if(c == '\\' || c == '~' || isidfirst(c)) {
       TOKEN(PERLY_HEREDOC);
     }
