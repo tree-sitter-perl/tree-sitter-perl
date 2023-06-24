@@ -42,7 +42,7 @@
 
 [(quoted_regexp) (match_regexp)] @string.regexp
 
-(autoquoted_bareword) @string.special
+(autoquoted_bareword _?) @string.special
 
 [(scalar) (arraylen)] @variable.scalar
 (scalar_deref_expression ["->" "$" "*"] @variable.scalar)
