@@ -341,6 +341,7 @@ module.exports = grammar({
       $.anonymous_hash_expression,
       $.anonymous_subroutine_expression,
       $.do_expression,
+      $.eval_expression,
       $.conditional_expression,
       $.refgen_expression,
       $.localization_expression,
@@ -467,6 +468,11 @@ module.exports = grammar({
     do_expression: $ => choice(
       /* TODO: do FILENAME */
       seq('do', $.block),
+    ),
+
+    eval_expression: $ => choice(
+      seq('eval', $.block),
+      seq('eval', $._term)
     ),
 
     variable_declaration: $ => prec.left(TERMPREC.QUESTION_MARK+1,
@@ -895,7 +901,7 @@ module.exports = grammar({
     _conditionals: $ => choice('if', 'unless'),
     _loops: $ => choice('while', 'until'),
     _postfixables: $ => choice($._conditionals, $._loops, $._KW_FOR, 'and', 'or'),
-    _keywords: $ => choice($._postfixables, 'else', 'elsif', 'do', 'our', 'my', 'local', 'require', 'return', 'eq', 'ne', 'lt', 'le', 'ge', 'gt', 'cmp', 'isa', $._KW_USE, $._LOOPEX, $._PHASE_NAME, '__DATA__', '__END__'),
+    _keywords: $ => choice($._postfixables, 'else', 'elsif', 'do', 'eval', 'our', 'my', 'local', 'require', 'return', 'eq', 'ne', 'lt', 'le', 'ge', 'gt', 'cmp', 'isa', $._KW_USE, $._LOOPEX, $._PHASE_NAME, '__DATA__', '__END__'),
     _quotelikes: $ => choice('q', 'qq', 'qw', 'qx'),
     _autoquotables: $ => choice($._func0op, $._func1op, $._keywords, $._quotelikes),
     // we need dynamic precedence here so we can resolve things like `print -next`
