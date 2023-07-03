@@ -117,9 +117,17 @@ autoquoting keywords
 if =>;
 for =>;
 return =>;
+try =>;
+defer =>;
 --------------------------------------------------------------------------------
 
 (source_file
+  (expression_statement
+    (list_expression
+      (autoquoted_bareword)))
+  (expression_statement
+    (list_expression
+      (autoquoted_bareword)))
   (expression_statement
     (list_expression
       (autoquoted_bareword)))

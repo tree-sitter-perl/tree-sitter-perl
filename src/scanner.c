@@ -825,8 +825,6 @@ bool tree_sitter_perl_external_scanner_scan(
       DEBUG("Check for feature=%d\n", sym - TOKEN_FEATURE_first);
       if(lexerstate_is_feature_enabled(state, sym - TOKEN_FEATURE_first))
         TOKEN(sym);
-      else
-        return false;
     }
   }
 
