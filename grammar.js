@@ -470,10 +470,7 @@ module.exports = grammar({
       seq('do', $.block),
     ),
 
-    eval_expression: $ => choice(
-      seq('eval', $.block),
-      seq('eval', $._term)
-    ),
+    eval_expression: $ => seq('eval', choice($.block,  $._term)),
 
     variable_declaration: $ => prec.left(TERMPREC.QUESTION_MARK+1,
       seq(
