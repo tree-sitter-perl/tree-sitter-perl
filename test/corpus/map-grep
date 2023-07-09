@@ -95,15 +95,18 @@ map { "\L$_"   => 1 }, @array;     # perl guesses EXPR; SURPRISE!
 map - goshdarn parens
 ================================================================================
 %hash = map ( lc($_), 1 ), @array;         # evaluates to (1, @array)
+# NOTE - this is ACTUALLY correct; the @array will not touch that hash, b/c it's not part
+# of the assignment
 --------------------------------------------------------------------------------
 
 (source_file
   (expression_statement
-    (assignment_expression
-      (hash)
-      (map_grep_expression
-        (func1op_call_expression
-          (scalar))
-          (number))
-        (array)))
+    (list_expression
+      (assignment_expression
+        (hash)
+          (map_grep_expression
+            (func1op_call_expression
+              (scalar))
+            (number)))
+          (array)))
   (comment))

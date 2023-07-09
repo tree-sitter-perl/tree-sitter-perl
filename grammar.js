@@ -265,9 +265,10 @@ module.exports = grammar({
     ),
     /* ensure that an entire list expression's contents appear in one big flat
     * list, while permitting multiple internal commas and an optional trailing one */
-    list_expression: $ => seq(
+    // NOTE - we gave this negative precedence b/c it's kinda just a fallback
+    list_expression: $ => prec(-1, seq(
       $._term, $._PERLY_COMMA, repeat(seq(optional($._term), $._PERLY_COMMA)), optional($._term)
-    ),
+    )),
     _term_rightward: $ => prec.right(seq(
       $._term,
       repeat(seq($._PERLY_COMMA_continue, $._PERLY_COMMA, optional($._term))),
@@ -525,7 +526,8 @@ module.exports = grammar({
     _map_grep: $ => choice('map', 'grep'),
     map_grep_expression: $ => prec.left(TERMPREC.LSTOP, choice(
       seq($._map_grep, field('callback', $.block), field('list', $._term_rightward)),
-      seq($._map_grep, field('callback', $._term), $._PERLY_COMMA, field('list', $._term_rightward))
+      seq($._map_grep, field('callback', $._term), $._PERLY_COMMA, field('list', $._term_rightward)),
+      seq($._map_grep, '(', field('callback', $._term), $._PERLY_COMMA, field('list', $._term_rightward), ')'),
     )),
 
     _label_arg: $ => choice(alias($.identifier, $.label), $._term),
