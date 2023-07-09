@@ -383,6 +383,7 @@ module.exports = grammar({
        * UNIOPSUB term */
       $.func0op_call_expression,
       $.func1op_call_expression,
+      $.map_grep_expression,
       /* PMFUNC */
       $.bareword,
       $.autoquoted_bareword,
@@ -470,7 +471,7 @@ module.exports = grammar({
       seq('do', $.block),
     ),
 
-    eval_expression: $ => seq('eval', choice($.block,  $._term)),
+    eval_expression: $ => prec(TERMPREC.UNOP, seq('eval', choice($.block,  $._term))),
 
     variable_declaration: $ => prec.left(TERMPREC.QUESTION_MARK+1,
       seq(
@@ -520,6 +521,12 @@ module.exports = grammar({
         field('function', $._func1op),
         choice(optseq('(', optional($._expr), ')'), $._term),
       )),
+
+    _map_grep: $ => choice('map', 'grep'),
+    map_grep_expression: $ => prec.left(TERMPREC.LSTOP, choice(
+      seq($._map_grep, field('callback', $.block), field('list', $._term_rightward)),
+      seq($._map_grep, field('callback', $._term), $._PERLY_COMMA, field('list', $._term_rightward))
+    )),
 
     _label_arg: $ => choice(alias($.identifier, $.label), $._term),
     loopex_expression: $ =>
