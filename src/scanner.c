@@ -22,9 +22,7 @@ enum TokenType {
   TOKEN_DOUBLE_QUOTE,
   TOKEN_BACKTICK,
   PERLY_SEMICOLON,
-  PERLY_BRACE_OPEN,
   PERLY_HEREDOC,
-  TOKEN_HASHBRACK,
   TOKEN_CTRL_Z,
   /* immediates */
   TOKEN_QUOTELIKE_BEGIN,
@@ -425,20 +423,6 @@ bool tree_sitter_perl_external_scanner_scan(
         // no advance
         TOKEN(PERLY_SEMICOLON);
       }
-    }
-  }
-
-  if((valid_symbols[PERLY_BRACE_OPEN] || valid_symbols[TOKEN_HASHBRACK]) && c == '{') {
-    /* Encountered '{' while at least one of theabove was valid */
-    ADVANCE_C;
-
-    /* PERLY_BRACE_OPEN is only valid during the start of a statement; if
-     * that's valid here then we prefer that over HASHBRACK */
-    if(valid_symbols[PERLY_BRACE_OPEN]) {
-      TOKEN(PERLY_BRACE_OPEN);
-    }
-    else {
-      TOKEN(TOKEN_HASHBRACK);
     }
   }
 

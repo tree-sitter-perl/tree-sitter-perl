@@ -94,9 +94,7 @@ module.exports = grammar({
     $._double_quote,
     $._backtick,
     $._PERLY_SEMICOLON,
-    $._PERLY_BRACE_OPEN,
     $._PERLY_HEREDOC,
-    $._HASHBRACK,
     $._ctrl_z_hack,
     /* immediates */
     $._quotelike_begin,
@@ -150,6 +148,9 @@ module.exports = grammar({
     /****
      * Main grammar rules taken from perly.y.
      ****/
+    _PERLY_BRACE_OPEN: $ => token(prec(2, '{')),
+    _HASHBRACK: $ => '{',
+
     block: $ => seq($._PERLY_BRACE_OPEN, repeat($._fullstmt), '}'),
 
     _fullstmt: $ => choice($._barestmt, $.statement_label),
