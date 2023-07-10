@@ -524,9 +524,17 @@ module.exports = grammar({
       )),
 
     _map_grep: $ => choice('map', 'grep'),
+    // we use the precedence here to ensure that we turn map { q'thingy" => $_ } into a hashref
+    // it just needs to be arbitrarily higher than the _literal rule
+    _tricky_hashref: $ => prec(1, seq(
+      $._PERLY_BRACE_OPEN, choice($.string_literal, $.interpolated_string_literal, $.command_string), $._PERLY_COMMA, $._expr, '}'
+    )),
+    // TODO - i think if we use an expanded version of anonymous_hash_expression which
+    // starts w/ a PERLY_BRACE_OPEN and does the string + comma logic, we can avoid having
+    // to do any of this SHTUFF in the scanner!!!
     map_grep_expression: $ => prec.left(TERMPREC.LSTOP, choice(
       seq($._map_grep, field('callback', $.block), field('list', $._term_rightward)),
-      seq($._map_grep, field('callback', $._term), $._PERLY_COMMA, field('list', $._term_rightward)),
+      seq($._map_grep, field('callback', choice($._term, alias($._tricky_hashref, $.anonymous_hash_expression))), $._PERLY_COMMA, field('list', $._term_rightward)),
       seq($._map_grep, '(', field('callback', $._term), $._PERLY_COMMA, field('list', $._term_rightward), ')'),
     )),
 
