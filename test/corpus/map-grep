@@ -105,9 +105,64 @@ map - goshdarn parens
     (list_expression
       (assignment_expression
         (hash)
-          (map_grep_expression
+        (map_grep_expression
+          (func1op_call_expression
+            (scalar))
+          (number)))
+      (array)))
+  (comment))
+
+================================================================================
+map - different LISTs
+================================================================================
+map { lc($_) => 1 } 1, 2, 3;
+map +(lc($_) => 1 ), 1, 2, 3;
+map { lc($_) => 1 } (1, 2, 3);
+map +(lc($_) => 1 ), (1, 2), 3;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (map_grep_expression
+      callback: (block
+        (expression_statement
+          (list_expression
             (func1op_call_expression
               (scalar))
-            (number)))
-          (array)))
-  (comment))
+            (number))))
+      list: (number)
+      list: (number)
+      list: (number)))
+  (expression_statement
+    (map_grep_expression
+      callback: (unary_expression
+        operand: (list_expression
+          (func1op_call_expression
+            (scalar))
+          (number)))
+      list: (number)
+      list: (number)
+      list: (number)))
+  (expression_statement
+    (map_grep_expression
+      callback: (block
+        (expression_statement
+          (list_expression
+            (func1op_call_expression
+              (scalar))
+            (number))))
+      list: (list_expression
+        (number)
+        (number)
+        (number))))
+  (expression_statement
+    (map_grep_expression
+      callback: (unary_expression
+        operand: (list_expression
+          (func1op_call_expression
+            (scalar))
+          (number)))
+      list: (list_expression
+        (number)
+        (number))
+      list: (number))))
