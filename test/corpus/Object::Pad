@@ -1,0 +1,62 @@
+================================================================================
+Object::Pad __CLASS__
+================================================================================
+use Object::Pad;
+class Example {
+  field $x = __CLASS__->default_x;
+}
+--------------------------------------------------------------------------------
+
+(source_file
+  (use_statement
+    (package))
+  (class_statement
+    (package)
+    (block
+      (expression_statement
+        (assignment_expression
+          (variable_declaration
+            (scalar
+              (varname)))
+          (method_call_expression
+            (func0op_call_expression)
+            (method)))))))
+
+================================================================================
+Object::Pad ADJUSTPARAMS
+================================================================================
+use Object::Pad;
+class Example {
+  ADJUSTPARAMS { }
+  method y { 456; }
+}
+--------------------------------------------------------------------------------
+
+(source_file
+  (use_statement
+    (package))
+  (class_statement
+    (package)
+    (block
+      (phaser_statement
+        (block))
+      (method_declaration_statement
+        (bareword)
+        (block
+          (expression_statement
+            (number)))))))
+
+================================================================================
+Object::Pad role
+================================================================================
+use Object::Pad;
+role Example2 { }
+--------------------------------------------------------------------------------
+
+(source_file
+  (use_statement
+    (package))
+  (role_statement
+    (package)
+    (block)))
+

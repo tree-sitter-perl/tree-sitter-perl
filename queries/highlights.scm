@@ -17,7 +17,7 @@
 
 [ "map" "grep" "sort" ] @function.builtin
 
-[ "package" "class" ] @include
+[ "package" "class" "role" ] @include
 
 [
   "defer"
@@ -80,6 +80,7 @@
 (use_statement (package) @type)
 (package_statement (package) @type)
 (class_statement (package) @type)
+(role_statement (package) @type)
 (require_expression (bareword) @type)
 
 (subroutine_declaration_statement name: (bareword) @function)

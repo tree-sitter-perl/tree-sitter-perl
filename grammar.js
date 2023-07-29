@@ -143,6 +143,7 @@ module.exports = grammar({
     $._feature_try,
     $._feature_defer,
     $._feature_class,
+    $._feature_Object_Pad,
     /* zero-width high priority token */
     $._NONASSOC,
     /* error condition must always be last; we don't use this in the grammar */
@@ -186,6 +187,7 @@ module.exports = grammar({
     _barestmt: $ => choice(
       $.package_statement,
       $.class_statement,
+      $.role_statement,
       $.use_version_statement,
       $.use_statement,
       $.subroutine_declaration_statement,
@@ -218,6 +220,11 @@ module.exports = grammar({
         optseq(':', optional(field('attributes', $.attrlist))),
         $.block),
     ),
+    role_statement: $ => choice(
+      seq(GUARDED_KW($, 'role', 'Object_Pad'), field('name', $.package), optional(field('version', $._version)), $._PERLY_SEMICOLON),
+      seq(GUARDED_KW($, 'role', 'Object_Pad'), field('name', $.package), optional(field('version', $._version)), $.block),
+    ),
+
     use_version_statement: $ => seq(
       $._KW_USE,
       $._PEEK_AFTER_USE,
@@ -738,11 +745,17 @@ module.exports = grammar({
     _KW_FOR: $ => choice('for', 'foreach'),
     _LOOPEX: $ => choice('last', 'next', 'redo'),
 
-    _PHASE_NAME: $ => choice('BEGIN', 'INIT', 'CHECK', 'UNITCHECK', 'END', GUARDED_KW($, 'ADJUST', 'class')),
+    _PHASE_NAME: $ => choice(
+      'BEGIN', 'INIT', 'CHECK', 'UNITCHECK', 'END',
+      GUARDED_KW($, 'ADJUST', 'class'),
+      GUARDED_KW($, 'ADJUSTPARAMS', 'Object_Pad'),
+      GUARDED_KW($, 'BUILD', 'Object_Pad'),
+    ),
 
     // Anything toke.c calls FUN0 or FUN0OP; the distinction does not matter to us
     _func0op: $ => choice(
       '__FILE__', '__LINE__', '__PACKAGE__', '__SUB__',
+      GUARDED_KW($, '__CLASS__', 'Object_Pad'),
       'break', 'fork', 'getppid', 'time', 'times', 'wait', 'wantarray',
       /* TODO: all the end*ent, get*ent, set*ent, etc... */
     ),
