@@ -611,7 +611,10 @@ bool tree_sitter_perl_external_scanner_scan(
     TOKEN(TOKEN_QUOTELIKE_BEGIN);
   }
 
-  if(c == '\\') {
+  if(c == '\\' &&
+      // If we're inside a quotelike that is using the `\` as a delimiter then
+      // this doesn't count
+      !(valid_symbols[TOKEN_QUOTELIKE_END] && state->delim_close == '\\')) {
     // eat the reverse-solidus
     ADVANCE_C;
     // let's see what that reverse-solidus was hiding!

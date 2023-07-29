@@ -102,17 +102,19 @@ qq(a (string) here);
   (expression_statement (interpolated_string_literal))
   (expression_statement (interpolated_string_literal)))
 ================================================================================
-quotelike strings - tricky delimeter
+quotelike strings - tricky delimeters
 ================================================================================
 q#hello#;
 q # this is a comment
    (hello);
 # another comment so this can fail properly
+q\backslashes\;
 --------------------------------------------------------------------------------
 (source_file
   (expression_statement (string_literal))
   (expression_statement (string_literal (comment)))
   (comment)
+  (expression_statement (string_literal))
 )
 
 ================================================================================
@@ -140,6 +142,7 @@ qw/ literal\nslash-n /;
 qw/ literal \n slash-n /;
 qw| double escape \\|;
 qw/ hello \/ goodbye /;
+qw\ backslashes \;
 --------------------------------------------------------------------------------
 
 (source_file
@@ -149,7 +152,8 @@ qw/ hello \/ goodbye /;
   (expression_statement (quoted_word_list))
   (expression_statement (quoted_word_list))
   (expression_statement (quoted_word_list (escape_sequence)))
-  (expression_statement (quoted_word_list (escaped_delimiter))))
+  (expression_statement (quoted_word_list (escaped_delimiter)))
+  (expression_statement (quoted_word_list)))
 ================================================================================
 `` strings
 ================================================================================
