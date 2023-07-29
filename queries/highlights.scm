@@ -11,6 +11,7 @@
   "last" "next" "redo" "goto"
   "undef"
   "return"
+  "map" "grep"
 ] @keyword
 
 (phaser_statement phase: _ @keyword.phaser)
