@@ -26,6 +26,7 @@
 
 (eof_marker) @preproc
 (data_section) @comment
+[(anonymous_hash_expression . _) (anonymous_hash_expression _ .)] @variable.hash
 
 (pod) @text
 
