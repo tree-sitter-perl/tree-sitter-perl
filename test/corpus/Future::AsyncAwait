@@ -1,0 +1,33 @@
+================================================================================
+Future::AsyncAwait async
+================================================================================
+use Future::AsyncAwait;
+async sub f { }
+async sub { };
+--------------------------------------------------------------------------------
+
+(source_file
+  (use_statement
+    (package))
+  (subroutine_declaration_statement
+    (bareword)
+    (block))
+  (expression_statement
+    (anonymous_subroutine_expression
+      (block))))
+
+================================================================================
+Future::AsyncAwait await
+================================================================================
+use Future::AsyncAwait;
+await f();
+--------------------------------------------------------------------------------
+
+(source_file
+  (use_statement
+    (package))
+  (expression_statement
+    (await_expression
+      (function_call_expression
+        (function)))))
+

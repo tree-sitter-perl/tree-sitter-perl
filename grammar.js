@@ -144,6 +144,7 @@ module.exports = grammar({
     $._feature_defer,
     $._feature_class,
     $._feature_Object_Pad,
+    $._feature_Future_AsyncAwait,
     /* zero-width high priority token */
     $._NONASSOC,
     /* error condition must always be last; we don't use this in the grammar */
@@ -242,7 +243,7 @@ module.exports = grammar({
     ),
 
     subroutine_declaration_statement: $ => seq(
-      'sub',
+      choice('sub', GUARDED_KW($, seq('async', 'sub'), 'Future_AsyncAwait')),
       field('name', $.bareword),
       optseq(':', optional(field('attributes', $.attrlist))),
       optional($.prototype_or_signature),
@@ -470,6 +471,8 @@ module.exports = grammar({
        */
       $.variable_declaration,
 
+      $.await_expression,
+
       // legacy
       $.primitive,
 
@@ -559,7 +562,7 @@ module.exports = grammar({
     ),
 
     anonymous_subroutine_expression: $ => seq(
-      'sub',
+      choice('sub', GUARDED_KW($, seq('async', 'sub'), 'Future_AsyncAwait')),
       optseq(':', optional(field('attributes', $.attrlist))),
       optional($.prototype_or_signature),
       field('body', $.block),
@@ -659,6 +662,8 @@ module.exports = grammar({
      * that tree consumers and highlighters would want to handle it specially
      */
     undef_expression: $ => prec.left(TERMPREC.UNOP, seq('undef', optional($._term))),
+
+    await_expression: $ => seq(GUARDED_KW($, 'await', 'Future_AsyncAwait'), $._term),
 
     _listop: $ => choice(
       /* TODO:

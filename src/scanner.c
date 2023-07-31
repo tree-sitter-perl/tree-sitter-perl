@@ -60,6 +60,7 @@ enum TokenType {
   TOKEN_FEATURE_DEFER,
   TOKEN_FEATURE_CLASS,
   TOKEN_FEATURE_OBJECT_PAD,
+  TOKEN_FEATURE_FUTURE_ASYNCAWAIT,
   /* zero-width high priority token */
   TOKEN_NONASSOC,
   /* error condition is always last */
@@ -137,6 +138,7 @@ enum Features {
 
   /* syntax features in extension modules */
   FEATURE_OBJECT_PAD,
+  FEATURE_FUTURE_ASYNCAWAIT,
 };
 
 static bool lexerstate_is_feature_enabled(struct LexerState *state, enum Features feat)
@@ -180,6 +182,8 @@ static void lexerstate_enable_feature_from_module(struct LexerState *state, cons
     lexerstate_enable_feature(state, FEATURE_OBJECT_PAD);
     feat = FEATURE_CLASS;
   }
+  else if(len == 18 && strneq(name, "Future::AsyncAwait", 18))
+    lexerstate_enable_feature(state, FEATURE_FUTURE_ASYNCAWAIT);
   /* TODO: Can insert more detection of 'use MODULE...' here to detect
    *   Syntax::Keyword::...
    */

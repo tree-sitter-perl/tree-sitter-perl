@@ -25,6 +25,7 @@
   "my" "our" "local" "state" "field"
   "last" "next" "redo" "goto"
   "undef"
+  "async" "await"
 ] @keyword
 
 (_ operator: _ @operator)
