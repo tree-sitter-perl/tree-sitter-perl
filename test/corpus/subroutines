@@ -110,3 +110,16 @@ sub barN ($x, $y, @z) { }
   (subroutine_declaration_statement (bareword) (prototype_or_signature) (block))
   (subroutine_declaration_statement (bareword) (prototype_or_signature) (block))
   (subroutine_declaration_statement (bareword) (prototype_or_signature) (block)))
+================================================================================
+Attribute plus signature
+================================================================================
+sub f :attr ($sig) {}
+--------------------------------------------------------------------------------
+(source_file
+  (subroutine_declaration_statement
+    (bareword)
+    (attrlist
+      (attribute
+        (attribute_name)))
+    (prototype_or_signature)
+    (block)))
