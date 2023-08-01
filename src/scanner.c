@@ -34,6 +34,7 @@ enum TokenType {
   TOKEN_DOLLAR_IN_REGEXP,
   TOKEN_POD,
   TOKEN_GOBBLED_CONTENT,
+  TOKEN_ATTRIBUTE_VALUE_BEGIN,
   TOKEN_ATTRIBUTE_VALUE,
   TOKEN_PROTOTYPE_OR_SIGNATURE,
   TOKEN_HEREDOC_DELIM,
@@ -368,6 +369,37 @@ bool tree_sitter_perl_external_scanner_scan(
     }
   }
 
+  if(!is_ERROR && valid_symbols[TOKEN_ATTRIBUTE_VALUE_BEGIN] && c =='(') {
+    /* This has to be an external scanner symbol so it takes precedence over signature_or_prototype */
+    TOKEN(TOKEN_ATTRIBUTE_VALUE_BEGIN);
+  }
+
+  if(!is_ERROR && valid_symbols[TOKEN_ATTRIBUTE_VALUE]) {
+    DEBUG("Attribute value started...\n", 0);
+
+    int delimcount = 0;
+    while(!lexer->eof(lexer)) {
+      if(c == '\\') {
+        ADVANCE_C;
+        /* ignore the next char */
+      }
+      else if(c == '(')
+        delimcount++;
+      else if(c == ')') {
+        if(delimcount)
+          delimcount--;
+        else {
+          /* Do not consume the ')' */
+          break;
+        }
+      }
+
+      ADVANCE_C;
+    }
+
+    TOKEN(TOKEN_ATTRIBUTE_VALUE);
+  }
+
   if (iswspace(c)) {
     skipped_whitespace = true;
     skip_whitespace(lexer);
@@ -377,38 +409,6 @@ bool tree_sitter_perl_external_scanner_scan(
   // CTRL-Z must be here, b/c it cares about whitespace
   if(c == 26 && valid_symbols[TOKEN_CTRL_Z])
     TOKEN(TOKEN_CTRL_Z);
-
-
-  if(valid_symbols[TOKEN_ATTRIBUTE_VALUE]) {
-    /* the '(' must be immediate, before any whitespace */
-    if(c == '(' && !skipped_whitespace) {
-      DEBUG("Attribute value started...\n", 0);
-
-      ADVANCE_C;
-
-      int delimcount = 0;
-      while(!lexer->eof(lexer)) {
-        if(c == '\\') {
-          ADVANCE_C;
-          /* ignore the next char */
-        }
-        else if(c == '(')
-          delimcount++;
-        else if(c == ')') {
-          if(delimcount)
-            delimcount--;
-          else {
-            ADVANCE_C;
-            break;
-          }
-        }
-
-        ADVANCE_C;
-      }
-
-      TOKEN(TOKEN_ATTRIBUTE_VALUE);
-    }
-  }
 
   if(valid_symbols[PERLY_SEMICOLON]) {
     if(c == ';') {

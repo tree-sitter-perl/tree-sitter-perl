@@ -106,6 +106,7 @@ module.exports = grammar({
     $._dollar_in_regexp,
     $.pod,
     $._gobbled_content,
+    $._attribute_value_begin,
     $.attribute_value,
     $.prototype_or_signature,
     $._heredoc_delimiter,
@@ -622,7 +623,7 @@ module.exports = grammar({
     )),
     attribute: $ => seq(
       field('name', $.attribute_name),
-      field('value', optional($.attribute_value))
+      optseq($._attribute_value_begin, '(', field('value', $.attribute_value), ')'),
     ),
     attribute_name: $ => $._bareword,
 
