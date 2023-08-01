@@ -23,5 +23,4 @@ sub ghi :lvalue :const { }
 #                ^ decorator
 #
 sub abc :lvalue(1234) { }
-# <- keyword
-#        ^^^^^^^^^^^^ decorator
+#               ^^^^ string

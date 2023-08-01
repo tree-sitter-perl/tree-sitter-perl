@@ -67,7 +67,8 @@
 (require_expression (bareword) @type)
 
 (subroutine_declaration_statement name: (_) @function)
-(attrlist (attribute) @decorator)
+(attribute_name) @decorator
+(attribute_value) @string
 
 (goto_expression (label) @label)
 (loopex_expression (label) @label)
