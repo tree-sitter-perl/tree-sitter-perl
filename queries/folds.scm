@@ -3,8 +3,10 @@
 
 ; fold the block-typed package statements only
 (package_statement (block)) @fold
+(class_statement (block)) @fold
 
 [(subroutine_declaration_statement)
+ (method_declaration_statement)
  (conditional_statement)
  (loop_statement)
  (for_statement)
