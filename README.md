@@ -76,11 +76,9 @@ current `runtimepath`.
 
 ### Emacs
 
-As of version 29, [Emacs](https://www.gnu.org/software/emacs/) can be
-built with tree-sitter support.  This version is not yet released, so
-you need to build it yourself from the [Emacs source
-repository](https://git.savannah.gnu.org/cgit/emacs.git?h=emacs-29).
-You need to have tree-sitter itself available to do this.
+As of [Emacs](https://www.gnu.org/software/emacs/) version 29.1, if you have 
+the tree-sitter library installed, the configure script will automatically 
+include it in the build.
 
 Once this is done, you can install the Perl bindings 
 by executing two Emacs lisp forms:
