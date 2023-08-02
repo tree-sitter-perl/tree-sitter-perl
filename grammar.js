@@ -131,6 +131,9 @@ module.exports = grammar({
     $._heredoc_start,
     $._heredoc_middle,
     $.heredoc_end,
+    /* scanner state peek tokens */
+    $._PEEK_AFTER_USE,
+    $._PEEK_AFTER_USE_MODULE,
     /* zero-width lookahead tokens */
     $._fat_comma_zw,
     $._brace_end_zw,
@@ -199,10 +202,17 @@ module.exports = grammar({
       seq('package', field('name', $.package), optional(field('version', $._version)), $._semicolon),
       seq('package', field('name', $.package), optional(field('version', $._version)), $.block),
     ),
-    use_version_statement: $ => seq($._KW_USE, field('version', $._version), $._semicolon),
+    use_version_statement: $ => seq(
+      $._KW_USE,
+      $._PEEK_AFTER_USE,
+      field('version', $._version),
+      $._semicolon
+    ),
     use_statement: $ => seq(
       $._KW_USE,
+      $._PEEK_AFTER_USE,
       field('module', $.package),
+      $._PEEK_AFTER_USE_MODULE, /* avoid getting confused about optional version */
       optional(field('version', $._version)),
       optional($._listexpr),
       $._semicolon

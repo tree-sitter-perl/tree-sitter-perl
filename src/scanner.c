@@ -12,7 +12,8 @@
 #endif
 
 #include <string.h>
-#define streq(a,b)  (strcmp(a,b)==0)
+#define streq(a,b)     (strcmp(a,b)==0)
+#define strneq(a,b,n)  (strncmp(a,b,n)==0)
 
 #include <wctype.h>
 
@@ -46,6 +47,9 @@ enum TokenType {
   TOKEN_HEREDOC_START,
   TOKEN_HEREDOC_MIDDLE,
   TOKEN_HEREDOC_END,
+  /* scanner state peek tokens */
+  TOKEN_PEEK_AFTER_USE,
+  TOKEN_PEEK_AFTER_USE_MODULE,
   /* zero-width lookahead tokens */
   TOKEN_FAT_COMMA_ZW,
   TOKEN_BRACE_END_ZW,
@@ -103,6 +107,8 @@ struct LexerState {
   bool heredoc_interpolates, heredoc_indents;
   enum HeredocState heredoc_state;
   struct TSPString heredoc_delim;
+  enum PeekState { PEEK_NONE, PEEK_AFTER_USE_FEATURE } peeking;
+  int enabled_features;
 };
 
 static void lexerstate_add_heredoc(struct LexerState *state, struct TSPString *delim, bool interp, bool indent)
@@ -119,6 +125,37 @@ static void lexerstate_finish_heredoc(struct LexerState *state)
   state->heredoc_state = HEREDOC_NONE;
 }
 
+enum Features {
+  /* present since 5.34 */
+  FEATURE_TRY,
+  /* present since 5.36 */
+  FEATURE_DEFER,
+};
+
+static bool lexerstate_is_feature_enabled(struct LexerState *state, enum Features feat)
+{
+  return state->enabled_features & (1 << (int)feat);
+}
+
+static void lexerstate_enable_feature(struct LexerState *state, enum Features feat)
+{
+  state->enabled_features |= (1 << (int)feat);
+}
+
+static void lexerstate_disable_feature(struct LexerState *state, enum Features feat)
+{
+  state->enabled_features &= ~(1 << (int)feat);
+}
+
+static void lexerstate_enable_named_feature(struct LexerState *state, const char *name, int len)
+{
+  DEBUG("use feature <%.*s>\n", len, name);
+
+  if(len == 3 && strneq(name, "try", 3))
+    lexerstate_enable_feature(state, FEATURE_TRY);
+  else if(len == 5 && strneq(name, "defer", 5))
+    lexerstate_enable_feature(state, FEATURE_DEFER);
+}
 
 #define ADVANCE_C \
   do {                                         \
@@ -237,17 +274,111 @@ static bool is_interpolation_escape(int c) {
   return c < 256 && strchr("$@-[{\\", c);
 }
 
+/* Peek at the next chunk of input and fetch it into a string buffer */
+static int peek_chunk(char *token, int maxlen, TSLexer *lexer)
+{
+  int len = 0;
+  int c = lexer->lookahead;
+
+#define PUSH_C  do { if(len < maxlen) token[len++] = c; } while(0)
+
+  if(isidfirst(c)) {
+    while(isidcont(c)) {
+      PUSH_C;
+      ADVANCE_C;
+    }
+    if(len > 1 && token[0] == 'v' && iswdigit(token[1])) {
+      while(iswdigit(c) || c == '.') {
+        PUSH_C;
+        ADVANCE_C;
+      }
+    }
+  }
+  else if(iswdigit(c)) {
+    while(iswdigit(c) || c == '.' || c == '_') {
+      if(c != '_')
+        PUSH_C;
+      ADVANCE_C;
+    }
+  }
+
+  return len;
+}
+
+/* Returns an integer representing the version number, scaled as MAJOR*1000 + MINOR
+ * E.g.
+ *   5.014  =>  5014
+ *   v5.14  =>  5014
+ */
+static int ver_from_string(const char *s, int len)
+{
+  bool is_vstring = false;
+
+  if(len > 1 && s[0] == 'v') {
+    is_vstring = true;
+    s++;
+    len--;
+  }
+
+  int maj = 0;
+
+  while(len && iswdigit(s[0])) {
+    maj *= 10;
+    maj += s[0] - '0';
+    s++;
+    len--;
+  }
+
+  if(s[0] != '.')
+    return maj*1000;
+
+  s++;
+  len--;
+
+  int min = 0;
+  if(is_vstring) {
+    while(len && iswdigit(s[0])) {
+      min *= 10;
+      min += s[0] - '0';
+      s++;
+      len--;
+    }
+    /* ignore any further trailing components */
+  }
+  else {
+    if(len > 3) len = 3;
+
+    if(len) {
+      min += (s[0] - '0') * 100;
+      s++;
+      len--;
+    }
+    if(len) {
+      min += (s[0] - '0') * 10;
+      s++;
+      len--;
+    }
+    if(len) {
+      min += (s[0] - '0');
+    }
+  }
+
+  return maj*1000 + min;
+}
+
 void *tree_sitter_perl_external_scanner_create()
 {
-  return malloc(sizeof(struct LexerState));
+  struct LexerState *state = malloc(sizeof(struct LexerState));
+
+  state->enabled_features = 0;
+
+  return state;
 }
 
 void tree_sitter_perl_external_scanner_destroy(void *payload)
 {
   free(payload);
 }
-
-void tree_sitter_perl_external_scanner_reset(void *payload) {}
 
 unsigned int tree_sitter_perl_external_scanner_serialize(void *payload, char *buffer)
 {
@@ -262,7 +393,11 @@ void tree_sitter_perl_external_scanner_deserialize(void *payload, const char *bu
 {
   struct LexerState *state = payload;
 
-  memcpy(state, buffer, n);
+  state->enabled_features = 0;
+
+  if(n > 0) {
+    memcpy(state, buffer, n);
+  }
 }
 
 /* Longest identifier name we ever care to look specifically for (excluding
@@ -422,7 +557,137 @@ bool tree_sitter_perl_external_scanner_scan(
   if(c == 26 && valid_symbols[TOKEN_CTRL_Z])
     TOKEN(TOKEN_CTRL_Z);
 
+  if(!is_ERROR && valid_symbols[TOKEN_PEEK_AFTER_USE]) {
+    lexer->mark_end(lexer);
+
+    char token[16];
+    int len = peek_chunk(token, 16, lexer);
+
+    state->peeking = PEEK_NONE;
+
+    if((len && iswdigit(token[0])) ||
+        (len > 1 && token[0] == 'v' && iswdigit(token[1]))) {
+      /* use VERSION */
+      int ver = ver_from_string(token, len);
+      DEBUG("use VERSION v=%d\n", ver);
+
+      /* Any `use VERSION` will first reset the features */
+      state->enabled_features = 0;
+
+      /*
+        if(ver >= 5.036)
+          lexerstate_enable_feature(state, FEATURE_SIGNATURES);
+       */
+    }
+    else if(len == 7 && strneq(token, "feature", 7)) {
+      DEBUG("use feature\n", 0);
+      state->peeking = PEEK_AFTER_USE_FEATURE;
+    }
+    /* TODO: Can insert more detection of 'use MODULE...' here to detect
+     *   experimental
+     *   Object::Pad
+     *   Syntax::Keyword::...
+     */
+
+    TOKEN(TOKEN_PEEK_AFTER_USE);
+  }
+  if(!is_ERROR && valid_symbols[TOKEN_PEEK_AFTER_USE_MODULE]) {
+    if(state->peeking == PEEK_AFTER_USE_FEATURE) {
+      DEBUG("Peeking after use FEATURE\n", 0);
+
+      lexer->mark_end(lexer);
+
+      /* Supported list expressions:
+       *   use feature 'names', "here";
+       *   use feature q(names), qq/here/;
+       *   use feature qw( things go here ), qw/ more here /;
+       */
+
+      char token[16];
+      int len;
+
+      while(1) {
+        len = 0;
+        skip_whitespace(lexer);
+        c = lexer->lookahead;
+
+        if(c == '\'' || c == '"') {
+          char delim = c;
+          ADVANCE_C;
+          while(c && c != delim) {
+            if(c == '\\')
+              ADVANCE_C;
+            if(len < sizeof(token)) token[len++] = c;
+            ADVANCE_C;
+          }
+          ADVANCE_C;
+
+          lexerstate_enable_named_feature(state, token, len);
+        }
+        else if(c == 'q') {
+          bool is_qw = false;
+          ADVANCE_C;
+          if(c == 'w') {
+            ADVANCE_C;
+            is_qw = true;
+          }
+          else if(c == 'q')
+            ADVANCE_C;
+          else if(isidcont(c))
+            return false;
+
+          int delim_open = c;
+          int delim_close = close_for_open(c);
+          if(!delim_close) delim_close = delim_open;
+          ADVANCE_C;
+
+          int delim_count = 0;
+
+          while(c && (c != delim_close)) { /* TODO: count */
+            if(is_qw && iswspace(c)) {
+              if(len) {
+                lexerstate_enable_named_feature(state, token, len);
+                len = 0;
+              }
+
+              skip_whitespace(lexer);
+              c = lexer->lookahead;
+              continue;
+            }
+
+            if(delim_close != delim_open && c == delim_open)
+              delim_count++;
+            else if(delim_close != delim_open && c == delim_close)
+              delim_count--;
+            else {
+              if(c == '\\')
+                ADVANCE_C;
+              if(len < sizeof(token)) token[len++] = c;
+            }
+
+            ADVANCE_C;
+          }
+          ADVANCE_C;
+
+          if(len)
+            lexerstate_enable_named_feature(state, token, len);
+        }
+
+        skip_whitespace(lexer);
+        c = lexer->lookahead;
+
+        if(c != ',')
+          break;
+        ADVANCE_C;
+        /* redo */
+      }
+    }
+
+    TOKEN(TOKEN_PEEK_AFTER_USE_MODULE);
+  }
+
   if(valid_symbols[PERLY_SEMICOLON]) {
+    /* TODO: state->peeking = PEEK_NONE; maybe? */
     if(c == '}' || lexer->eof(lexer)) {
       // do a PERLY_SEMICOLON unless we're in brace autoquoting
       if(is_ERROR || !valid_symbols[TOKEN_BRACE_END_ZW]) {
@@ -557,9 +822,11 @@ bool tree_sitter_perl_external_scanner_scan(
 
   for(int sym = TOKEN_FEATURE_first; sym <= TOKEN_FEATURE_max; sym++) {
     if(valid_symbols[sym]) {
-      /* TODO: implement feature tests. For now all features are always
-       * recognised */
-      TOKEN(sym);
+      DEBUG("Check for feature=%d\n", sym - TOKEN_FEATURE_first);
+      if(lexerstate_is_feature_enabled(state, sym - TOKEN_FEATURE_first))
+        TOKEN(sym);
+      else
+        return false;
     }
   }
 

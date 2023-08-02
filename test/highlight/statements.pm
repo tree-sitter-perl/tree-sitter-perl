@@ -60,12 +60,14 @@ for (my $i = 0; $i < 10; $i++) { 123; }
 #       ^ variable.scalar
 #               ^ variable.scalar
 #                        ^ variable.scalar
+use feature 'try';
 try { A(); } catch($e) { B(); }
 # <- exception
 #            ^^^^^ exception
 #                  ^^ variable.scalar
 try { A(); } catch($e) { B(); } finally { C(); }
 #                               ^^^^^^^ exception
+use feature 'defer';
 defer { A(); }
 # <- keyword
 package AAA;

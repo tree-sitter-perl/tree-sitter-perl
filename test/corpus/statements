@@ -15,6 +15,18 @@ use v5.14;
     (version)))
 
 ================================================================================
+use feature;
+================================================================================
+use feature 'red', "orange";
+use feature q(yellow), qq(green);
+use feature qw/ blue purple /, qw( black white );
+--------------------------------------------------------------------------------
+
+(source_file
+  (use_statement (package) (list_expression (string_literal) (interpolated_string_literal)))
+  (use_statement (package) (list_expression (string_literal) (interpolated_string_literal)))
+  (use_statement (package) (list_expression (quoted_word_list) (quoted_word_list))))
+================================================================================
 use MODULE;
 ================================================================================
 use strict;
@@ -362,11 +374,13 @@ for (my $i = 0; $i < 10; $i++) { 123; }
 ================================================================================
 try / catch
 ================================================================================
+use feature 'try';
 try { A(); } catch($e) { B(); }
 try { A(); } catch($e) { B(); } finally { C(); }
 --------------------------------------------------------------------------------
 
 (source_file
+  (use_statement (package) (string_literal))
   (try_statement
     (block (expression_statement (function_call_expression (function))))
     (scalar (varname))
@@ -380,10 +394,12 @@ try { A(); } catch($e) { B(); } finally { C(); }
 ================================================================================
 Defer
 ================================================================================
+use feature 'defer';
 defer { A(); }
 --------------------------------------------------------------------------------
 
 (source_file
+  (use_statement (package) (string_literal))
   (defer_statement
     (block (expression_statement (function_call_expression (function)))))
     )
