@@ -6,6 +6,7 @@ basic comment
 
 (source_file
   (comment))
+
 ================================================================================
 Multiple lines are a single comment
 ================================================================================
@@ -16,6 +17,7 @@ Multiple lines are a single comment
 
 (source_file
   (comment))
+
 ================================================================================
 data section - basic
 ================================================================================
@@ -23,43 +25,64 @@ data section - basic
 __DATA__
 $this = not `code`
 --------------------------------------------------------------------------------
-(source_file 
-  (expression_statement (binary_expression (number) (number)))
+
+(source_file
+  (expression_statement
+    (binary_expression
+      (number)
+      (number)))
   (eof_marker)
-  (data_section)
-)
+  (data_section))
+
 ================================================================================
 data section - ctrl-d
 ================================================================================
 
 $this = not `code`
 --------------------------------------------------------------------------------
-(source_file (eof_marker))
+
+(source_file
+  (eof_marker))
+
 ================================================================================
 data section - ctrl-z
 ================================================================================
 1 
 $this = not `code`
 --------------------------------------------------------------------------------
-(source_file (expression_statement (number)) (eof_marker))
+
+(source_file
+  (expression_statement
+    (number))
+  (eof_marker))
+
 ================================================================================
 data section anywhere
 ================================================================================
 1 + 2 __END__ this is ignored too
 $this = not `code`
 --------------------------------------------------------------------------------
+
 (source_file
-  (expression_statement (binary_expression (number) (number)))
+  (expression_statement
+    (binary_expression
+      (number)
+      (number)))
   (eof_marker)
-  (data_section)
-)
+  (data_section))
 
 ================================================================================
 data section, but not in strings
 ================================================================================
 'this is not a __DATA__ section'
 --------------------------------------------------------------------------------
-(source_file (expression_statement (string_literal)))
+
+(source_file
+  (expression_statement
+    (string_literal
+      (quotelike_begin)
+      (quotelike_end))))
+
 ================================================================================
 maths! higher prec
 ================================================================================
@@ -114,5 +137,5 @@ yadayada operator
 --------------------------------------------------------------------------------
 
 (source_file
-  (expression_statement (yadayada))
-  )
+  (expression_statement
+    (yadayada)))

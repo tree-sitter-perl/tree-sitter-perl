@@ -8,21 +8,33 @@ $#a;
 %h;
 *g;
 --------------------------------------------------------------------------------
+
 (source_file
-  (expression_statement (scalar))
-  (expression_statement (scalar))
-  (expression_statement (array))
-  (expression_statement (arraylen))
-  (expression_statement (hash))
-  (expression_statement (glob)))
+  (expression_statement
+    (scalar))
+  (expression_statement
+    (scalar))
+  (expression_statement
+    (array))
+  (expression_statement
+    (arraylen))
+  (expression_statement
+    (hash))
+  (expression_statement
+    (glob)))
+
 ================================================================================
 vars in expressions
 ================================================================================
 $one + $two;
 --------------------------------------------------------------------------------
+
 (source_file
   (expression_statement
-    (binary_expression (scalar) (scalar))))
+    (binary_expression
+      (scalar)
+      (scalar))))
+
 ================================================================================
 variable declarations
 ================================================================================
@@ -32,20 +44,39 @@ my %h;
 my ($S, @A, %h);
 our $PackageVar;
 --------------------------------------------------------------------------------
+
 (source_file
-  (expression_statement (variable_declaration (scalar)))
-  (expression_statement (variable_declaration (array)))
-  (expression_statement (variable_declaration (hash)))
-  (expression_statement (variable_declaration (scalar) (array) (hash)))
-  (expression_statement (variable_declaration (scalar)))
-)
+  (expression_statement
+    (variable_declaration
+      (scalar)))
+  (expression_statement
+    (variable_declaration
+      (array)))
+  (expression_statement
+    (variable_declaration
+      (hash)))
+  (expression_statement
+    (variable_declaration
+      (scalar)
+      (array)
+      (hash)))
+  (expression_statement
+    (variable_declaration
+      (scalar))))
+
 ================================================================================
 variable declarations including undef
 ================================================================================
 my ($x, undef, $z);
 --------------------------------------------------------------------------------
+
 (source_file
-  (expression_statement (variable_declaration (scalar) (undef_expression) (scalar))))
+  (expression_statement
+    (variable_declaration
+      (scalar)
+      (undef_expression)
+      (scalar))))
+
 ================================================================================
 variable declarations with initialiser
 ================================================================================
@@ -53,13 +84,28 @@ my $s = 123;
 my @a = (4, 5);
 my %h = (6, 7);
 --------------------------------------------------------------------------------
+
 (source_file
   (expression_statement
-    (assignment_expression (variable_declaration (scalar)) (number)))
+    (assignment_expression
+      (variable_declaration
+        (scalar))
+      (number)))
   (expression_statement
-    (assignment_expression (variable_declaration (array)) (list_expression (number) (number))))
+    (assignment_expression
+      (variable_declaration
+        (array))
+      (list_expression
+        (number)
+        (number))))
   (expression_statement
-    (assignment_expression (variable_declaration (hash)) (list_expression (number) (number)))))
+    (assignment_expression
+      (variable_declaration
+        (hash))
+      (list_expression
+        (number)
+        (number)))))
+
 ================================================================================
 variable declarations with attributes
 ================================================================================
@@ -67,13 +113,30 @@ my $s :shared;
 my @a :lock;
 my ($S, @A, %h) :MyAttr(foo);
 --------------------------------------------------------------------------------
+
 (source_file
   (expression_statement
-    (variable_declaration (scalar) (attrlist (attribute (attribute_name)))))
+    (variable_declaration
+      (scalar)
+      (attrlist
+        (attribute
+          (attribute_name)))))
   (expression_statement
-    (variable_declaration (array) (attrlist (attribute (attribute_name)))))
+    (variable_declaration
+      (array)
+      (attrlist
+        (attribute
+          (attribute_name)))))
   (expression_statement
-    (variable_declaration (scalar) (array) (hash) (attrlist (attribute (attribute_name) (attribute_value))))))
+    (variable_declaration
+      (scalar)
+      (array)
+      (hash)
+      (attrlist
+        (attribute
+          (attribute_name)
+          (attribute_value))))))
+
 ================================================================================
 array elements
 ================================================================================
@@ -81,6 +144,7 @@ $a[123];
 $aref->[123];
 $a[1][2][3];
 --------------------------------------------------------------------------------
+
 (source_file
   (expression_statement
     (array_element_expression
@@ -98,6 +162,7 @@ $a[1][2][3];
           index: (number))
         index: (number))
       index: (number))))
+
 ================================================================================
 hash elements
 ================================================================================
@@ -105,6 +170,7 @@ $h{123};
 $href->{123};
 $h{1}{2}{3};
 --------------------------------------------------------------------------------
+
 (source_file
   (expression_statement
     (hash_element_expression
@@ -122,6 +188,7 @@ $h{1}{2}{3};
           key: (number))
         key: (number))
       key: (number))))
+
 ================================================================================
 coderef calls
 ================================================================================
@@ -129,6 +196,7 @@ $code->();
 $code->('args');
 $code->('args')(1)("and again")
 --------------------------------------------------------------------------------
+
 (source_file
   (expression_statement
     (coderef_call_expression
@@ -136,15 +204,22 @@ $code->('args')(1)("and again")
   (expression_statement
     (coderef_call_expression
       (scalar)
-      (string_literal)))
+      (string_literal
+        (quotelike_begin)
+        (quotelike_end))))
   (expression_statement
     (coderef_call_expression
       (coderef_call_expression
         (coderef_call_expression
           (scalar)
-          (string_literal))
+          (string_literal
+            (quotelike_begin)
+            (quotelike_end)))
         (number))
-      (interpolated_string_literal))))
+      (interpolated_string_literal
+        (quotelike_begin)
+        (quotelike_end)))))
+
 ================================================================================
 special vars
 ================================================================================
@@ -152,10 +227,15 @@ $1;
 $^X;
 $!;
 --------------------------------------------------------------------------------
+
 (source_file
-  (expression_statement (scalar))
-  (expression_statement (scalar))
-  (expression_statement (scalar)))
+  (expression_statement
+    (scalar))
+  (expression_statement
+    (scalar))
+  (expression_statement
+    (scalar)))
+
 ================================================================================
 crazy vars
 ================================================================================
@@ -163,8 +243,11 @@ $::application;
 $::::var;
 %overload::;
 --------------------------------------------------------------------------------
+
 (source_file
-  (expression_statement (scalar))
-  (expression_statement (scalar))
-  (expression_statement (hash))
-)
+  (expression_statement
+    (scalar))
+  (expression_statement
+    (scalar))
+  (expression_statement
+    (hash)))

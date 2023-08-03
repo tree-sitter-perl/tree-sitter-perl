@@ -10,13 +10,33 @@ qr/^anchored pattern$/;
 --------------------------------------------------------------------------------
 
 (source_file
-  (expression_statement (quoted_regexp))
-  (expression_statement (quoted_regexp))
-  (expression_statement (quoted_regexp (scalar)))
-  (expression_statement (quoted_regexp))
-  (expression_statement (quoted_regexp (quoted_regexp_modifiers)))
-  (expression_statement (quoted_regexp))
-  )
+  (expression_statement
+    (quoted_regexp
+      (quotelike_begin)
+      (quotelike_end)))
+  (expression_statement
+    (quoted_regexp
+      (quotelike_begin)
+      (quotelike_end)))
+  (expression_statement
+    (quoted_regexp
+      (quotelike_begin)
+      (scalar)
+      (quotelike_end)))
+  (expression_statement
+    (quoted_regexp
+      (quotelike_begin)
+      (quotelike_end)))
+  (expression_statement
+    (quoted_regexp
+      (quotelike_begin)
+      (quotelike_end)
+      (quoted_regexp_modifiers)))
+  (expression_statement
+    (quoted_regexp
+      (quotelike_begin)
+      (quotelike_end))))
+
 ================================================================================
 Regexp match
 ================================================================================
@@ -30,11 +50,33 @@ m/^pattern(?:$|,)/;
 --------------------------------------------------------------------------------
 
 (source_file
-  (expression_statement (match_regexp))
-  (expression_statement (match_regexp))
-  (expression_statement (match_regexp (scalar)))
-  (expression_statement (match_regexp))
-  (expression_statement (match_regexp (match_regexp_modifiers)))
-  (expression_statement (match_regexp))
-  (expression_statement (match_regexp))
-  )
+  (expression_statement
+    (match_regexp
+      (quotelike_begin)
+      (quotelike_end)))
+  (expression_statement
+    (match_regexp
+      (quotelike_begin)
+      (quotelike_end)))
+  (expression_statement
+    (match_regexp
+      (quotelike_begin)
+      (scalar)
+      (quotelike_end)))
+  (expression_statement
+    (match_regexp
+      (quotelike_begin)
+      (quotelike_end)))
+  (expression_statement
+    (match_regexp
+      (quotelike_begin)
+      (quotelike_end)
+      (match_regexp_modifiers)))
+  (expression_statement
+    (match_regexp
+      (quotelike_begin)
+      (quotelike_end)))
+  (expression_statement
+    (match_regexp
+      (quotelike_begin)
+      (quotelike_end))))

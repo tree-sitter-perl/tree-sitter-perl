@@ -15,8 +15,10 @@ map { lc($_) => 1 } @array;        # and this.
           (list_expression
             (unary_expression
               (interpolated_string_literal
+                (quotelike_begin)
                 (escape_sequence)
-                (scalar)))
+                (scalar)
+                (quotelike_end)))
             (number))))
       (array)))
   (comment)
@@ -26,8 +28,10 @@ map { lc($_) => 1 } @array;        # and this.
         (expression_statement
           (list_expression
             (interpolated_string_literal
+              (quotelike_begin)
               (escape_sequence)
-              (scalar))
+              (scalar)
+              (quotelike_end))
             (number))))
       (array)))
   (comment)
@@ -37,8 +41,10 @@ map { lc($_) => 1 } @array;        # and this.
         (expression_statement
           (list_expression
             (interpolated_string_literal
+              (quotelike_begin)
               (escape_sequence)
-              (scalar))
+              (scalar)
+              (quotelike_end))
             (number))))
       (array)))
   (comment)
@@ -86,8 +92,10 @@ map { "\L$_"   => 1 }, @array;     # perl guesses EXPR; SURPRISE!
     (map_grep_expression
       (anonymous_hash_expression
         (interpolated_string_literal
+          (quotelike_begin)
           (escape_sequence)
-          (scalar))
+          (scalar)
+          (quotelike_end))
         (number))
       (array)))
   (comment))

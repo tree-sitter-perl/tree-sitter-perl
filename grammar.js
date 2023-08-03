@@ -97,8 +97,8 @@ module.exports = grammar({
     $._PERLY_HEREDOC,
     $._ctrl_z_hack,
     /* immediates */
-    $._quotelike_begin,
-    $._quotelike_end,
+    $.quotelike_begin,
+    $.quotelike_end,
     $._q_string_content,
     $._qq_string_content,
     $.escape_sequence,
@@ -730,21 +730,23 @@ module.exports = grammar({
     ),
 
     string_literal: $ => choice($._q_string),
+    // TODO - if we wanna use matchup here, we need to make the quotebegin + quoteend into
+    // actual nodes, sigh
     _q_string: $ => seq(
       choice(
-        seq('q', $._quotelike_begin),
-        $._apostrophe
+        seq('q', $.quotelike_begin),
+        alias($._apostrophe, $.quotelike_begin),
       ),
       optional($._noninterpolated_string_content),
-      $._quotelike_end
+      $.quotelike_end
     ),
     interpolated_string_literal: $ => seq(
       choice(
-        seq('qq', $._quotelike_begin),
-        $._double_quote
+        seq('qq', $.quotelike_begin),
+        alias($._double_quote, $.quotelike_begin),
       ),
       optional($._interpolated_string_content),
-      $._quotelike_end
+      $.quotelike_end
     ),
     // we make a copy of the relevant rules b/c this must be more constrained (or else TS
     // just explodes)
@@ -803,40 +805,40 @@ module.exports = grammar({
 
     quoted_word_list: $ => seq(
       'qw',
-      $._quotelike_begin,
+      $.quotelike_begin,
       optional($._noninterpolated_string_content),
-      $._quotelike_end
+      $.quotelike_end
     ),
 
     command_string: $ => choice(
       seq(
         choice(
-          seq('qx', $._quotelike_begin),
-          $._backtick
+          seq('qx', $.quotelike_begin),
+          alias($._backtick, $.quotelike_begin)
         ),
         optional($._interpolated_string_content),
-        $._quotelike_end
+        $.quotelike_end
       ),
       seq(
         'qx',
-        $._apostrophe,
+        alias($._apostrophe, $.quotelike_begin),
         optional($._noninterpolated_string_content),
-        $._quotelike_end
+        $.quotelike_end
       )
     ),
 
     quoted_regexp: $ => choice(
       seq(
-        seq('qr', $._quotelike_begin),
+        seq('qr', $.quotelike_begin),
         optional($._interpolated_regexp_content),
-        $._quotelike_end,
+        $.quotelike_end,
         optional(field('modifiers', $.quoted_regexp_modifiers))
       ),
       seq(
         'qr',
-        $._apostrophe,
+        alias($._apostrophe, $.quotelike_begin),
         optional($._noninterpolated_string_content), // TODO: regexp content
-        $._quotelike_end,
+        $.quotelike_end,
         optional(field('modifiers', $.quoted_regexp_modifiers))
       )
     ),
@@ -844,16 +846,16 @@ module.exports = grammar({
     match_regexp: $ => choice(
       // TODO: recognise /pattern/ as a match regexp as well
       seq(
-        seq('m', $._quotelike_begin),
+        seq('m', $.quotelike_begin),
         optional($._interpolated_regexp_content),
-        $._quotelike_end,
+        $.quotelike_end,
         optional(field('modifiers', $.match_regexp_modifiers))
       ),
       seq(
         'm',
-        $._apostrophe,
+        alias($._apostrophe, $.quotelike_begin),
         optional($._noninterpolated_string_content), // TODO: regexp content
-        $._quotelike_end,
+        $.quotelike_end,
         optional(field('modifiers', $.match_regexp_modifiers))
       )
     ),
