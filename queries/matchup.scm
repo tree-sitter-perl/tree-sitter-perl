@@ -10,6 +10,20 @@
   ":" @mid.ternary.1
   ) @scope.ternary
 
+(loop_statement
+  ["while" "unless"] @open.loop
+  (block "}" @close.loop) .
+  ) @scope.loop
+(cstyle_for_statement
+  ["for" "foreach"] @open.loop
+  (block "}" @close.loop) .
+  ) @scope.loop
+(for_statement
+  ["for" "foreach"] @open.loop
+  (block "}" @close.loop) .
+  ) @scope.loop
+(loopex_expression) @mid.loop.1
+
 (subroutine_declaration_statement
     "sub" @open.fun
     (block "}" @close.fun) .
