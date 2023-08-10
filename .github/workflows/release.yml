@@ -18,10 +18,13 @@ jobs:
           node-version: 18
       - run: npm install
       - run: npm test
-      - run: git add -f src binding.gyp
-      - run: |
-          git config --global user.email 'release-flow@beep.boop'
-          git config --global user.name 'GH Actions'
-      - run: git commit -m'yet another release'
-      - name: Push to the release branch
-        run: git push -f origin master:release
+      - run: mkdir release
+      - run: cp -r src binding.gyp queries release
+      - name: Deploy 🚀
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./release
+          publish_branch: release
+          user_name: GH Actions [beep-boop]
+          user_email: release-flow@beep.boop
