@@ -13,6 +13,5 @@ jobs:
       - uses: vigoux/tree-sitter-fuzz-action@v1
         with:
           language: perl
-          external-scanner: scanner.c
+          external-scanner: src/scanner.c
           time: 60
-          timeout: 5
