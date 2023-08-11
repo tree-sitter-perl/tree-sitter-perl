@@ -745,10 +745,12 @@ bool tree_sitter_perl_external_scanner_scan(
   }
 
   lexer->mark_end(lexer);
-  int c1 = c;
+  int c1 = c, c2 = 0;
   /* let's get the next lookahead */
-  ADVANCE_C;
-  int c2 = c;
+  if(c1) {
+    ADVANCE_C;
+    c2 = c;
+  }
 #define EQ2(s)  (c1 == s[0] && c2 == s[1])
 
   /* NOTE - we need this to NOT be valid_symbol guarded, b/c we need this to crash errant
