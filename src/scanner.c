@@ -425,6 +425,8 @@ bool tree_sitter_perl_external_scanner_scan(
       }
     }
   }
+  if (lexer->eof(lexer))
+    return false;
 
   if(valid_symbols[TOKEN_APOSTROPHE] && c == '\'') {
     ADVANCE_C;
@@ -749,6 +751,8 @@ bool tree_sitter_perl_external_scanner_scan(
   /* let's get the next lookahead */
   ADVANCE_C;
   int c2 = c;
+  if (lexer->eof(lexer))
+    return false;
 #define EQ2(s)  (c1 == s[0] && c2 == s[1])
 
   /* NOTE - we need this to NOT be valid_symbol guarded, b/c we need this to crash errant
