@@ -747,7 +747,7 @@ bool tree_sitter_perl_external_scanner_scan(
   lexer->mark_end(lexer);
   int c1 = c, c2 = 0;
   /* let's get the next lookahead */
-  if(c1) {
+  if(!lexer->eof(lexer)) {
     ADVANCE_C;
     c2 = c;
   }
