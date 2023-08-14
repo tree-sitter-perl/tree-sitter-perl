@@ -34,7 +34,9 @@ eval 'die $x';
       (scalar)))
   (expression_statement
     (eval_expression
-      (string_literal))))
+      (string_literal
+        (quotelike_begin)
+        (quotelike_end)))))
 
 ================================================================================
 eval BLOCK
@@ -127,7 +129,9 @@ qw/one two/[0];
       (number)))
   (expression_statement
     (anonymous_slice_expression
-      list: (quoted_word_list)
+      list: (quoted_word_list
+        (quotelike_begin)
+        (quotelike_end))
       (number))))
 
 ================================================================================
@@ -150,7 +154,9 @@ $hashref->@{qw/key1 key2/};
   (expression_statement
     (slice_expression
       hash: (slice_container_variable)
-      (quoted_word_list)))
+      (quoted_word_list
+        (quotelike_begin)
+        (quotelike_end))))
   (expression_statement
     (slice_expression
       arrayref: (scalar)
@@ -167,7 +173,9 @@ $hashref->@{qw/key1 key2/};
   (expression_statement
     (slice_expression
       hashref: (scalar)
-      (quoted_word_list))))
+      (quoted_word_list
+        (quotelike_begin)
+        (quotelike_end)))))
 
 ================================================================================
 Keyval Slices
@@ -189,7 +197,9 @@ $hashref->%{qw/key1 key2/};
   (expression_statement
     (keyval_expression
       hash: (keyval_container_variable)
-      (quoted_word_list)))
+      (quoted_word_list
+        (quotelike_begin)
+        (quotelike_end))))
   (expression_statement
     (keyval_expression
       arrayref: (scalar)
@@ -206,7 +216,9 @@ $hashref->%{qw/key1 key2/};
   (expression_statement
     (keyval_expression
       hashref: (scalar)
-      (quoted_word_list))))
+      (quoted_word_list
+        (quotelike_begin)
+        (quotelike_end)))))
 
 ================================================================================
 Stub
@@ -403,4 +415,6 @@ return 1, 2, 3 or die("never reached");
         (number))
       (function_call_expression
         (function)
-        (interpolated_string_literal)))))
+        (interpolated_string_literal
+          (quotelike_begin)
+          (quotelike_end))))))

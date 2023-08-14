@@ -8,15 +8,18 @@ Fancy indirob interpolation
 (source_file
   (expression_statement
     (interpolated_string_literal
+      (quotelike_begin)
       (scalar
         (block
           (expression_statement
             (refgen_expression
               (method_call_expression
                 (scalar)
-                (method))))))))
+                (method))))))
+      (quotelike_end)))
   (expression_statement
     (interpolated_string_literal
+      (quotelike_begin)
       (array
         (block
           (expression_statement
@@ -24,7 +27,8 @@ Fancy indirob interpolation
               (list_expression
                 (number)
                 (number)
-                (number)))))))))
+                (number))))))
+      (quotelike_end))))
 
 ================================================================================
 Array element interpolation
@@ -37,21 +41,27 @@ Array element interpolation
 (source_file
   (expression_statement
     (interpolated_string_literal
+      (quotelike_begin)
       (array_element_expression
         (container_variable)
-        (number))))
+        (number))
+      (quotelike_end)))
   (expression_statement
     (interpolated_string_literal
+      (quotelike_begin)
       (array_element_expression
         (scalar)
-        (number))))
+        (number))
+      (quotelike_end)))
   (expression_statement
     (interpolated_string_literal
+      (quotelike_begin)
       (array_element_expression
         (array_element_expression
           (scalar)
           (number))
-        (number)))))
+        (number))
+      (quotelike_end))))
 
 ================================================================================
 Hash element interpolation
@@ -64,21 +74,27 @@ Hash element interpolation
 (source_file
   (expression_statement
     (interpolated_string_literal
+      (quotelike_begin)
       (hash_element_expression
         (container_variable)
-        (autoquoted_bareword))))
+        (autoquoted_bareword))
+      (quotelike_end)))
   (expression_statement
     (interpolated_string_literal
+      (quotelike_begin)
       (hash_element_expression
         (scalar)
-        (autoquoted_bareword))))
+        (autoquoted_bareword))
+      (quotelike_end)))
   (expression_statement
     (interpolated_string_literal
+      (quotelike_begin)
       (hash_element_expression
         (hash_element_expression
           (scalar)
           (autoquoted_bareword))
-        (autoquoted_bareword)))))
+        (autoquoted_bareword))
+      (quotelike_end))))
 
 ================================================================================
 Space skips interpolation
@@ -91,13 +107,19 @@ Space skips interpolation
 (source_file
   (expression_statement
     (interpolated_string_literal
-      (scalar)))
+      (quotelike_begin)
+      (scalar)
+      (quotelike_end)))
   (expression_statement
     (interpolated_string_literal
-      (scalar)))
+      (quotelike_begin)
+      (scalar)
+      (quotelike_end)))
   (expression_statement
     (interpolated_string_literal
-      (scalar))))
+      (quotelike_begin)
+      (scalar)
+      (quotelike_end))))
 
 ================================================================================
 Slice interpolation
@@ -110,24 +132,31 @@ Slice interpolation
 (source_file
   (expression_statement
     (interpolated_string_literal
+      (quotelike_begin)
       (slice_expression
         array: (slice_container_variable)
         (list_expression
           (number)
-          (number)))))
+          (number)))
+      (quotelike_end)))
   (expression_statement
     (interpolated_string_literal
+      (quotelike_begin)
       (slice_expression
         hash: (slice_container_variable)
-        (bareword))))
+        (bareword))
+      (quotelike_end)))
   (expression_statement
     (interpolated_string_literal
+      (quotelike_begin)
       (slice_expression
         arrayref: (scalar)
         (list_expression
           (number)
           (number)
-          (number))))))
+          (number)))
+      (quotelike_end))))
+
 ================================================================================
 Punctuation vars that interpolate
 ================================================================================
@@ -140,15 +169,31 @@ Punctuation vars that interpolate
 
 (source_file
   (expression_statement
-    (interpolated_string_literal (scalar)))
+    (interpolated_string_literal
+      (quotelike_begin)
+      (scalar)
+      (quotelike_end)))
   (expression_statement
-    (interpolated_string_literal (scalar)))
+    (interpolated_string_literal
+      (quotelike_begin)
+      (scalar)
+      (quotelike_end)))
   (expression_statement
-    (interpolated_string_literal (scalar)))
+    (interpolated_string_literal
+      (quotelike_begin)
+      (scalar)
+      (quotelike_end)))
   (expression_statement
-    (interpolated_string_literal (array)))
+    (interpolated_string_literal
+      (quotelike_begin)
+      (array)
+      (quotelike_end)))
   (expression_statement
-    (interpolated_string_literal (array))))
+    (interpolated_string_literal
+      (quotelike_begin)
+      (array)
+      (quotelike_end))))
+
 ================================================================================
 Punctuation vars that do not interpolate
 ================================================================================
@@ -158,6 +203,10 @@ Punctuation vars that do not interpolate
 
 (source_file
   (expression_statement
-    (interpolated_string_literal))
+    (interpolated_string_literal
+      (quotelike_begin)
+      (quotelike_end)))
   (expression_statement
-    (interpolated_string_literal)))
+    (interpolated_string_literal
+      (quotelike_begin)
+      (quotelike_end))))
