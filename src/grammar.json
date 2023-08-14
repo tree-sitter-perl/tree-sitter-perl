@@ -98,6 +98,15 @@
         }
       ]
     },
+    "_semicolon": {
+      "type": "ALIAS",
+      "content": {
+        "type": "SYMBOL",
+        "name": "_PERLY_SEMICOLON"
+      },
+      "named": false,
+      "value": ";"
+    },
     "_barestmt": {
       "type": "CHOICE",
       "members": [
@@ -158,7 +167,7 @@
               "members": [
                 {
                   "type": "SYMBOL",
-                  "name": "_PERLY_SEMICOLON"
+                  "name": "_semicolon"
                 },
                 {
                   "type": "SYMBOL",
@@ -210,7 +219,7 @@
             },
             {
               "type": "SYMBOL",
-              "name": "_PERLY_SEMICOLON"
+              "name": "_semicolon"
             }
           ]
         },
@@ -270,7 +279,7 @@
         },
         {
           "type": "SYMBOL",
-          "name": "_PERLY_SEMICOLON"
+          "name": "_semicolon"
         }
       ]
     },
@@ -319,7 +328,7 @@
         },
         {
           "type": "SYMBOL",
-          "name": "_PERLY_SEMICOLON"
+          "name": "_semicolon"
         }
       ]
     },
@@ -6254,6 +6263,18 @@
         {
           "type": "STRING",
           "value": "__END__"
+        },
+        {
+          "type": "STRING",
+          "value": "sub"
+        },
+        {
+          "type": "STRING",
+          "value": "map"
+        },
+        {
+          "type": "STRING",
+          "value": "grep"
         }
       ]
     },
