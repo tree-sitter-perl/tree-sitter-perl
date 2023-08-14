@@ -1,10 +1,10 @@
 foo();
-# <- function
+# <- function.call
 foo(123);
-# <- function
+# <- function.call
 #   ^ number
 foo(12, 34);
-# <- function
+# <- function.call
 #   ^ number
 #       ^ number
 $obj->meth;

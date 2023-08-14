@@ -7,12 +7,11 @@
 # <- string
 'a\'string';
 # <- string
-# ^^ string.special
+# ^^ string.escape
 'a\\string';
 # <- string
-# ^^ string.special
+# ^^ string.escape
 '\n is literal';
-# <- string
 #^^ string  # not string.special
 'a string with a final \\';
 # <- string
@@ -34,7 +33,7 @@ q(a (string) here);
 # <- string
 # ^^ string.special
 "a string w/ a final \\";
-#                    ^^ string.special
+#                    ^^ string.escape
 # <- string
 "a string with\nlinefeed";
 # <- string

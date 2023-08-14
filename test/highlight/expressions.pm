@@ -2,10 +2,10 @@ do { 123; };
 # <- keyword
 #    ^ number
 require 123;
-# <- keyword
+# <- include
 #       ^ number
 require;
-# <- keyword
+# <- include
 next;
 # <- keyword
 last LOOP;
@@ -23,7 +23,7 @@ local $var;
 # <- keyword
 #     ^ variable.scalar
 return;
-# <- keyword
+# <- keyword.return
 return 1, 2, 3;
-# <- keyword
+# <- keyword.return
 #      ^ number

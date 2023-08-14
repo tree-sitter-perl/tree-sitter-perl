@@ -1,5 +1,5 @@
 sub foo
-# <- keyword
+# <- keyword.function
 #   ^ function
 {
    123;
@@ -7,18 +7,18 @@ sub foo
 }
 
 sub { $x++ };
-# <- keyword
+# <- keyword.function
 #     ^ variable.scalar
 
 sub abc :lvalue { }
-# <- keyword
+# <- keyword.function
 #        ^ decorator
 sub def :lvalue const {}
-# <- keyword
+# <- keyword.function
 #        ^ decorator
 #               ^ decorator
 sub ghi :lvalue :const { }
-# <- keyword
+# <- keyword.function
 #        ^ decorator
 #                ^ decorator
 #

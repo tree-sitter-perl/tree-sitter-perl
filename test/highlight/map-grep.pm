@@ -1,32 +1,32 @@
 # block form
 map { +"\L$_"  => 1 } @array;
-# <- keyword
+# <- function.builtin
 map { ; "\L$_" => 1 } @array;
-# <- keyword
+# <- function.builtin
 map { ( "\L$_" => 1 ) } @array;
-# <- keyword
+# <- function.builtin
 map { lc($_) => 1 } @array;
-# <- keyword
+# <- function.builtin
 
 grep { ok($_) } @array;
-# <- keyword
+# <- function.builtin
 
 # expr form
 map +( lc($_) => 1 ), @array;
-# <- keyword
+# <- function.builtin
 map +{ lc($_) => 1 }, @array;
-# <- keyword
+# <- function.builtin
 map { "\L$_"   => 1 }, @array;
-# <- keyword
+# <- function.builtin
 
 grep ok($_), @array;
-# <- keyword
+# <- function.builtin
 
 map { lc($_) => 1 } 1, 2, 3;
-# <- keyword
+# <- function.builtin
 map +(lc($_) => 1 ), 1, 2, 3;
-# <- keyword
+# <- function.builtin
 map { lc($_) => 1 } (1, 2, 3);
-# <- keyword
+# <- function.builtin
 map +(lc($_) => 1 ), (1, 2), 3;
-# <- keyword
+# <- function.builtin

@@ -1,27 +1,27 @@
 qr/pattern/;
-# <- string.regexp
+# <- string.regex
 qr/pattern with (parens)/;
-# <- string.regexp
+# <- string.regex
 qr/pattern with $interpolation/;
-# <- string.regexp
+# <- string.regex
 #               ^ variable.scalar
 qr'pattern with no $interpolation';
-# <- string.regexp
+# <- string.regex
 qr/pattern/i;
-# ^^^^^^^^^^ string.regexp
+# ^^^^^^^^^^ string.regex
 
 m/pattern/;
-# <- string.regexp
+# <- string.regex
 m/pattern with (parens)/;
-# <- string.regexp
+# <- string.regex
 m/pattern with $interpolation/;
-# <- string.regexp
+# <- string.regex
 #               ^ variable.scalar
 m'pattern with no $interpolation';
-# <- string.regexp
+# <- string.regex
 m/pattern/i;
-# ^^^^^^^^^^ string.regexp
+# ^^^^^^^^^^ string.regex
 m/^anchored pattern$/;
-# ^^^^^^^^^^^^^^^^^^ string.regexp
+# ^^^^^^^^^^^^^^^^^^ string.regex
 m/^pattern(?:$|,)/;
-# ^^^^^^^^^^^^^^^ string.regexp
+# ^^^^^^^^^^^^^^^ string.regex

@@ -1,61 +1,61 @@
 use 5.014;
-# <- keyword
+# <- include
 #   ^ number
 use v5.14;
-# <- keyword
+# <- include
 #   ^ number
 use v5;
-# <- keyword
+# <- include
 #   ^ number
 use strict;
-# <- keyword
+# <- include
 #   ^ type
 use List::Util 1.23;
-# <- keyword
+# <- include
 #   ^^^^^^^^^^ type
 #              ^ number
 123 if 45;
-#   ^ keyword
+#   ^ conditional
 123 unless 45;
-#   ^ keyword
+#   ^ conditional
 123 while 45;
-#   ^ keyword
+#   ^ repeat
 123 until 45;
-#   ^ keyword
+#   ^ repeat
 123 for 45;
-#   ^ keyword
+#   ^ repeat
 123 foreach 45;
-#   ^ keyword
+#   ^ repeat
 if(1) { 123; } elsif(2) { 456; } else { 789; }
-# <- keyword
+# <- conditional
 #              ^ keyword
 #                                ^ keyword
 unless(1) { 123; }
-# <- keyword
+# <- conditional
 while(1) { 123; }
-# <- keyword
+# <- repeat
 until(1) { 123; }
-# <- keyword
+# <- repeat
 for (1, 2, 3) { 456; }
-# <- keyword
+# <- repeat
 foreach (1, 2, 3) { 456; }
-# <- keyword
+# <- repeat
 for $V (1, 2, 3) { 456; }
-# <- keyword
+# <- repeat
 #   ^ variable.scalar
 foreach $V (1, 2, 3) { 456; }
-# <- keyword
+# <- repeat
 #       ^ variable.scalar
 for my $x (1, 2, 3) { 456; }
-# <- keyword
+# <- repeat
 #   ^ keyword
 #      ^ variable.scalar
 foreach my $x (1, 2, 3) { 456; }
-# <- keyword
+# <- repeat
 #       ^ keyword
 #          ^ variable.scalar
 for (my $i = 0; $i < 10; $i++) { 123; }
-# <- keyword
+# <- repeat
 #    ^ keyword
 #       ^ variable.scalar
 #               ^ variable.scalar

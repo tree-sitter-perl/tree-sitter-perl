@@ -158,6 +158,7 @@ module.exports = grammar({
 
     // perly.y calls this labfullstmt
     statement_label: $ => seq(field('label', $.identifier), ':', field('statement', $._fullstmt)),
+    _semicolon: $ => alias($._PERLY_SEMICOLON, ';'),
 
     _barestmt: $ => choice(
       $.package_statement,
@@ -171,20 +172,20 @@ module.exports = grammar({
       $.cstyle_for_statement,
       $.for_statement,
       alias($.block, $.block_statement),
-      seq($.expression_statement, choice($._PERLY_SEMICOLON, $.__DATA__)),
-      ';', // this is not _PERLY_SEMICOLON so as not to generate an infinite stream of them
+      seq($.expression_statement, choice($._semicolon, $.__DATA__)),
+      ';', // this is not _semicolon so as not to generate an infinite stream of them
     ),
     package_statement: $ => choice(
-      seq('package', field('name', $.package), optional(field('version', $._version)), $._PERLY_SEMICOLON),
+      seq('package', field('name', $.package), optional(field('version', $._version)), $._semicolon),
       seq('package', field('name', $.package), optional(field('version', $._version)), $.block),
     ),
-    use_version_statement: $ => seq($._KW_USE, field('version', $._version), $._PERLY_SEMICOLON),
+    use_version_statement: $ => seq($._KW_USE, field('version', $._version), $._semicolon),
     use_statement: $ => seq(
       $._KW_USE,
       field('module', $.package),
       optional(field('version', $._version)),
       optional($._listexpr),
-      $._PERLY_SEMICOLON
+      $._semicolon
     ),
 
     subroutine_declaration_statement: $ => seq(
@@ -917,7 +918,7 @@ module.exports = grammar({
     _conditionals: $ => choice('if', 'unless'),
     _loops: $ => choice('while', 'until'),
     _postfixables: $ => choice($._conditionals, $._loops, $._KW_FOR, 'and', 'or'),
-    _keywords: $ => choice($._postfixables, 'else', 'elsif', 'do', 'eval', 'our', 'my', 'local', 'require', 'return', 'eq', 'ne', 'lt', 'le', 'ge', 'gt', 'cmp', 'isa', $._KW_USE, $._LOOPEX, $._PHASE_NAME, '__DATA__', '__END__'),
+    _keywords: $ => choice($._postfixables, 'else', 'elsif', 'do', 'eval', 'our', 'my', 'local', 'require', 'return', 'eq', 'ne', 'lt', 'le', 'ge', 'gt', 'cmp', 'isa', $._KW_USE, $._LOOPEX, $._PHASE_NAME, '__DATA__', '__END__', 'sub', 'map', 'grep'),
     _quotelikes: $ => choice('q', 'qq', 'qw', 'qx'),
     _autoquotables: $ => choice($._func0op, $._func1op, $._keywords, $._quotelikes),
     // we need dynamic precedence here so we can resolve things like `print -next`
