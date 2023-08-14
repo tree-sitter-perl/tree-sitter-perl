@@ -149,10 +149,10 @@ module.exports = grammar({
     /****
      * Main grammar rules taken from perly.y.
      ****/
-    _PERLY_BRACE_OPEN: $ => token(prec(2, '{')),
-    _HASHBRACK: $ => '{',
+    PERLY_BRACE_OPEN: $ => token(prec(2, '{')),
+    HASHBRACK: $ => '{',
 
-    block: $ => seq($._PERLY_BRACE_OPEN, repeat($._fullstmt), '}'),
+    block: $ => seq($.PERLY_BRACE_OPEN, repeat($._fullstmt), '}'),
 
     _fullstmt: $ => choice($._barestmt, $.statement_label),
 
@@ -459,7 +459,7 @@ module.exports = grammar({
     ),
 
     anonymous_hash_expression: $ => seq(
-      $._HASHBRACK, optional($._expr), '}'
+      $.HASHBRACK, optional($._expr), '}'
     ),
 
     anonymous_subroutine_expression: $ => seq(
@@ -529,7 +529,7 @@ module.exports = grammar({
     // we use the precedence here to ensure that we turn map { q'thingy" => $_ } into a hashref
     // it just needs to be arbitrarily higher than the _literal rule
     _tricky_hashref: $ => prec(1, seq(
-      $._PERLY_BRACE_OPEN, choice($.string_literal, $.interpolated_string_literal, $.command_string), $._PERLY_COMMA, $._expr, '}'
+      $.PERLY_BRACE_OPEN, choice($.string_literal, $.interpolated_string_literal, $.command_string), $._PERLY_COMMA, $._expr, '}'
     )),
     // TODO - i think if we use an expanded version of anonymous_hash_expression which
     // starts w/ a PERLY_BRACE_OPEN and does the string + comma logic, we can avoid having
@@ -611,7 +611,7 @@ module.exports = grammar({
     _var_indirob: $ => choice(
       $._indirob,
       seq(
-        $._PERLY_BRACE_OPEN,
+        $.PERLY_BRACE_OPEN,
         choice($._bareword, $._autoquotables, $._ident_special, /\^[A-Z]\w*/ ),
         $._brace_end_zw, '}'
       )
