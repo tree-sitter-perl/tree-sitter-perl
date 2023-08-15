@@ -4120,6 +4120,21 @@
     }
   },
   {
+    "type": "comment_group",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "comment",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "conditional_expression",
     "named": true,
     "fields": {
@@ -19012,6 +19027,10 @@
     "type": "yadayada",
     "named": true,
     "fields": {}
+  },
+  {
+    "type": "",
+    "named": false
   },
   {
     "type": "!",

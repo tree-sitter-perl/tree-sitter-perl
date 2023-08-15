@@ -1,6 +1,4 @@
-(comment) @comment
-
-((source_file . (comment) @preproc)
+((source_file . (comment_group . (comment) @preproc))
   (#lua-match? @preproc "^#!/"))
 
 [ "use" "no" "require" ] @include
@@ -30,8 +28,6 @@
 
 (phaser_statement phase: _ @keyword.phaser)
 
-[ "=>" "," ";" "->" ] @punctuation.delimiter
-
 [
   "or" "and"
   "eq" "ne" "cmp" "lt" "le" "ge" "gt"
@@ -46,10 +42,12 @@
 (number) @number
 (version) @number
 
-(string_literal) @string
-(interpolated_string_literal) @string
-(quoted_word_list) @string
-(command_string) @string
+[
+ (string_literal) 
+ (interpolated_string_literal) 
+ (quoted_word_list) 
+ (command_string) 
+] @string
 
 [(heredoc_token) (command_heredoc_token)] @label
 (heredoc_content) @string
@@ -89,7 +87,6 @@
 
 (ERROR) @error
 
-; these are the ones nvim doesn't like
 [(scalar) (arraylen)] @variable.scalar
 (scalar_deref_expression ["->" "$" "*"] @variable.scalar)
 (array) @variable.array
@@ -105,3 +102,10 @@
 (slice_expression [hash:(_) "->" "[" "]"] @variable.hash)
 (keyval_expression [hash:(_) "->" "[" "]"] @variable.hash)
 
+(comment) @comment
+
+(
+  [ "=>" "," ";" "->" ] @punctuation.delimiter
+  ; this helps patch over the difference between query precedence in TS + nvim
+  (#set! "priority" 90)
+)
