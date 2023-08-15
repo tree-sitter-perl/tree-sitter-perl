@@ -149,7 +149,7 @@ module.exports = grammar({
     /****
      * Main grammar rules taken from perly.y.
      ****/
-    _PERLY_BRACE_OPEN: $ => token(prec(2, '{')),
+    _PERLY_BRACE_OPEN: $ => alias(token(prec(2, '{')), '{'),
     _HASHBRACK: $ => '{',
 
     block: $ => seq($._PERLY_BRACE_OPEN, repeat($._fullstmt), '}'),
@@ -532,9 +532,7 @@ module.exports = grammar({
     _tricky_hashref: $ => prec(1, seq(
       $._PERLY_BRACE_OPEN, choice($.string_literal, $.interpolated_string_literal, $.command_string), $._PERLY_COMMA, $._expr, '}'
     )),
-    // TODO - i think if we use an expanded version of anonymous_hash_expression which
-    // starts w/ a PERLY_BRACE_OPEN and does the string + comma logic, we can avoid having
-    // to do any of this SHTUFF in the scanner!!!
+
     map_grep_expression: $ => prec.left(TERMPREC.LSTOP, choice(
       seq($._map_grep, field('callback', $.block), field('list', $._term_rightward)),
       seq($._map_grep, field('callback', choice($._term, alias($._tricky_hashref, $.anonymous_hash_expression))), $._PERLY_COMMA, field('list', $._term_rightward)),
@@ -588,7 +586,7 @@ module.exports = grammar({
     _declare_scalar:   $ => seq('$',  $._varname),
     array:    $ => seq('@',  $._var_indirob),
     _declare_array:    $ => seq('@',  $._varname),
-    _HASH_PERCENT: $ => token(prec(2, '%')),
+    _HASH_PERCENT: $ => alias(token(prec(2, '%')), '%'),
     hash:     $ => seq($._HASH_PERCENT, $._var_indirob),
     _declare_hash:    $ => seq($._HASH_PERCENT,  $._varname),
 
@@ -884,8 +882,8 @@ module.exports = grammar({
       )
     ),
 
-    quoted_regexp_modifiers: $ => token(/[msixpadlun]+/),
-    match_regexp_modifiers:  $ => token(/[msixpadluncg]+/),
+    quoted_regexp_modifiers: $ => /[msixpadlun]+/,
+    match_regexp_modifiers:  $ => /[msixpadluncg]+/,
 
     /* quick overview of the heredoc logic
      * 1. we parse the heredoc token (given all of its rules and varieties). We store that in the
