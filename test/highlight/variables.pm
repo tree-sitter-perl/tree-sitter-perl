@@ -20,7 +20,7 @@ our $PackageVar;
 #   ^ variable.scalar
 my $var :lock;
 # <- keyword
-#        ^ decorator
+#        ^ attribute
 $sref->$*;
 # <- variable.scalar
 #    ^^^^ variable.scalar

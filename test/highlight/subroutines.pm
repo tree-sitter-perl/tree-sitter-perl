@@ -12,15 +12,15 @@ sub { $x++ };
 
 sub abc :lvalue { }
 # <- keyword.function
-#        ^ decorator
+#        ^ attribute
 sub def :lvalue const {}
 # <- keyword.function
-#        ^ decorator
-#               ^ decorator
+#        ^ attribute
+#               ^ attribute
 sub ghi :lvalue :const { }
 # <- keyword.function
-#        ^ decorator
-#                ^ decorator
+#        ^ attribute
+#                ^ attribute
 #
 sub abc :lvalue(1234) { }
 #               ^^^^ string
