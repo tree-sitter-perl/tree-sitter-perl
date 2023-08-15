@@ -127,7 +127,7 @@ module.exports = grammar({
   ],
   extras: $ => [
     /\s|\\\r?\n/,
-    $.comment,
+    $.comment_group,
     $.pod,
     $.heredoc_content,
   ],
@@ -702,7 +702,19 @@ module.exports = grammar({
 
     // Would like to write  repeat1(token(/#.*/))  but we can't because of
     //   https://github.com/tree-sitter/tree-sitter/issues/1910
-    comment: $ => token(/#.*(\r?\n\s*#.*)*/),
+    // And, including multi-line comments caused many problems, see 
+    // https://github.com/tree-sitter-perl/tree-sitter-perl/issues/104
+    // so we have THIS monstrosity. We catch a comment, and then create a higher
+    // precedence version of a comment line so we don't recurse into extras forever, and
+    // then we need an empty match with low priority so we can end at some point.
+    // NOTE that this is only necessary b/c neovim has a bug with queries that span
+    // multiple matches, so once https://github.com/neovim/neovim/pull/17099 or similar is
+    // merged, we can uproot this terrible, evil, hack.
+    comment_group: $ => seq(
+      alias(/#.*/, $.comment),
+      repeat(alias(token(prec(2, /#.*/)), $.comment)),
+      token(prec(-1, ''))
+    ),
 
     __DATA__: $ => seq(
       choice(

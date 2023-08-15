@@ -15,7 +15,7 @@
 #^^ string  # not string.special
 'a string with a final \\';
 # <- string
-#                      ^^ string.special
+#                      ^^ string.escape
 
 q(hello);
 # <- string
@@ -28,16 +28,16 @@ q(a (string) here);
 # <- string
 "a\"string";
 # <- string
-# ^^ string.special
+# ^^ string.escape
 "a\\string";
 # <- string
-# ^^ string.special
+# ^^ string.escape
 "a string w/ a final \\";
 #                    ^^ string.escape
 # <- string
 "a string with\nlinefeed";
 # <- string
-#             ^^ string.special
+#             ^^ string.escape
 
 qq(hello);
 # <- string
@@ -66,13 +66,12 @@ qw/ literal \n slash-n /;
 # <- string
 qw| double escape \\|;
 # <- string
-#                 ^^ string.special
+#                 ^^ string.escape
 qw/ hello \/ goodbye /;
 # <- string
-#         ^^ string.special
+#         ^^ string.escape
+
 q # this is a comment
-#  ^ comment
-#<- string
   (string content);
 #  ^ string
 

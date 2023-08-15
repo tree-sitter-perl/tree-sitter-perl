@@ -1,4 +1,4 @@
-(comment) @fold
+(comment_group) @fold
 (pod) @fold
 
 ; fold the block-typed package statements only

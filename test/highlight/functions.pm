@@ -9,22 +9,22 @@ foo(12, 34);
 #       ^ number
 $obj->meth;
 # <- variable.scalar
-#     ^ function.method
+#     ^ method.call
 $obj->meth();
 # <- variable.scalar
-#     ^ function.method
+#     ^ method.call
 $obj->meth(123);
 # <- variable.scalar
-#     ^ function.method
+#     ^ method.call
 #          ^ number
 $obj->meth(12, 34);
 # <- variable.scalar
-#     ^ function.method
+#     ^ method.call
 #          ^ number
 #              ^ number
 Some::Module->new(1234);
 # <- type
-#             ^ function.method
+#             ^ method.call
 #                 ^ number
 
 ### FUNC0OPs
@@ -63,7 +63,7 @@ keys %hash;
 ### Ambiguous function calls
 croak 'thing', 'stuff';
 # <- function
-#     ^- string
+#     ^ string
 print 'things', sum 1, 2, 3;
 # <- function
 #     ^ string

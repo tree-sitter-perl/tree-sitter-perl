@@ -28,8 +28,8 @@ use List::Util 1.23;
 #   ^ repeat
 if(1) { 123; } elsif(2) { 456; } else { 789; }
 # <- conditional
-#              ^ keyword
-#                                ^ keyword
+#              ^ conditional
+#                                ^ conditional
 unless(1) { 123; }
 # <- conditional
 while(1) { 123; }
@@ -79,14 +79,14 @@ FOO: 123;
 #    ^^^ number
 LOOP: foreach(@list) {
 # <- label
-#     ^ keyword
+#     ^ repeat
    next LOOP;
 #  ^ keyword
 #       ^ label
 }
 ITEM: while(@items) {
 # <- label
-#     ^ keyword
+#     ^ repeat
    last ITEM;
 #  ^ keyword
 #       ^ label
