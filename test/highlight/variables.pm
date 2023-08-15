@@ -23,13 +23,16 @@ my $var :lock;
 #        ^ attribute
 $sref->$*;
 # <- variable.scalar
-#    ^^^^ variable.scalar
+#    ^^ punctuation.delimiter
+#      ^^ variable.scalar
 $aref->@*;
 # <- variable.scalar
-#    ^^^^ variable.array
+#    ^^ punctuation.delimiter
+#      ^^ variable.array
 $href->%*;
 # <- variable.scalar
-#    ^^^^ variable.hash
+#    ^^ punctuation.delimiter
+#      ^^ variable.hash
 $arr[ 123 ];
 # <- variable.array
 # ^^ variable.array
