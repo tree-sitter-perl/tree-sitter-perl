@@ -15,8 +15,9 @@
 
 [ "map" "grep" ] @function.builtin
 
+"package" @include
+
 [
-  "package"
   "do"
   "my" "our" "local"
   "last" "next" "redo" "goto"
@@ -39,27 +40,30 @@
 
 (pod) @text
 
-(number) @number
-(version) @number
+[
+  (number)
+  (version)
+] @number
 
 [
- (string_literal) 
- (interpolated_string_literal) 
- (quoted_word_list) 
- (command_string) 
+  (string_literal) 
+  (interpolated_string_literal) 
+  (quoted_word_list) 
+  (command_string) 
+  (heredoc_content)
 ] @string
 
-[(heredoc_token) (command_heredoc_token)] @label
-(heredoc_content) @string
-(heredoc_end) @label
+[
+  (heredoc_token)
+  (command_heredoc_token)
+  (heredoc_end)
+] @label
 
 [(escape_sequence) (escaped_delimiter)] @string.escape
 
 [(quoted_regexp) (match_regexp)] @string.regex
 
 (autoquoted_bareword _?) @string.special
-
-(hash_element_expression key: (bareword) @string.special)
 
 (use_statement (package) @type)
 (package_statement (package) @type)
@@ -69,8 +73,7 @@
 (attribute_name) @attribute
 (attribute_value) @string
 
-(goto_expression (label) @label)
-(loopex_expression (label) @label)
+(label) @label
 
 (statement_label label: _ @label)
 
