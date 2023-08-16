@@ -36,39 +36,37 @@ $href->%*;
 $arr[ 123 ];
 # <- variable.array
 # ^^ variable.array
-#   ^ variable.array
+#   ^ punctuation.bracket
 #     ^^^ number
-#         ^ variable.array
+#         ^ punctuation.bracket
 $aref->[ 123 ];
 # <- variable.scalar
-#    ^^^ variable.array
+#    ^^ punctuation.delimiter
 #        ^^^ number
-#            ^ variable.array
+#            ^ punctuation.bracket
 $hash{ key };
 # <- variable.hash
 # ^^^ variable.hash
-#    ^ variable.hash
+#    ^ punctuation.bracket
 #      ^^^ string.special
-#          ^ variable.hash
+#          ^ punctuation.bracket
 $hash{q}{shift};
 #     ^ string.special
 #        ^^^^^ string.special
 $href->{ key };
 # <- variable.scalar
-#    ^^^ variable.hash
+#    ^^ punctuation.delimiter
 #        ^^^ string.special
-#            ^ variable.hash
+#            ^ punctuation.bracket
 $aref->[ 123 ]{ 456 }[ 789 ];
 # <- variable.scalar
-#    ^^^ variable.array
+#    ^^ punctuation.delimiter
 #        ^^^ number
-#            ^ variable.array
-#             ^ variable.hash
+#            ^ punctuation.bracket
 #               ^^^ number
-#                   ^ variable.hash
-#                    ^ variable.array
+#                   ^^ punctuation.bracket
 #                      ^^^ number
-#                          ^ variable.array
+#                          ^ punctuation.bracket
 @ary[1,2,3];
 #^^ variable.array
 @hash{1,2,3};

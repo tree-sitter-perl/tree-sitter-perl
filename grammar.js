@@ -149,8 +149,10 @@ module.exports = grammar({
     /****
      * Main grammar rules taken from perly.y.
      ****/
-    _PERLY_BRACE_OPEN: $ => alias(token(prec(2, '{')), '{'),
+    // NOTE - the plain token MUST come first, b/c TS will otherwise decide that the plain
+    // old '{' is a non-usable token. Related to the issue from https://github.com/tree-sitter-perl/tree-sitter-perl/pull/110
     _HASHBRACK: $ => '{',
+    _PERLY_BRACE_OPEN: $ => alias(token(prec(2, '{')), '{'),
 
     block: $ => seq($._PERLY_BRACE_OPEN, repeat($._fullstmt), '}'),
 
@@ -586,6 +588,8 @@ module.exports = grammar({
     _declare_scalar:   $ => seq('$',  $._varname),
     array:    $ => seq('@',  $._var_indirob),
     _declare_array:    $ => seq('@',  $._varname),
+    // NOTE - we just make sure this is here, see the comment above by HASHBRACK
+    _MATH_PERCENT: $ => '%',
     _HASH_PERCENT: $ => alias(token(prec(2, '%')), '%'),
     hash:     $ => seq($._HASH_PERCENT, $._var_indirob),
     _declare_hash:    $ => seq($._HASH_PERCENT,  $._varname),
@@ -648,7 +652,7 @@ module.exports = grammar({
     _BITANDOP: $ => '&', // TODO: also &. when enabled
     _SHIFTOP: $ => choice('<<', '>>'),
     _ADDOP: $ => choice('+', '-', '.'),
-    _MULOP: $ => choice('*', '/', '%', 'x'),
+    _MULOP: $ => choice('*', '/', $._MATH_PERCENT, 'x'),
     _MATCHOP: $ => choice('=~', '!~'),
     _POWOP: $ => '**',
     // these chaining ops have high precedence versions ALSO defined in the scanner, name _{name}_continue
