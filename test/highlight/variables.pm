@@ -42,6 +42,7 @@ $arr[ 123 ];
 $aref->[ 123 ];
 # <- variable.scalar
 #    ^^ punctuation.delimiter
+#      ^ punctuation.bracket
 #        ^^^ number
 #            ^ punctuation.bracket
 $hash{ key };
@@ -52,17 +53,20 @@ $hash{ key };
 #          ^ punctuation.bracket
 $hash{q}{shift};
 #     ^ string.special
+#      ^^ punctuation.bracket
 #        ^^^^^ string.special
 $href->{ key };
 # <- variable.scalar
 #    ^^ punctuation.delimiter
+#      ^ punctuation.bracket
 #        ^^^ string.special
 #            ^ punctuation.bracket
 $aref->[ 123 ]{ 456 }[ 789 ];
 # <- variable.scalar
 #    ^^ punctuation.delimiter
+#      ^ punctuation.bracket
 #        ^^^ number
-#            ^ punctuation.bracket
+#            ^^ punctuation.bracket
 #               ^^^ number
 #                   ^^ punctuation.bracket
 #                      ^^^ number
