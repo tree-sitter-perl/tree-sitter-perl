@@ -61,17 +61,17 @@ for (my $i = 0; $i < 10; $i++) { 123; }
 #               ^ variable.scalar
 #                        ^ variable.scalar
 package AAA;
-# <- keyword
+# <- include
 #       ^ type
 package BBB 1.23;
-# <- keyword
+# <- include
 #       ^ type
 #           ^ number
 package CCC { }
-# <- keyword
+# <- include
 #       ^ type
 package DDD 4.56 { }
-# <- keyword
+# <- include
 #       ^ type
 #           ^ number
 FOO: 123;
