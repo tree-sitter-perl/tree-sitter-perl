@@ -843,14 +843,14 @@ module.exports = grammar({
     quoted_regexp: $ => choice(
       seq(
         seq('qr', $._quotelike_begin),
-        optional($._interpolated_regexp_content),
+        optional(field('content', $._interpolated_regexp_content)),
         $._quotelike_end,
         optional(field('modifiers', $.quoted_regexp_modifiers))
       ),
       seq(
         'qr',
         $._apostrophe,
-        optional($._noninterpolated_string_content), // TODO: regexp content
+        optional(field('content', $._noninterpolated_string_content)), // TODO: regexp content
         $._quotelike_end,
         optional(field('modifiers', $.quoted_regexp_modifiers))
       )
@@ -860,14 +860,14 @@ module.exports = grammar({
       // TODO: recognise /pattern/ as a match regexp as well
       seq(
         seq('m', $._quotelike_begin),
-        optional($._interpolated_regexp_content),
+        optional(field('content', $._interpolated_regexp_content)),
         $._quotelike_end,
         optional(field('modifiers', $.match_regexp_modifiers))
       ),
       seq(
         'm',
         $._apostrophe,
-        optional($._noninterpolated_string_content), // TODO: regexp content
+        optional(field('content', $._noninterpolated_string_content)), // TODO: regexp content
         $._quotelike_end,
         optional(field('modifiers', $.match_regexp_modifiers))
       )
