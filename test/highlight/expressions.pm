@@ -32,3 +32,5 @@ return 1, 2, 3;
 #      ^ operator
 #          ^ operator
 #               ^ operator
+\$var;
+# <- operator

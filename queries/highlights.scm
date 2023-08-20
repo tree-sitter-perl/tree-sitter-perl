@@ -25,6 +25,8 @@
 ] @keyword
 
 (_ operator: _ @operator)
+"\\" @operator
+
 (yadayada) @exception
 
 (phaser_statement phase: _ @keyword.phaser)

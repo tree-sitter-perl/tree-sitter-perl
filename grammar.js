@@ -661,7 +661,7 @@ module.exports = grammar({
     _DOTDOT:  $ => choice('..', '...'),
     _NCEQOP:  $ => choice('<=>', 'cmp', '~~'),
     _NCRELOP: $ => choice('isa'),
-    _REFGEN: $ => '\\',
+    _REFGEN: $ => alias('\\', '\\'),
 
     _PERLY_COMMA: $ => choice(',', '=>'),
 
