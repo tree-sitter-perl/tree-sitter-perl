@@ -27,3 +27,8 @@ return;
 return 1, 2, 3;
 # <- keyword.return
 #      ^ number
+1 && 2 & 3 | 4 ** 5;
+#  ^ operator
+#      ^ operator
+#          ^ operator
+#               ^ operator

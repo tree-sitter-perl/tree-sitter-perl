@@ -646,15 +646,15 @@ module.exports = grammar({
       '<<=', '>>=',
       '&&=', '||=', '//=',
     ),
-    _OROR_DORDOR: $ => choice('||', '\/\/'),
-    _ANDAND: $ => '&&',
-    _BITOROP: $ => '|', // TODO also |. when enabled
+    _OROR_DORDOR: $ => choice('||', '//'),
+    _ANDAND: $ => alias('&&', '&&'),
+    _BITOROP: $ => alias('|', '|'), // TODO also |. when enabled
     _BITANDOP: $ => '&', // TODO: also &. when enabled
     _SHIFTOP: $ => choice('<<', '>>'),
     _ADDOP: $ => choice('+', '-', '.'),
     _MULOP: $ => choice('*', '/', $._MATH_PERCENT, 'x'),
     _MATCHOP: $ => choice('=~', '!~'),
-    _POWOP: $ => '**',
+    _POWOP: $ => alias('**', '**'),
     // these chaining ops have high precedence versions ALSO defined in the scanner, name _{name}_continue
     _CHEQOP: $ => choice('==', '!=', 'eq', 'ne'),
     _CHRELOP: $ => choice('<', '<=', '>=', '>', 'lt', 'le', 'ge', 'gt'),
