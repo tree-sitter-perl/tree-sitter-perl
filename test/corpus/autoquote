@@ -11,8 +11,7 @@ plain::bareword => 'here';
   (expression_statement
     (list_expression
       (autoquoted_bareword
-        (comment_group
-          (comment)))
+        (comment))
       (string_literal)))
   (expression_statement
     (list_expression

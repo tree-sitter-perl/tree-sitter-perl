@@ -19,8 +19,7 @@ map { lc($_) => 1 } @array;        # and this.
                 (scalar)))
             (number))))
       (array)))
-  (comment_group
-    (comment))
+  (comment)
   (expression_statement
     (map_grep_expression
       (block
@@ -31,8 +30,7 @@ map { lc($_) => 1 } @array;        # and this.
               (scalar))
             (number))))
       (array)))
-  (comment_group
-    (comment))
+  (comment)
   (expression_statement
     (map_grep_expression
       (block
@@ -43,8 +41,7 @@ map { lc($_) => 1 } @array;        # and this.
               (scalar))
             (number))))
       (array)))
-  (comment_group
-    (comment))
+  (comment)
   (expression_statement
     (map_grep_expression
       (block
@@ -54,8 +51,7 @@ map { lc($_) => 1 } @array;        # and this.
               (scalar))
             (number))))
       (array)))
-  (comment_group
-    (comment)))
+  (comment))
 
 ================================================================================
 map - EXPR form
@@ -75,8 +71,7 @@ map { "\L$_"   => 1 }, @array;     # perl guesses EXPR; SURPRISE!
             (scalar))
           (number)))
       (array)))
-  (comment_group
-    (comment))
+  (comment)
   (expression_statement
     (map_grep_expression
       (unary_expression
@@ -86,8 +81,7 @@ map { "\L$_"   => 1 }, @array;     # perl guesses EXPR; SURPRISE!
               (scalar))
             (number))))
       (array)))
-  (comment_group
-    (comment))
+  (comment)
   (expression_statement
     (map_grep_expression
       (anonymous_hash_expression
@@ -96,9 +90,8 @@ map { "\L$_"   => 1 }, @array;     # perl guesses EXPR; SURPRISE!
           (scalar))
         (number))
       (array)))
-  (comment_group
-    (comment)
-    (comment)))
+  (comment)
+  (comment))
 
 ================================================================================
 map - goshdarn parens
@@ -118,10 +111,9 @@ map - goshdarn parens
             (scalar))
           (number)))
       (array)))
-  (comment_group
-    (comment)
-    (comment)
-    (comment)))
+  (comment)
+  (comment)
+  (comment))
 
 ================================================================================
 map - different LISTs
