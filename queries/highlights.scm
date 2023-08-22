@@ -97,6 +97,12 @@
 
 (ERROR) @error
 
+(
+  (scalar) @variable.builtin
+  (#eq? @variable.builtin "$ENV")
+  (#set! "priority" 110)
+)
+
 [(scalar) (arraylen)] @variable.scalar
 (scalar_deref_expression [ "$" "*"] @variable.scalar)
 (array) @variable.array
@@ -116,6 +122,4 @@
 
 (
   [ "=>" "," ";" "->" ] @punctuation.delimiter
-  ; this helps patch over the difference between query precedence in TS + nvim
-  (#set! "priority" 90)
 )

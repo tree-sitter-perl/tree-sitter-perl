@@ -89,3 +89,5 @@ my $not::allowed;
 #       ^ error
 ${ ^ANY_IDENT1 };
 # ^^^^^^ variable.scalar
+$#array;
+#<- variable.scalar
