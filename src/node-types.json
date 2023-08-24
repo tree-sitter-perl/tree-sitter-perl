@@ -3150,10 +3150,6 @@
         "required": true,
         "types": [
           {
-            "type": "!~",
-            "named": false
-          },
-          {
             "type": "%",
             "named": false
           },
@@ -3162,7 +3158,15 @@
             "named": false
           },
           {
+            "type": "&&",
+            "named": false
+          },
+          {
             "type": "*",
+            "named": false
+          },
+          {
+            "type": "**",
             "named": false
           },
           {
@@ -3210,7 +3214,15 @@
             "named": false
           },
           {
+            "type": "|",
+            "named": false
+          },
+          {
             "type": "||",
+            "named": false
+          },
+          {
+            "type": "|~",
             "named": false
           }
         ]
@@ -4114,21 +4126,6 @@
         },
         {
           "type": "slice_expression",
-          "named": true
-        }
-      ]
-    }
-  },
-  {
-    "type": "comment_group",
-    "named": true,
-    "fields": {},
-    "children": {
-      "multiple": true,
-      "required": true,
-      "types": [
-        {
-          "type": "comment",
           "named": true
         }
       ]
@@ -19029,19 +19026,11 @@
     "fields": {}
   },
   {
-    "type": "",
-    "named": false
-  },
-  {
     "type": "!",
     "named": false
   },
   {
     "type": "!=",
-    "named": false
-  },
-  {
-    "type": "!~",
     "named": false
   },
   {
@@ -19065,6 +19054,10 @@
     "named": false
   },
   {
+    "type": "&&",
+    "named": false
+  },
+  {
     "type": "&&=",
     "named": false
   },
@@ -19082,6 +19075,10 @@
   },
   {
     "type": "*",
+    "named": false
+  },
+  {
+    "type": "**",
     "named": false
   },
   {
@@ -19262,6 +19259,10 @@
   },
   {
     "type": "[",
+    "named": false
+  },
+  {
+    "type": "\\",
     "named": false
   },
   {
@@ -19857,6 +19858,10 @@
     "named": false
   },
   {
+    "type": "|",
+    "named": false
+  },
+  {
     "type": "|=",
     "named": false
   },
@@ -19866,6 +19871,10 @@
   },
   {
     "type": "||=",
+    "named": false
+  },
+  {
+    "type": "|~",
     "named": false
   },
   {

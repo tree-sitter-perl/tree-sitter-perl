@@ -2014,8 +2014,77 @@
             "type": "FIELD",
             "name": "operator",
             "content": {
-              "type": "SYMBOL",
-              "name": "_ASSIGNOP"
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "STRING",
+                  "value": "="
+                },
+                {
+                  "type": "STRING",
+                  "value": "**="
+                },
+                {
+                  "type": "STRING",
+                  "value": "+="
+                },
+                {
+                  "type": "STRING",
+                  "value": "-="
+                },
+                {
+                  "type": "STRING",
+                  "value": ".="
+                },
+                {
+                  "type": "STRING",
+                  "value": "*="
+                },
+                {
+                  "type": "STRING",
+                  "value": "/="
+                },
+                {
+                  "type": "STRING",
+                  "value": "%="
+                },
+                {
+                  "type": "STRING",
+                  "value": "x="
+                },
+                {
+                  "type": "STRING",
+                  "value": "&="
+                },
+                {
+                  "type": "STRING",
+                  "value": "|="
+                },
+                {
+                  "type": "STRING",
+                  "value": "^="
+                },
+                {
+                  "type": "STRING",
+                  "value": "<<="
+                },
+                {
+                  "type": "STRING",
+                  "value": ">>="
+                },
+                {
+                  "type": "STRING",
+                  "value": "&&="
+                },
+                {
+                  "type": "STRING",
+                  "value": "||="
+                },
+                {
+                  "type": "STRING",
+                  "value": "//="
+                }
+              ]
             }
           },
           {
@@ -2050,8 +2119,17 @@
                 "type": "FIELD",
                 "name": "operator",
                 "content": {
-                  "type": "SYMBOL",
-                  "name": "_DOTDOT"
+                  "type": "CHOICE",
+                  "members": [
+                    {
+                      "type": "STRING",
+                      "value": ".."
+                    },
+                    {
+                      "type": "STRING",
+                      "value": "..."
+                    }
+                  ]
                 }
               },
               {
@@ -2072,8 +2150,17 @@
                         "type": "FIELD",
                         "name": "operator",
                         "content": {
-                          "type": "SYMBOL",
-                          "name": "_DOTDOT"
+                          "type": "CHOICE",
+                          "members": [
+                            {
+                              "type": "STRING",
+                              "value": ".."
+                            },
+                            {
+                              "type": "STRING",
+                              "value": "..."
+                            }
+                          ]
                         }
                       },
                       {
@@ -2090,6 +2177,39 @@
                     "type": "BLANK"
                   }
                 ]
+              }
+            ]
+          }
+        },
+        {
+          "type": "PREC_RIGHT",
+          "value": 22,
+          "content": {
+            "type": "SEQ",
+            "members": [
+              {
+                "type": "FIELD",
+                "name": "left",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "_term"
+                }
+              },
+              {
+                "type": "FIELD",
+                "name": "operator",
+                "content": {
+                  "type": "STRING",
+                  "value": "**"
+                }
+              },
+              {
+                "type": "FIELD",
+                "name": "right",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "_term"
+                }
               }
             ]
           }
@@ -2112,8 +2232,17 @@
                 "type": "FIELD",
                 "name": "operator",
                 "content": {
-                  "type": "SYMBOL",
-                  "name": "_OROR_DORDOR"
+                  "type": "CHOICE",
+                  "members": [
+                    {
+                      "type": "STRING",
+                      "value": "||"
+                    },
+                    {
+                      "type": "STRING",
+                      "value": "//"
+                    }
+                  ]
                 }
               },
               {
@@ -2145,8 +2274,8 @@
                 "type": "FIELD",
                 "name": "operator",
                 "content": {
-                  "type": "SYMBOL",
-                  "name": "_ANDAND"
+                  "type": "STRING",
+                  "value": "&&"
                 }
               },
               {
@@ -2178,8 +2307,8 @@
                 "type": "FIELD",
                 "name": "operator",
                 "content": {
-                  "type": "SYMBOL",
-                  "name": "_BITOROP"
+                  "type": "STRING",
+                  "value": "|"
                 }
               },
               {
@@ -2211,8 +2340,8 @@
                 "type": "FIELD",
                 "name": "operator",
                 "content": {
-                  "type": "SYMBOL",
-                  "name": "_BITANDOP"
+                  "type": "STRING",
+                  "value": "&"
                 }
               },
               {
@@ -2244,8 +2373,17 @@
                 "type": "FIELD",
                 "name": "operator",
                 "content": {
-                  "type": "SYMBOL",
-                  "name": "_SHIFTOP"
+                  "type": "CHOICE",
+                  "members": [
+                    {
+                      "type": "STRING",
+                      "value": "<<"
+                    },
+                    {
+                      "type": "STRING",
+                      "value": ">>"
+                    }
+                  ]
                 }
               },
               {
@@ -2277,8 +2415,21 @@
                 "type": "FIELD",
                 "name": "operator",
                 "content": {
-                  "type": "SYMBOL",
-                  "name": "_ADDOP"
+                  "type": "CHOICE",
+                  "members": [
+                    {
+                      "type": "STRING",
+                      "value": "+"
+                    },
+                    {
+                      "type": "STRING",
+                      "value": "-"
+                    },
+                    {
+                      "type": "STRING",
+                      "value": "."
+                    }
+                  ]
                 }
               },
               {
@@ -2310,8 +2461,25 @@
                 "type": "FIELD",
                 "name": "operator",
                 "content": {
-                  "type": "SYMBOL",
-                  "name": "_MULOP"
+                  "type": "CHOICE",
+                  "members": [
+                    {
+                      "type": "STRING",
+                      "value": "*"
+                    },
+                    {
+                      "type": "STRING",
+                      "value": "/"
+                    },
+                    {
+                      "type": "STRING",
+                      "value": "%"
+                    },
+                    {
+                      "type": "STRING",
+                      "value": "x"
+                    }
+                  ]
                 }
               },
               {
@@ -2343,41 +2511,17 @@
                 "type": "FIELD",
                 "name": "operator",
                 "content": {
-                  "type": "SYMBOL",
-                  "name": "_MATCHOP"
-                }
-              },
-              {
-                "type": "FIELD",
-                "name": "right",
-                "content": {
-                  "type": "SYMBOL",
-                  "name": "_term"
-                }
-              }
-            ]
-          }
-        },
-        {
-          "type": "PREC_RIGHT",
-          "value": 22,
-          "content": {
-            "type": "SEQ",
-            "members": [
-              {
-                "type": "FIELD",
-                "name": "left",
-                "content": {
-                  "type": "SYMBOL",
-                  "name": "_term"
-                }
-              },
-              {
-                "type": "FIELD",
-                "name": "operator",
-                "content": {
-                  "type": "SYMBOL",
-                  "name": "_POWOP"
+                  "type": "CHOICE",
+                  "members": [
+                    {
+                      "type": "STRING",
+                      "value": "=~"
+                    },
+                    {
+                      "type": "STRING",
+                      "value": "|~"
+                    }
+                  ]
                 }
               },
               {
@@ -2414,8 +2558,25 @@
                 "type": "FIELD",
                 "name": "operator",
                 "content": {
-                  "type": "SYMBOL",
-                  "name": "_CHEQOP"
+                  "type": "CHOICE",
+                  "members": [
+                    {
+                      "type": "STRING",
+                      "value": "=="
+                    },
+                    {
+                      "type": "STRING",
+                      "value": "!="
+                    },
+                    {
+                      "type": "STRING",
+                      "value": "eq"
+                    },
+                    {
+                      "type": "STRING",
+                      "value": "ne"
+                    }
+                  ]
                 }
               },
               {
@@ -2439,8 +2600,25 @@
                       "type": "FIELD",
                       "name": "operator",
                       "content": {
-                        "type": "SYMBOL",
-                        "name": "_CHEQOP"
+                        "type": "CHOICE",
+                        "members": [
+                          {
+                            "type": "STRING",
+                            "value": "=="
+                          },
+                          {
+                            "type": "STRING",
+                            "value": "!="
+                          },
+                          {
+                            "type": "STRING",
+                            "value": "eq"
+                          },
+                          {
+                            "type": "STRING",
+                            "value": "ne"
+                          }
+                        ]
                       }
                     },
                     {
@@ -2471,8 +2649,21 @@
                 "type": "FIELD",
                 "name": "operator",
                 "content": {
-                  "type": "SYMBOL",
-                  "name": "_NCEQOP"
+                  "type": "CHOICE",
+                  "members": [
+                    {
+                      "type": "STRING",
+                      "value": "<=>"
+                    },
+                    {
+                      "type": "STRING",
+                      "value": "cmp"
+                    },
+                    {
+                      "type": "STRING",
+                      "value": "~~"
+                    }
+                  ]
                 }
               },
               {
@@ -2493,8 +2684,21 @@
                         "type": "FIELD",
                         "name": "operator",
                         "content": {
-                          "type": "SYMBOL",
-                          "name": "_NCEQOP"
+                          "type": "CHOICE",
+                          "members": [
+                            {
+                              "type": "STRING",
+                              "value": "<=>"
+                            },
+                            {
+                              "type": "STRING",
+                              "value": "cmp"
+                            },
+                            {
+                              "type": "STRING",
+                              "value": "~~"
+                            }
+                          ]
                         }
                       },
                       {
@@ -2538,8 +2742,41 @@
                 "type": "FIELD",
                 "name": "operator",
                 "content": {
-                  "type": "SYMBOL",
-                  "name": "_CHRELOP"
+                  "type": "CHOICE",
+                  "members": [
+                    {
+                      "type": "STRING",
+                      "value": "<"
+                    },
+                    {
+                      "type": "STRING",
+                      "value": "<="
+                    },
+                    {
+                      "type": "STRING",
+                      "value": ">="
+                    },
+                    {
+                      "type": "STRING",
+                      "value": ">"
+                    },
+                    {
+                      "type": "STRING",
+                      "value": "lt"
+                    },
+                    {
+                      "type": "STRING",
+                      "value": "le"
+                    },
+                    {
+                      "type": "STRING",
+                      "value": "ge"
+                    },
+                    {
+                      "type": "STRING",
+                      "value": "gt"
+                    }
+                  ]
                 }
               },
               {
@@ -2563,8 +2800,41 @@
                       "type": "FIELD",
                       "name": "operator",
                       "content": {
-                        "type": "SYMBOL",
-                        "name": "_CHRELOP"
+                        "type": "CHOICE",
+                        "members": [
+                          {
+                            "type": "STRING",
+                            "value": "<"
+                          },
+                          {
+                            "type": "STRING",
+                            "value": "<="
+                          },
+                          {
+                            "type": "STRING",
+                            "value": ">="
+                          },
+                          {
+                            "type": "STRING",
+                            "value": ">"
+                          },
+                          {
+                            "type": "STRING",
+                            "value": "lt"
+                          },
+                          {
+                            "type": "STRING",
+                            "value": "le"
+                          },
+                          {
+                            "type": "STRING",
+                            "value": "ge"
+                          },
+                          {
+                            "type": "STRING",
+                            "value": "gt"
+                          }
+                        ]
                       }
                     },
                     {
@@ -2595,8 +2865,8 @@
                 "type": "FIELD",
                 "name": "operator",
                 "content": {
-                  "type": "SYMBOL",
-                  "name": "_NCRELOP"
+                  "type": "STRING",
+                  "value": "isa"
                 }
               },
               {
@@ -2617,8 +2887,8 @@
                         "type": "FIELD",
                         "name": "operator",
                         "content": {
-                          "type": "SYMBOL",
-                          "name": "_NCRELOP"
+                          "type": "STRING",
+                          "value": "isa"
                         }
                       },
                       {
@@ -2859,8 +3129,8 @@
       "type": "SEQ",
       "members": [
         {
-          "type": "SYMBOL",
-          "name": "_REFGEN"
+          "type": "STRING",
+          "value": "\\"
         },
         {
           "type": "SYMBOL",
@@ -4261,273 +4531,6 @@
       "type": "SYMBOL",
       "name": "_bareword"
     },
-    "_ASSIGNOP": {
-      "type": "CHOICE",
-      "members": [
-        {
-          "type": "STRING",
-          "value": "="
-        },
-        {
-          "type": "STRING",
-          "value": "**="
-        },
-        {
-          "type": "STRING",
-          "value": "+="
-        },
-        {
-          "type": "STRING",
-          "value": "-="
-        },
-        {
-          "type": "STRING",
-          "value": ".="
-        },
-        {
-          "type": "STRING",
-          "value": "*="
-        },
-        {
-          "type": "STRING",
-          "value": "/="
-        },
-        {
-          "type": "STRING",
-          "value": "%="
-        },
-        {
-          "type": "STRING",
-          "value": "x="
-        },
-        {
-          "type": "STRING",
-          "value": "&="
-        },
-        {
-          "type": "STRING",
-          "value": "|="
-        },
-        {
-          "type": "STRING",
-          "value": "^="
-        },
-        {
-          "type": "STRING",
-          "value": "<<="
-        },
-        {
-          "type": "STRING",
-          "value": ">>="
-        },
-        {
-          "type": "STRING",
-          "value": "&&="
-        },
-        {
-          "type": "STRING",
-          "value": "||="
-        },
-        {
-          "type": "STRING",
-          "value": "//="
-        }
-      ]
-    },
-    "_OROR_DORDOR": {
-      "type": "CHOICE",
-      "members": [
-        {
-          "type": "STRING",
-          "value": "||"
-        },
-        {
-          "type": "STRING",
-          "value": "//"
-        }
-      ]
-    },
-    "_ANDAND": {
-      "type": "STRING",
-      "value": "&&"
-    },
-    "_BITOROP": {
-      "type": "STRING",
-      "value": "|"
-    },
-    "_BITANDOP": {
-      "type": "STRING",
-      "value": "&"
-    },
-    "_SHIFTOP": {
-      "type": "CHOICE",
-      "members": [
-        {
-          "type": "STRING",
-          "value": "<<"
-        },
-        {
-          "type": "STRING",
-          "value": ">>"
-        }
-      ]
-    },
-    "_ADDOP": {
-      "type": "CHOICE",
-      "members": [
-        {
-          "type": "STRING",
-          "value": "+"
-        },
-        {
-          "type": "STRING",
-          "value": "-"
-        },
-        {
-          "type": "STRING",
-          "value": "."
-        }
-      ]
-    },
-    "_MULOP": {
-      "type": "CHOICE",
-      "members": [
-        {
-          "type": "STRING",
-          "value": "*"
-        },
-        {
-          "type": "STRING",
-          "value": "/"
-        },
-        {
-          "type": "STRING",
-          "value": "%"
-        },
-        {
-          "type": "STRING",
-          "value": "x"
-        }
-      ]
-    },
-    "_MATCHOP": {
-      "type": "CHOICE",
-      "members": [
-        {
-          "type": "STRING",
-          "value": "=~"
-        },
-        {
-          "type": "STRING",
-          "value": "!~"
-        }
-      ]
-    },
-    "_POWOP": {
-      "type": "STRING",
-      "value": "**"
-    },
-    "_CHEQOP": {
-      "type": "CHOICE",
-      "members": [
-        {
-          "type": "STRING",
-          "value": "=="
-        },
-        {
-          "type": "STRING",
-          "value": "!="
-        },
-        {
-          "type": "STRING",
-          "value": "eq"
-        },
-        {
-          "type": "STRING",
-          "value": "ne"
-        }
-      ]
-    },
-    "_CHRELOP": {
-      "type": "CHOICE",
-      "members": [
-        {
-          "type": "STRING",
-          "value": "<"
-        },
-        {
-          "type": "STRING",
-          "value": "<="
-        },
-        {
-          "type": "STRING",
-          "value": ">="
-        },
-        {
-          "type": "STRING",
-          "value": ">"
-        },
-        {
-          "type": "STRING",
-          "value": "lt"
-        },
-        {
-          "type": "STRING",
-          "value": "le"
-        },
-        {
-          "type": "STRING",
-          "value": "ge"
-        },
-        {
-          "type": "STRING",
-          "value": "gt"
-        }
-      ]
-    },
-    "_DOTDOT": {
-      "type": "CHOICE",
-      "members": [
-        {
-          "type": "STRING",
-          "value": ".."
-        },
-        {
-          "type": "STRING",
-          "value": "..."
-        }
-      ]
-    },
-    "_NCEQOP": {
-      "type": "CHOICE",
-      "members": [
-        {
-          "type": "STRING",
-          "value": "<=>"
-        },
-        {
-          "type": "STRING",
-          "value": "cmp"
-        },
-        {
-          "type": "STRING",
-          "value": "~~"
-        }
-      ]
-    },
-    "_NCRELOP": {
-      "type": "CHOICE",
-      "members": [
-        {
-          "type": "STRING",
-          "value": "isa"
-        }
-      ]
-    },
-    "_REFGEN": {
-      "type": "STRING",
-      "value": "\\"
-    },
     "_PERLY_COMMA": {
       "type": "CHOICE",
       "members": [
@@ -4975,49 +4978,9 @@
         }
       ]
     },
-    "comment_group": {
-      "type": "SEQ",
-      "members": [
-        {
-          "type": "ALIAS",
-          "content": {
-            "type": "PATTERN",
-            "value": "#.*"
-          },
-          "named": true,
-          "value": "comment"
-        },
-        {
-          "type": "REPEAT",
-          "content": {
-            "type": "ALIAS",
-            "content": {
-              "type": "TOKEN",
-              "content": {
-                "type": "PREC",
-                "value": 2,
-                "content": {
-                  "type": "PATTERN",
-                  "value": "#.*"
-                }
-              }
-            },
-            "named": true,
-            "value": "comment"
-          }
-        },
-        {
-          "type": "TOKEN",
-          "content": {
-            "type": "PREC",
-            "value": -1,
-            "content": {
-              "type": "STRING",
-              "value": ""
-            }
-          }
-        }
-      ]
+    "comment": {
+      "type": "PATTERN",
+      "value": "#.*"
     },
     "__DATA__": {
       "type": "SEQ",
@@ -6852,7 +6815,7 @@
     },
     {
       "type": "SYMBOL",
-      "name": "comment_group"
+      "name": "comment"
     },
     {
       "type": "SYMBOL",
@@ -6886,14 +6849,6 @@
     [
       "_FUNC",
       "bareword"
-    ],
-    [
-      "_interpolations",
-      "_array_element_interpolation"
-    ],
-    [
-      "_interpolations",
-      "_hash_element_interpolation"
     ]
   ],
   "precedences": [],
@@ -7027,7 +6982,8 @@
     "_quotelikes",
     "_func0op",
     "_func1op",
-    "_autoquotables"
+    "_autoquotables",
+    "_PERLY_COMMA"
   ],
   "supertypes": [
     "primitive"
