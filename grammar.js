@@ -1,3 +1,6 @@
+/// <reference types="tree-sitter-cli/dsl" />
+// @ts-check
+
 const primitives = require('./lib/primitives.js')
 
 /* perl.y's precedence list */
@@ -25,22 +28,23 @@ const TERMPREC = {
   MATCHOP: 20,
   UMINUS: 21,
   POWOP: 22,
-  PREINC: 23, POSTINC: 23,
+  PREINC: 23,
+  POSTINC: 23,
   ARROW: 24,
   PAREN: 25,
-};
+}
 
 const unop_pre = (op, term) =>
-  seq(field('operator', op), field('operand', term));
+  seq(field('operator', op), field('operand', term))
 const unop_post = (op, term) =>
-  seq(field('operand', term), field('operator', op));
+  seq(field('operand', term), field('operator', op))
 
 const binop = (op, term) =>
-  seq(field('left', term), field('operator', op), field('right', term));
+  seq(field('left', term), field('operator', op), field('right', term))
 
 // nonassoc we can do by forcing tree-sitter down the continue branch via a
 // zero-width external and following it w/ an error token
-binop.nonassoc = ($, op, term) => 
+binop.nonassoc = ($, op, term) =>
   seq(
     field('left', term),
     field('operator', op),
@@ -50,7 +54,7 @@ binop.nonassoc = ($, op, term) =>
       $._NONASSOC,
       $._ERROR
     )
-  );
+  )
 
 // listassoc we do by using a continuation version of the token for the op.
 // Using tree-sitter directly to make the high prec continuation token is
@@ -68,9 +72,14 @@ binop.listassoc = (op, continue_token, term) =>
     ))
   )
 
-const optseq = (...terms) => optional(seq(...terms));
-const paren_list_of = rule => 
-      seq('(', repeat(seq(optional(rule), ',')), optional(rule), ')')
+/**
+ *
+ * @param {RuleOrLiteral[]} terms
+ *
+ */
+const optseq = (...terms) => optional(seq(...terms))
+const paren_list_of = rule =>
+  seq('(', repeat(seq(optional(rule), ',')), optional(rule), ')')
 
 module.exports = grammar({
   name: 'perl',
@@ -86,6 +95,7 @@ module.exports = grammar({
     $._func0op,
     $._func1op,
     $._autoquotables,
+    $._PERLY_COMMA,
   ],
   externals: $ => [
     /* ident-alikes */
@@ -127,22 +137,19 @@ module.exports = grammar({
   ],
   extras: $ => [
     /\s|\\\r?\n/,
-    $.comment_group,
+    $.comment,
     $.pod,
     $.heredoc_content,
   ],
   conflicts: $ => [
-    [ $.preinc_expression, $.postinc_expression ],
+    [$.preinc_expression, $.postinc_expression],
     // all of the following go GLR b/c they need extra tokens to allow postfixy autoquotes
-    [ $.return_expression ],
-    [ $.conditional_statement ],
-    [ $.elsif ],
-    [ $.list_expression ],
-    [ $._term_rightward ],
-    [ $._FUNC, $.bareword ],
-    // for fancy interpolations
-    [ $._interpolations, $._array_element_interpolation ],
-    [ $._interpolations, $._hash_element_interpolation ],
+    [$.return_expression],
+    [$.conditional_statement],
+    [$.elsif],
+    [$.list_expression],
+    [$._term_rightward],
+    [$._FUNC, $.bareword],
   ],
   rules: {
     source_file: $ => seq(repeat($._fullstmt), optional($.__DATA__)),
@@ -213,9 +220,9 @@ module.exports = grammar({
     cstyle_for_statement: $ =>
       seq($._KW_FOR,
         '(',
-          field('initialiser', optional($._expr)), ';',
-          field('condition',   optional($._expr)), ';',
-          field('iterator',    optional($._expr)),
+        field('initialiser', optional($._expr)), ';',
+        field('condition', optional($._expr)), ';',
+        field('iterator', optional($._expr)),
         ')',
         $.block
       ),
@@ -243,9 +250,9 @@ module.exports = grammar({
       $.postfix_loop_expression,
       $.postfix_for_expression,
     ),
-    postfix_conditional_expression:     $ => seq($._expr, $._conditionals, field('condition', $._expr)),
-    postfix_loop_expression:  $ => seq($._expr, $._loops,  field('condition', $._expr)),
-    postfix_for_expression:    $ => seq($._expr, $._KW_FOR, field('list', $._expr)),
+    postfix_conditional_expression: $ => seq($._expr, $._conditionals, field('condition', $._expr)),
+    postfix_loop_expression: $ => seq($._expr, $._loops, field('condition', $._expr)),
+    postfix_for_expression: $ => seq($._expr, $._KW_FOR, field('list', $._expr)),
     yadayada: $ => '...',
 
     _else: $ => choice($.else, $.elsif),
@@ -295,42 +302,42 @@ module.exports = grammar({
     container_variable: $ => seq('$', $._var_indirob),
     array_element_expression: $ => choice(
       // perly.y matches scalar '[' expr ']' here but that would yield a scalar var node
-      seq(field('array', $.container_variable),    '[', field('index', $._expr), ']'),
+      seq(field('array', $.container_variable), '[', field('index', $._expr), ']'),
       prec.left(TERMPREC.ARROW, seq($._term, '->', '[', field('index', $._expr), ']')),
-      seq($._subscripted,                          '[', field('index', $._expr), ']'),
+      seq($._subscripted, '[', field('index', $._expr), ']'),
     ),
     _hash_key: $ => choice($._brace_autoquoted, $._expr),
     hash_element_expression: $ => choice(
       // perly.y matches scalar '{' expr '}' here but that would yield a scalar var node
-      seq(field('hash', $.container_variable),     '{', field('key', $._hash_key), '}'),
+      seq(field('hash', $.container_variable), '{', field('key', $._hash_key), '}'),
       prec.left(TERMPREC.ARROW, seq($._term, '->', '{', field('key', $._hash_key), '}')),
-      seq($._subscripted,                          '{', field('key', $._hash_key), '}'),
+      seq($._subscripted, '{', field('key', $._hash_key), '}'),
     ),
     coderef_call_expression: $ => choice(
       prec.left(TERMPREC.ARROW, seq($._term, '->', '(', optional(field('arguments', $._expr)), ')')),
-      seq($._subscripted,                          '(', optional(field('arguments', $._expr)), ')'),
+      seq($._subscripted, '(', optional(field('arguments', $._expr)), ')'),
     ),
     anonymous_slice_expression: $ => choice(
-      seq('(', optional(field('list', $._expr)), ')',   '[', $._expr, ']'),
-      seq(field('list', $.quoted_word_list),            '[', $._expr, ']'),
+      seq('(', optional(field('list', $._expr)), ')', '[', $._expr, ']'),
+      seq(field('list', $.quoted_word_list), '[', $._expr, ']'),
     ),
     slice_container_variable: $ => seq('@', $._var_indirob),
     slice_expression: $ => choice(
-      seq(field('array', $.slice_container_variable),   '[', $._expr, ']'),
-      seq(field('hash',  $.slice_container_variable),   '{', $._expr, '}'),
+      seq(field('array', $.slice_container_variable), '[', $._expr, ']'),
+      seq(field('hash', $.slice_container_variable), '{', $._expr, '}'),
       prec.left(TERMPREC.ARROW,
-        seq(field('arrayref', $._term), '->', '@',       '[', $._expr, ']')),
+        seq(field('arrayref', $._term), '->', '@', '[', $._expr, ']')),
       prec.left(TERMPREC.ARROW,
-        seq(field('hashref',  $._term), '->', '@',       '{', $._expr, '}')),
+        seq(field('hashref', $._term), '->', '@', '{', $._expr, '}')),
     ),
     keyval_container_variable: $ => seq($._HASH_PERCENT, $._var_indirob),
     keyval_expression: $ => choice(
-      seq(field('array', $.keyval_container_variable),   '[', $._expr, ']'),
-      seq(field('hash',  $.keyval_container_variable),   '{', $._expr, '}'),
+      seq(field('array', $.keyval_container_variable), '[', $._expr, ']'),
+      seq(field('hash', $.keyval_container_variable), '{', $._expr, '}'),
       prec.left(TERMPREC.ARROW,
-        seq(field('arrayref', $._term), '->', '%',       '[', $._expr, ']')),
+        seq(field('arrayref', $._term), '->', '%', '[', $._expr, ']')),
       prec.left(TERMPREC.ARROW,
-        seq(field('hashref',  $._term), '->', '%',       '{', $._expr, '}')),
+        seq(field('hashref', $._term), '->', '%', '{', $._expr, '}')),
     ),
 
     _term: $ => choice(
@@ -404,38 +411,58 @@ module.exports = grammar({
       $._literal,
     ),
 
-    assignment_expression: $ =>
-      prec.right(TERMPREC.ASSIGNOP, binop($._ASSIGNOP, $._term)),
-
-    // perly.y calls this `termbinop`
-    binary_expression: $ => choice(
-      prec.right(TERMPREC.DOTDOT,  binop.nonassoc($, $._DOTDOT, $._term)),
-      prec.left(TERMPREC.OROR,     binop($._OROR_DORDOR, $._term)),
-      prec.left(TERMPREC.ANDAND,   binop($._ANDAND, $._term)),
-      prec.left(TERMPREC.BITOROP,  binop($._BITOROP, $._term)),
-      prec.left(TERMPREC.BITANDOP, binop($._BITANDOP, $._term)),
-      prec.left(TERMPREC.SHIFTOP,  binop($._SHIFTOP, $._term)),
-      prec.left(TERMPREC.ADDOP,    binop($._ADDOP, $._term)),
-      prec.left(TERMPREC.MULOP,    binop($._MULOP, $._term)),
-      prec.left(TERMPREC.MATCHOP,  binop($._MATCHOP, $._term)),
-      prec.right(TERMPREC.POWOP,   binop($._POWOP, $._term)),
+    assignment_expression: $ => prec.right(TERMPREC.ASSIGNOP,
+      binop(
+        choice( // _ASSIGNOP
+          '=', '**=',
+          '+=', '-=', '.=',
+          '*=', '/=', '%=', 'x=',
+          '&=', '|=', '^=',
+          // TODO: Also &.= |.= ^.= when enabled
+          '<<=', '>>=',
+          '&&=', '||=', '//=',
+        ),
+        $._term
+      )
     ),
+
+    binary_expression: $ => {
+      const table = [
+        [prec.right, binop.nonassoc, choice('..', '...'), TERMPREC.DOTDOT], // _DOTDOT
+        [prec.right, binop, '**', TERMPREC.POWOP], // _POWOP
+        [prec.left, binop, choice('||', '//'), TERMPREC.OROR], // _OROR_DORDOR
+        [prec.left, binop, '&&', TERMPREC.ANDAND], // _ANDAND
+        [prec.left, binop, '|', TERMPREC.BITOROP], // _BITORDOP
+        [prec.left, binop, '&', TERMPREC.BITANDOP], // _BITANDOP
+        [prec.left, binop, choice('<<', '>>'), TERMPREC.SHIFTOP], // _SHIFTOP
+        [prec.left, binop, choice('+', '-', '.'), TERMPREC.ADDOP], // _ADDOP
+        [prec.left, binop, choice('*', '/', '%', 'x'), TERMPREC.MULOP], // _MULOP
+        [prec.left, binop, choice('=~', '|~'), TERMPREC.MATCHOP], // _MATCHOP
+      ]
+
+      // @ts-ignore
+      return choice(...table.map(([fn, fnop, operator, precedence]) => fn(
+        precedence,
+        // @ts-ignore
+        fnop === binop ? fnop(operator, $._term) : fnop($, operator, $._term)
+      )))
+    },
 
     // perl.y calls this `termeqop`
     equality_expression: $ =>
       prec.right(TERMPREC.CHEQOP, choice(
-        binop.listassoc($._CHEQOP, $._CHEQOP_continue, $._term),
-        binop.nonassoc($, $._NCEQOP, $._term),
+        binop.listassoc(choice('==', '!=', 'eq', 'ne'), $._CHEQOP_continue, $._term), // _CHEQOP
+        binop.nonassoc($, choice('<=>', 'cmp', '~~'), $._term), // _NCEQOP
       )
-    ),
+      ),
 
     // perly.y calls this `termrelop`
     relational_expression: $ =>
       prec.right(TERMPREC.CHRELOP, choice(
-        binop.listassoc($._CHRELOP, $._CHRELOP_continue, $._term),
-        binop.nonassoc($, $._NCRELOP, $._term),
+        binop.listassoc(choice('<', '<=', '>=', '>', 'lt', 'le', 'ge', 'gt'), $._CHRELOP_continue, $._term), // _CHRELOP
+        binop.nonassoc($, 'isa', $._term), // _NCRELOP
       )
-    ),
+      ),
 
     // perly.y calls this `termunop`
     unary_expression: $ => choice(
@@ -453,7 +480,7 @@ module.exports = grammar({
       field('condition', $._term), '?', field('consequent', $._term), ':', field('alternative', $._term)
     )),
 
-    refgen_expression: $ => seq($._REFGEN, $._term),
+    refgen_expression: $ => seq('\\', $._term), // _REFGEN
 
     anonymous_array_expression: $ => seq(
       '[', optional($._expr), ']'
@@ -475,9 +502,9 @@ module.exports = grammar({
       seq('do', $.block),
     ),
 
-    eval_expression: $ => prec(TERMPREC.UNOP, seq('eval', choice($.block,  $._term))),
+    eval_expression: $ => prec(TERMPREC.UNOP, seq('eval', choice($.block, $._term))),
 
-    variable_declaration: $ => prec.left(TERMPREC.QUESTION_MARK+1,
+    variable_declaration: $ => prec.left(TERMPREC.QUESTION_MARK + 1,
       seq(
         choice('my', 'our'),
         choice(
@@ -572,7 +599,7 @@ module.exports = grammar({
     // automatically becomes a non-ambiguous function call
     function_call_expression: $ =>
       seq(field('function', $.function), '(', $._NONASSOC, optional(field('arguments', $._expr)), ')'),
-    ambiguous_function_call_expression: $ => 
+    ambiguous_function_call_expression: $ =>
       prec(TERMPREC.LSTOP, seq(field('function', $.function), field('arguments', $._term_rightward))),
     function: $ => $._FUNC,
 
@@ -584,17 +611,17 @@ module.exports = grammar({
     )),
     method: $ => choice($._METHCALL0, $.scalar),
 
-    scalar:   $ => seq('$',  $._var_indirob),
-    _declare_scalar:   $ => seq('$',  $._varname),
-    array:    $ => seq('@',  $._var_indirob),
-    _declare_array:    $ => seq('@',  $._varname),
+    scalar: $ => seq('$', $._var_indirob),
+    _declare_scalar: $ => seq('$', $._varname),
+    array: $ => seq('@', $._var_indirob),
+    _declare_array: $ => seq('@', $._varname),
     _HASH_PERCENT: $ => token(prec(2, '%')),
     hash:     $ => seq($._HASH_PERCENT, $._var_indirob),
     _declare_hash:    $ => seq($._HASH_PERCENT,  $._varname),
 
     arraylen: $ => seq('$#', $._var_indirob),
     // perly.y calls this `star`
-    glob:     $ => seq('*',  $._var_indirob),
+    glob: $ => seq('*', $._var_indirob),
 
     _indirob: $ => choice(
       $._bareword,
@@ -613,7 +640,7 @@ module.exports = grammar({
       $._indirob,
       seq(
         $._PERLY_BRACE_OPEN,
-        choice($._bareword, $._autoquotables, $._ident_special, /\^[A-Z]\w*/ ),
+        choice($._bareword, $._autoquotables, $._ident_special, /\^[A-Z]\w*/),
         $._brace_end_zw, '}'
       )
     ),
@@ -635,31 +662,6 @@ module.exports = grammar({
     /****
      * Token types defined by toke.c
      */
-    _ASSIGNOP: $ => choice(
-      '=', '**=',
-      '+=', '-=', '.=',
-      '*=', '/=', '%=', 'x=',
-      '&=', '|=', '^=',
-      // TODO: Also &.= |.= ^.= when enabled
-      '<<=', '>>=',
-      '&&=', '||=', '//=',
-    ),
-    _OROR_DORDOR: $ => choice('||', '\/\/'),
-    _ANDAND: $ => '&&',
-    _BITOROP: $ => '|', // TODO also |. when enabled
-    _BITANDOP: $ => '&', // TODO: also &. when enabled
-    _SHIFTOP: $ => choice('<<', '>>'),
-    _ADDOP: $ => choice('+', '-', '.'),
-    _MULOP: $ => choice('*', '/', '%', 'x'),
-    _MATCHOP: $ => choice('=~', '!~'),
-    _POWOP: $ => '**',
-    // these chaining ops have high precedence versions ALSO defined in the scanner, name _{name}_continue
-    _CHEQOP: $ => choice('==', '!=', 'eq', 'ne'),
-    _CHRELOP: $ => choice('<', '<=', '>=', '>', 'lt', 'le', 'ge', 'gt'),
-    _DOTDOT:  $ => choice('..', '...'),
-    _NCEQOP:  $ => choice('<=>', 'cmp', '~~'),
-    _NCRELOP: $ => choice('isa'),
-    _REFGEN: $ => '\\',
 
     _PERLY_COMMA: $ => choice(',', '=>'),
 
@@ -700,21 +702,7 @@ module.exports = grammar({
      * Misc bits
      */
 
-    // Would like to write  repeat1(token(/#.*/))  but we can't because of
-    //   https://github.com/tree-sitter/tree-sitter/issues/1910
-    // And, including multi-line comments caused many problems, see 
-    // https://github.com/tree-sitter-perl/tree-sitter-perl/issues/104
-    // so we have THIS monstrosity. We catch a comment, and then create a higher
-    // precedence version of a comment line so we don't recurse into extras forever, and
-    // then we need an empty match with low priority so we can end at some point.
-    // NOTE that this is only necessary b/c neovim has a bug with queries that span
-    // multiple matches, so once https://github.com/neovim/neovim/pull/17099 or similar is
-    // merged, we can uproot this terrible, evil, hack.
-    comment_group: $ => seq(
-      alias(/#.*/, $.comment),
-      repeat(alias(token(prec(2, /#.*/)), $.comment)),
-      token(prec(-1, ''))
-    ),
+    comment: $ => /#.*/,
 
     __DATA__: $ => seq(
       choice(
@@ -765,23 +753,23 @@ module.exports = grammar({
       alias($._array_element_interpolation, $.array_element_expression),
       alias($._hash_element_interpolation, $.hash_element_expression),
     ),
-    _array_element_interpolation: $ => choice( 
-        seq(field('array', alias($.scalar, $.container_variable)), token.immediate('['),   field('index', $._expr), ']'),
-        prec.left(TERMPREC.ARROW, seq($.scalar,                    token.immediate('->['), field('index', $._expr), ']')),
-        seq($._subscripted_interpolations,                         token.immediate('['),   field('index', $._expr), ']'),
-      ),
-    _hash_element_interpolation: $ => choice( 
-        seq(field('hash', alias($.scalar, $.container_variable)), token.immediate('{'),   field('key', $._hash_key), '}'),
-        prec.left(TERMPREC.ARROW, seq($.scalar,                   token.immediate('->{'), field('key', $._hash_key), '}')),
-        seq($._subscripted_interpolations,                        token.immediate('{'),   field('key', $._hash_key), '}'),
-      ),
+    _array_element_interpolation: $ => choice(
+      seq(field('array', alias($.scalar, $.container_variable)), token.immediate('['), field('index', $._expr), ']'),
+      prec.left(TERMPREC.ARROW, seq($.scalar, token.immediate('->['), field('index', $._expr), ']')),
+      seq($._subscripted_interpolations, token.immediate('['), field('index', $._expr), ']'),
+    ),
+    _hash_element_interpolation: $ => choice(
+      seq(field('hash', alias($.scalar, $.container_variable)), token.immediate('{'), field('key', $._hash_key), '}'),
+      prec.left(TERMPREC.ARROW, seq($.scalar, token.immediate('->{'), field('key', $._hash_key), '}')),
+      seq($._subscripted_interpolations, token.immediate('{'), field('key', $._hash_key), '}'),
+    ),
     _slice_expression_interpolation: $ => choice(
-      seq(field('array', alias($.array, $.slice_container_variable)),   token.immediate('['), $._expr, ']'),
-      seq(field('hash',  alias($.array, $.slice_container_variable)),   token.immediate('{'), $._expr, '}'),
+      seq(field('array', alias($.array, $.slice_container_variable)), token.immediate('['), $._expr, ']'),
+      seq(field('hash', alias($.array, $.slice_container_variable)), token.immediate('{'), $._expr, '}'),
       prec.left(TERMPREC.ARROW,
         seq(field('arrayref', $.scalar), token.immediate('->@['), $._expr, ']')),
       prec.left(TERMPREC.ARROW,
-        seq(field('hashref',  $.scalar), token.immediate('->@{'), $._expr, '}')),
+        seq(field('hashref', $.scalar), token.immediate('->@{'), $._expr, '}')),
     ),
     _interpolations: $ => choice(
       $.array,
@@ -885,7 +873,7 @@ module.exports = grammar({
     ),
 
     quoted_regexp_modifiers: $ => token(/[msixpadlun]+/),
-    match_regexp_modifiers:  $ => token(/[msixpadluncg]+/),
+    match_regexp_modifiers: $ => token(/[msixpadluncg]+/),
 
     /* quick overview of the heredoc logic
      * 1. we parse the heredoc token (given all of its rules and varieties). We store that in the
@@ -951,8 +939,8 @@ module.exports = grammar({
     _ident_special: $ => /[0-9]+|\^[A-Z]|./,
 
     bareword: $ => prec.dynamic(1, $._bareword),
-    // _bareword is at the very end b/c the lexer prefers tokens defined earlier in the grammar 
-    _bareword: $ => choice($._identifier, /((::)|([a-zA-Z_]\w*))+/),  // TODO: unicode
+    // _bareword is at the very end b/c the lexer prefers tokens defined earlier in the grammar
+    _bareword: $ => choice($._identifier, /((::)|([a-zA-Z_]\w*))+/), // TODO: unicode
     ...primitives,
   }
 })

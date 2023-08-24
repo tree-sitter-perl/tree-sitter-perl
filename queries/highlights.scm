@@ -1,4 +1,4 @@
-((source_file . (comment_group . (comment) @preproc))
+((source_file . (comment) @preproc)
   (#lua-match? @preproc "^#!/"))
 
 [ "use" "no" "require" ] @include

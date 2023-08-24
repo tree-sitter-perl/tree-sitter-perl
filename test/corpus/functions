@@ -6,7 +6,9 @@ foo();
 
 (source_file
   (expression_statement
-    (function_call_expression (function))))
+    (function_call_expression
+      (function))))
+
 ================================================================================
 Function call (1 arg)
 ================================================================================
@@ -15,7 +17,10 @@ foo(123);
 
 (source_file
   (expression_statement
-    (function_call_expression (function) (number))))
+    (function_call_expression
+      (function)
+      (number))))
+
 ================================================================================
 Function call (2 args)
 ================================================================================
@@ -24,7 +29,12 @@ foo(12, 34);
 
 (source_file
   (expression_statement
-    (function_call_expression (function) (list_expression (number) (number)))))
+    (function_call_expression
+      (function)
+      (list_expression
+        (number)
+        (number)))))
+
 ================================================================================
 Method call (no parens)
 ================================================================================
@@ -35,7 +45,8 @@ $obj->meth;
   (expression_statement
     (method_call_expression
       invocant: (scalar)
-      method:   (method))))
+      method: (method))))
+
 ================================================================================
 Method call (0 args)
 ================================================================================
@@ -46,7 +57,8 @@ $obj->meth();
   (expression_statement
     (method_call_expression
       invocant: (scalar)
-      method:   (method))))
+      method: (method))))
+
 ================================================================================
 Method call (1 arg)
 ================================================================================
@@ -56,9 +68,10 @@ $obj->meth(123);
 (source_file
   (expression_statement
     (method_call_expression
-      invocant:  (scalar)
-      method:    (method)
+      invocant: (scalar)
+      method: (method)
       arguments: (number))))
+
 ================================================================================
 Method call (2 args)
 ================================================================================
@@ -68,9 +81,12 @@ $obj->meth(12, 34);
 (source_file
   (expression_statement
     (method_call_expression
-      invocant:  (scalar)
-      method:    (method)
-      arguments: (list_expression (number) (number)))))
+      invocant: (scalar)
+      method: (method)
+      arguments: (list_expression
+        (number)
+        (number)))))
+
 ================================================================================
 Method call on class
 ================================================================================
@@ -80,9 +96,10 @@ Some::Module->new(1234);
 (source_file
   (expression_statement
     (method_call_expression
-      invocant:  (bareword)
-      method:    (method)
+      invocant: (bareword)
+      method: (method)
       arguments: (number))))
+
 ================================================================================
 Func0 Ops
 ================================================================================
@@ -92,9 +109,13 @@ time();
 --------------------------------------------------------------------------------
 
 (source_file
-  (expression_statement (func0op_call_expression))
-  (expression_statement (func0op_call_expression))
-  (expression_statement (func0op_call_expression)))
+  (expression_statement
+    (func0op_call_expression))
+  (expression_statement
+    (func0op_call_expression))
+  (expression_statement
+    (func0op_call_expression)))
+
 ================================================================================
 Func1 Ops
 ================================================================================
@@ -109,19 +130,28 @@ keys %hash;
 
 (source_file
   (expression_statement
-    (func1op_call_expression (scalar)))
+    (func1op_call_expression
+      (scalar)))
   (expression_statement
-    (func1op_call_expression (scalar)))
-  (expression_statement (func1op_call_expression))
-  (expression_statement (func1op_call_expression))
+    (func1op_call_expression
+      (scalar)))
+  (expression_statement
+    (func1op_call_expression))
+  (expression_statement
+    (func1op_call_expression))
   (expression_statement
     (list_expression
-      (func1op_call_expression (scalar))
-      (func1op_call_expression (scalar))))
+      (func1op_call_expression
+        (scalar))
+      (func1op_call_expression
+        (scalar))))
   (expression_statement
-    (func1op_call_expression (array)))
+    (func1op_call_expression
+      (array)))
   (expression_statement
-    (func1op_call_expression (hash))))
+    (func1op_call_expression
+    (hash))))
+
 ================================================================================
 Filetest operators
 ================================================================================
@@ -132,11 +162,15 @@ Filetest operators
 
 (source_file
   (expression_statement
-    (func1op_call_expression (interpolated_string_literal)))
+    (func1op_call_expression
+      (interpolated_string_literal)))
   (expression_statement
-    (func1op_call_expression (scalar)))
+    (func1op_call_expression
+      (scalar)))
   (expression_statement
-    (func1op_call_expression (bareword))))
+    (func1op_call_expression
+      (bareword))))
+
 ================================================================================
 ambiguous funcs
 ================================================================================
