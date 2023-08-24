@@ -246,7 +246,8 @@ foreach $V (1, 2, 3) { 456; }
 
 (source_file
   (for_statement
-    (scalar)
+    (scalar
+      (varname))
     (list_expression
       (number)
       (number)
@@ -255,7 +256,8 @@ foreach $V (1, 2, 3) { 456; }
       (expression_statement
         (number))))
   (for_statement
-    (scalar)
+    (scalar
+      (varname))
     (list_expression
       (number)
       (number)
@@ -275,7 +277,8 @@ foreach state $x (1, 2, 3) { 456; }
 
 (source_file
   (for_statement
-    my_var: (scalar)
+    my_var: (scalar
+      (varname))
     list: (list_expression
       (number)
       (number)
@@ -284,7 +287,8 @@ foreach state $x (1, 2, 3) { 456; }
       (expression_statement
         (number))))
   (for_statement
-    my_var: (scalar)
+    my_var: (scalar
+      (varname))
     list: (list_expression
       (number)
       (number)
@@ -293,7 +297,8 @@ foreach state $x (1, 2, 3) { 456; }
       (expression_statement
         (number))))
   (for_statement
-    var: (scalar)
+    var: (scalar
+      (varname))
     list: (list_expression
       (number)
       (number)
@@ -302,7 +307,8 @@ foreach state $x (1, 2, 3) { 456; }
       (expression_statement
         (number))))
   (for_statement
-    state_var: (scalar)
+    state_var: (scalar
+      (varname))
     list: (list_expression
       (number)
       (number)
@@ -319,9 +325,12 @@ foreach my ($k, $v) (%hash) { 456; }
 
 (source_file
   (for_statement
-    (scalar)
-    (scalar)
-    (hash)
+    (scalar
+      (varname))
+    (scalar
+      (varname))
+    (hash
+      (varname))
     (block
       (expression_statement
         (number)))))
@@ -336,13 +345,16 @@ for (my $i = 0; $i < 10; $i++) { 123; }
   (cstyle_for_statement
     initialiser: (assignment_expression
       left: (variable_declaration
-        variable: (scalar))
+        variable: (scalar
+          (varname)))
       right: (number))
     condition: (relational_expression
-      arg: (scalar)
+      arg: (scalar
+        (varname))
       arg: (number))
     iterator: (postinc_expression
-      operand: (scalar))
+      operand: (scalar
+        (varname)))
     (block
       (expression_statement
         (number)))))
@@ -394,12 +406,14 @@ ITEM: while(@items) { }
   (statement_label
     label: (identifier)
     statement: (for_statement
-      list: (array)
+      list: (array
+        (varname))
       block: (block)))
   (statement_label
     label: (identifier)
     statement: (loop_statement
-      condition: (array)
+      condition: (array
+        (varname))
       block: (block))))
 
 ================================================================================

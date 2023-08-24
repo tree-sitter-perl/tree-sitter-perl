@@ -14,22 +14,31 @@ Foo
 
 5678;
 --------------------------------------------------------------------------------
+
 (source_file
   (pod)
-  (expression_statement (number))
+  (expression_statement
+    (number))
   (pod)
-  (expression_statement (number)))
+  (expression_statement
+    (number)))
+
 ================================================================================
 not confused by leading whitespace
 ================================================================================
 my $x
   =head1() ;
 --------------------------------------------------------------------------------
+
 (source_file
   (expression_statement
     (assignment_expression
-      (variable_declaration (scalar))
-      (function_call_expression (function)))))
+      (variable_declaration
+        (scalar
+          (varname)))
+      (function_call_expression
+        (function)))))
+
 ================================================================================
 POD can appear anywhere within an expression
 ================================================================================
@@ -42,8 +51,14 @@ my $total =
 
   2;
 --------------------------------------------------------------------------------
+
 (source_file
   (expression_statement
     (assignment_expression
-      (variable_declaration (scalar))
-      (binary_expression (number) (pod) (number)))))
+      (variable_declaration
+        (scalar
+          (varname)))
+      (binary_expression
+        (number)
+        (pod)
+        (number)))))

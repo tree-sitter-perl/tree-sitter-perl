@@ -10,13 +10,22 @@ qr/^anchored pattern$/;
 --------------------------------------------------------------------------------
 
 (source_file
-  (expression_statement (quoted_regexp))
-  (expression_statement (quoted_regexp))
-  (expression_statement (quoted_regexp (scalar)))
-  (expression_statement (quoted_regexp))
-  (expression_statement (quoted_regexp (quoted_regexp_modifiers)))
-  (expression_statement (quoted_regexp))
-  )
+  (expression_statement
+    (quoted_regexp))
+  (expression_statement
+    (quoted_regexp))
+  (expression_statement
+    (quoted_regexp
+      (scalar
+        (varname))))
+  (expression_statement
+    (quoted_regexp))
+  (expression_statement
+    (quoted_regexp
+      (quoted_regexp_modifiers)))
+  (expression_statement
+    (quoted_regexp)))
+
 ================================================================================
 Regexp match
 ================================================================================
@@ -30,11 +39,20 @@ m/^pattern(?:$|,)/;
 --------------------------------------------------------------------------------
 
 (source_file
-  (expression_statement (match_regexp))
-  (expression_statement (match_regexp))
-  (expression_statement (match_regexp (scalar)))
-  (expression_statement (match_regexp))
-  (expression_statement (match_regexp (match_regexp_modifiers)))
-  (expression_statement (match_regexp))
-  (expression_statement (match_regexp))
-  )
+  (expression_statement
+    (match_regexp))
+  (expression_statement
+    (match_regexp))
+  (expression_statement
+    (match_regexp
+      (scalar
+        (varname))))
+  (expression_statement
+    (match_regexp))
+  (expression_statement
+    (match_regexp
+      (match_regexp_modifiers)))
+  (expression_statement
+    (match_regexp))
+  (expression_statement
+    (match_regexp)))

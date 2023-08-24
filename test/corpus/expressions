@@ -31,7 +31,8 @@ eval 'die $x';
 (source_file
   (expression_statement
     (eval_expression
-      (scalar)))
+      (scalar
+        (varname))))
   (expression_statement
     (eval_expression
       (string_literal))))
@@ -48,14 +49,16 @@ eval { die $x };
     (eval_expression
       (block
         (expression_statement
-          (scalar)))))
+          (scalar
+            (varname))))))
   (expression_statement
     (eval_expression
       (block
         (expression_statement
           (ambiguous_function_call_expression
             (function)
-            (scalar)))))))
+            (scalar
+              (varname))))))))
 
 ================================================================================
 Anonymous array
@@ -95,18 +98,21 @@ $var = 12, 34;
 (source_file
   (expression_statement
     (assignment_expression
-      (scalar)
+      (scalar
+        (varname))
       (number)))
   (expression_statement
     (assignment_expression
-      (scalar)
+      (scalar
+        (varname))
       (binary_expression
         (number)
         (number))))
   (expression_statement
     (list_expression
       (assignment_expression
-        (scalar)
+        (scalar
+          (varname))
         (number))
       (number))))
 
@@ -143,17 +149,20 @@ $hashref->@{qw/key1 key2/};
 (source_file
   (expression_statement
     (slice_expression
-      array: (slice_container_variable)
+      array: (slice_container_variable
+        (varname))
       (list_expression
         (number)
         (number))))
   (expression_statement
     (slice_expression
-      hash: (slice_container_variable)
+      hash: (slice_container_variable
+        (varname))
       (quoted_word_list)))
   (expression_statement
     (slice_expression
-      arrayref: (scalar)
+      arrayref: (scalar
+        (varname))
       (list_expression
         (number)
         (number))))
@@ -166,7 +175,8 @@ $hashref->@{qw/key1 key2/};
       (number)))
   (expression_statement
     (slice_expression
-      hashref: (scalar)
+      hashref: (scalar
+        (varname))
       (quoted_word_list))))
 
 ================================================================================
@@ -182,17 +192,20 @@ $hashref->%{qw/key1 key2/};
 (source_file
   (expression_statement
     (keyval_expression
-      array: (keyval_container_variable)
+      array: (keyval_container_variable
+        (varname))
       (list_expression
         (number)
         (number))))
   (expression_statement
     (keyval_expression
-      hash: (keyval_container_variable)
+      hash: (keyval_container_variable
+        (varname))
       (quoted_word_list)))
   (expression_statement
     (keyval_expression
-      arrayref: (scalar)
+      arrayref: (scalar
+        (varname))
       (list_expression
         (number)
         (number))))
@@ -205,7 +218,8 @@ $hashref->%{qw/key1 key2/};
       (number)))
   (expression_statement
     (keyval_expression
-      hashref: (scalar)
+      hashref: (scalar
+        (varname))
       (quoted_word_list))))
 
 ================================================================================
@@ -228,10 +242,13 @@ $sref->$*;
 (source_file
   (expression_statement
     (scalar
-      (scalar)))
+      (varname
+        (scalar
+          (varname)))))
   (expression_statement
     (scalar_deref_expression
-      (scalar))))
+      (scalar
+        (varname)))))
 
 ================================================================================
 Array deref
@@ -243,10 +260,13 @@ $aref->@*;
 (source_file
   (expression_statement
     (array
-      (scalar)))
+      (varname
+        (scalar
+          (varname)))))
   (expression_statement
     (array_deref_expression
-      (scalar))))
+      (scalar
+        (varname)))))
 
 ================================================================================
 Hash deref
@@ -258,10 +278,13 @@ $href->%*;
 (source_file
   (expression_statement
     (hash
-      (scalar)))
+      (varname
+        (scalar
+          (varname)))))
   (expression_statement
     (hash_deref_expression
-      (scalar))))
+      (scalar
+        (varname)))))
 
 ================================================================================
 Amper deref
@@ -272,7 +295,8 @@ $cref->&*;
 (source_file
   (expression_statement
     (amper_deref_expression
-      (scalar))))
+      (scalar
+        (varname)))))
 
 ================================================================================
 Glob deref
@@ -284,10 +308,13 @@ $gref->**;
 (source_file
   (expression_statement
     (glob
-      (scalar)))
+      (varname
+        (scalar
+          (varname)))))
   (expression_statement
     (glob_deref_expression
-      (scalar))))
+      (scalar
+        (varname)))))
 
 ================================================================================
 require EXPR
@@ -343,7 +370,8 @@ undef $var;
     (undef_expression))
   (expression_statement
     (undef_expression
-      (scalar))))
+      (scalar
+        (varname)))))
 
 ================================================================================
 local
@@ -357,22 +385,28 @@ local $SIG{INT} = sub { ... };
 (source_file
   (expression_statement
     (localization_expression
-      (scalar)))
+      (scalar
+        (varname))))
   (expression_statement
     (localization_expression
       (array_element_expression
-        (container_variable)
-        (scalar))))
+        (container_variable
+          (varname))
+        (scalar
+          (varname)))))
   (expression_statement
     (localization_expression
       (hash_element_expression
-        (container_variable)
-        (scalar))))
+        (container_variable
+          (varname))
+        (scalar
+          (varname)))))
   (expression_statement
     (assignment_expression
       (localization_expression
         (hash_element_expression
-          (container_variable)
+          (container_variable
+            (varname))
           (autoquoted_bareword)))
       (anonymous_subroutine_expression
         (block

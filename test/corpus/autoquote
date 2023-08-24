@@ -52,11 +52,13 @@ $hash{shift};
 (source_file
   (expression_statement
     (hash_element_expression
-      hash: (container_variable)
+      hash: (container_variable
+        (varname))
       key: (autoquoted_bareword)))
   (expression_statement
     (hash_element_expression
-      hash: (container_variable)
+      hash: (container_variable
+        (varname))
       key: (autoquoted_bareword))))
 
 ================================================================================
@@ -69,11 +71,13 @@ $hash{q};
 (source_file
   (expression_statement
     (hash_element_expression
-      hash: (container_variable)
+      hash: (container_variable
+        (varname))
       key: (string_literal)))
   (expression_statement
     (hash_element_expression
-      hash: (container_variable)
+      hash: (container_variable
+        (varname))
       key: (autoquoted_bareword))))
 
 ================================================================================
@@ -89,17 +93,23 @@ ${1};
 
 (source_file
   (expression_statement
-    (scalar))
+    (scalar
+      (varname)))
   (expression_statement
-    (scalar))
+    (scalar
+      (varname)))
   (expression_statement
-    (scalar))
+    (scalar
+      (varname)))
   (expression_statement
-    (scalar))
+    (scalar
+      (varname)))
   (expression_statement
-    (scalar))
+    (scalar
+      (varname)))
   (expression_statement
-    (scalar)))
+    (scalar
+      (varname))))
 
 ================================================================================
 autoquoting keywords
