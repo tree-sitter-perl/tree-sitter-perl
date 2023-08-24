@@ -641,7 +641,7 @@ module.exports = grammar({
       alias($._indirob, $.varname),
       seq(
         $._PERLY_BRACE_OPEN,
-        alias(choice($._bareword, $._autoquotables, $._ident_special, /\^[A-Z]\w*/ ), $.varname),
+        alias(choice($._bareword, $._autoquotables, $._ident_special, /\^\w+/ ), $.varname),
         $._brace_end_zw, '}'
       )
     ),
@@ -936,9 +936,9 @@ module.exports = grammar({
 
     // prefer identifer to bareword where the grammar allows
     identifier: $ => prec(2, $._identifier),
-    // TODO - borken parsing for : $^_, $$, and ${^_varname}
+    // TODO - borken parsing for : $$
     _identifier: $ => /[a-zA-Z_]\w*/,
-    _ident_special: $ => /[0-9]+|\^[A-Z]|./,
+    _ident_special: $ => /[0-9]+|\^([A-Z[?\^_]|])|./,
 
     bareword: $ => prec.dynamic(1, $._bareword),
     // _bareword is at the very end b/c the lexer prefers tokens defined earlier in the grammar
