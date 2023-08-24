@@ -97,6 +97,19 @@
 
 (ERROR) @error
 
+(_
+  "{" @punctuation.special
+  (varname)
+  "}" @punctuation.special
+)
+; will dis werk?
+(
+  (_
+    (varname) @variable.builtin.name
+   ) @variable.builtin
+  (#match? @variable.builtin.name "^((ENV|ARGV|INC|ARGVOUT|SIG|STDIN|STDOUT|STDERR)|[_+!@#$%^&*(){}<>;:'\"0-9-]|)$")
+)
+
 [(scalar) (arraylen)] @variable.scalar
 (scalar_deref_expression [ "$" "*"] @variable.scalar)
 (array) @variable.array
