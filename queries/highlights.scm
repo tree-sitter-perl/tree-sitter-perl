@@ -107,7 +107,7 @@
   (_
     (varname) @variable.builtin.name
    ) @variable.builtin
-  (#match? @variable.builtin.name "^((ENV|ARGV|INC|ARGVOUT|SIG|STDIN|STDOUT|STDERR)|[_+!@#$%^&*(){}<>;:'\"0-9-]|)$")
+  (#match? @variable.builtin.name "^((ENV|ARGV|INC|ARGVOUT|SIG|STDIN|STDOUT|STDERR)|[_ab]|\\W|\\d+|\\^.*)$")
 )
 
 [(scalar) (arraylen)] @variable.scalar
