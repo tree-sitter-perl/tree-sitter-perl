@@ -431,8 +431,16 @@ bool tree_sitter_perl_external_scanner_scan(
 
   if(valid_symbols[TOKEN_DOLLAR_IDENT_ZW]) {
     // false on word chars, another dollar or {
-    if (!isidcont(c) && !strchr("${:", c)) {
-      // TODO - handling ::
+    if (!isidcont(c) && !strchr("${", c)) {
+      if (c == ':') {
+        lexer->mark_end(lexer);
+        ADVANCE_C;
+        if (c == ':') {
+          // we can safely bail out here b/c we know that $:: is handled in the grammar,
+          // and that's the only place we can ever get to this rule here
+          return false;
+        }
+      }
       TOKEN(TOKEN_DOLLAR_IDENT_ZW);
     }
 
