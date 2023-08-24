@@ -147,10 +147,8 @@ q\backslashes\;
     (string_literal))
   (expression_statement
     (string_literal
-      (comment_group
-        (comment))))
-  (comment_group
-    (comment))
+      (comment)))
+  (comment)
   (expression_statement
     (string_literal)))
 

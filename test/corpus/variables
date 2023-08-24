@@ -168,3 +168,13 @@ $::::var;
   (expression_statement (scalar))
   (expression_statement (hash))
 )
+================================================================================
+hash parsing precedence
+================================================================================
+random_function %hash;
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement
+   (ambiguous_function_call_expression
+     (function)
+     (hash))))
