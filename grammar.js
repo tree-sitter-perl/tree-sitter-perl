@@ -330,7 +330,7 @@ module.exports = grammar({
       prec.left(TERMPREC.ARROW,
         seq(field('hashref', $._term), '->', '@', '{', $._expr, '}')),
     ),
-    keyval_container_variable: $ => seq('%', $._var_indirob),
+    keyval_container_variable: $ => seq($._HASH_PERCENT, $._var_indirob),
     keyval_expression: $ => choice(
       seq(field('array', $.keyval_container_variable), '[', $._expr, ']'),
       seq(field('hash', $.keyval_container_variable), '{', $._expr, '}'),
@@ -615,8 +615,9 @@ module.exports = grammar({
     _declare_scalar: $ => seq('$', $._varname),
     array: $ => seq('@', $._var_indirob),
     _declare_array: $ => seq('@', $._varname),
-    hash: $ => seq('%', $._var_indirob),
-    _declare_hash: $ => seq('%', $._varname),
+    _HASH_PERCENT: $ => token(prec(2, '%')),
+    hash:     $ => seq($._HASH_PERCENT, $._var_indirob),
+    _declare_hash:    $ => seq($._HASH_PERCENT,  $._varname),
 
     arraylen: $ => seq('$#', $._var_indirob),
     // perly.y calls this `star`

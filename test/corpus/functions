@@ -149,9 +149,8 @@ keys %hash;
     (func1op_call_expression
       (array)))
   (expression_statement
-    (binary_expression
-      (func1op_call_expression)
-      (bareword))))
+    (func1op_call_expression
+    (hash))))
 
 ================================================================================
 Filetest operators
