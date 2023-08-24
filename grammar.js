@@ -413,7 +413,7 @@ module.exports = grammar({
 
     assignment_expression: $ => prec.right(TERMPREC.ASSIGNOP,
       binop(
-        choice(
+        choice( // _ASSIGNOP
           '=', '**=',
           '+=', '-=', '.=',
           '*=', '/=', '%=', 'x=',
@@ -428,16 +428,16 @@ module.exports = grammar({
 
     binary_expression: $ => {
       const table = [
-        [prec.right, binop.nonassoc, choice('..', '...'), TERMPREC.DOTDOT],
-        [prec.right, binop, '**', TERMPREC.POWOP],
-        [prec.left, binop, choice('||', '//'), TERMPREC.OROR],
-        [prec.left, binop, '&&', TERMPREC.ANDAND],
-        [prec.left, binop, '|', TERMPREC.BITOROP],
-        [prec.left, binop, '&', TERMPREC.BITANDOP],
-        [prec.left, binop, choice('<<', '>>'), TERMPREC.SHIFTOP],
-        [prec.left, binop, choice('+', '-', '.'), TERMPREC.ADDOP],
-        [prec.left, binop, choice('*', '/', '%', 'x'), TERMPREC.MULOP],
-        [prec.left, binop, choice('=~', '|~'), TERMPREC.MATCHOP],
+        [prec.right, binop.nonassoc, choice('..', '...'), TERMPREC.DOTDOT], // _DOTDOT
+        [prec.right, binop, '**', TERMPREC.POWOP], // _POWOP
+        [prec.left, binop, choice('||', '//'), TERMPREC.OROR], // _OROR_DORDOR
+        [prec.left, binop, '&&', TERMPREC.ANDAND], // _ANDAND
+        [prec.left, binop, '|', TERMPREC.BITOROP], // _BITORDOP
+        [prec.left, binop, '&', TERMPREC.BITANDOP], // _BITANDOP
+        [prec.left, binop, choice('<<', '>>'), TERMPREC.SHIFTOP], // _SHIFTOP
+        [prec.left, binop, choice('+', '-', '.'), TERMPREC.ADDOP], // _ADDOP
+        [prec.left, binop, choice('*', '/', '%', 'x'), TERMPREC.MULOP], // _MULOP
+        [prec.left, binop, choice('=~', '|~'), TERMPREC.MATCHOP], // _MATCHOP
       ]
 
       // @ts-ignore
@@ -451,16 +451,16 @@ module.exports = grammar({
     // perl.y calls this `termeqop`
     equality_expression: $ =>
       prec.right(TERMPREC.CHEQOP, choice(
-        binop.listassoc(choice('==', '!=', 'eq', 'ne'), $._CHEQOP_continue, $._term),
-        binop.nonassoc($, choice('<=>', 'cmp', '~~'), $._term),
+        binop.listassoc(choice('==', '!=', 'eq', 'ne'), $._CHEQOP_continue, $._term), // _CHEQOP
+        binop.nonassoc($, choice('<=>', 'cmp', '~~'), $._term), // _NCEQOP
       )
       ),
 
     // perly.y calls this `termrelop`
     relational_expression: $ =>
       prec.right(TERMPREC.CHRELOP, choice(
-        binop.listassoc(choice('<', '<=', '>=', '>', 'lt', 'le', 'ge', 'gt'), $._CHRELOP_continue, $._term),
-        binop.nonassoc($, 'isa', $._term),
+        binop.listassoc(choice('<', '<=', '>=', '>', 'lt', 'le', 'ge', 'gt'), $._CHRELOP_continue, $._term), // _CHRELOP
+        binop.nonassoc($, 'isa', $._term), // _NCRELOP
       )
       ),
 
@@ -480,7 +480,7 @@ module.exports = grammar({
       field('condition', $._term), '?', field('consequent', $._term), ':', field('alternative', $._term)
     )),
 
-    refgen_expression: $ => seq('\\', $._term),
+    refgen_expression: $ => seq('\\', $._term), // _REFGEN
 
     anonymous_array_expression: $ => seq(
       '[', optional($._expr), ']'
@@ -662,15 +662,6 @@ module.exports = grammar({
     /****
      * Token types defined by toke.c
      */
-    _ASSIGNOP: $ => choice(
-      '=', '**=',
-      '+=', '-=', '.=',
-      '*=', '/=', '%=', 'x=',
-      '&=', '|=', '^=',
-      // TODO: Also &.= |.= ^.= when enabled
-      '<<=', '>>=',
-      '&&=', '||=', '//=',
-    ),
 
     _PERLY_COMMA: $ => choice(',', '=>'),
 
