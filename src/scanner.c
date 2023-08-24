@@ -48,6 +48,7 @@ enum TokenType {
   TOKEN_PERLY_COMMA_CONT,
   TOKEN_FAT_COMMA_ZW,
   TOKEN_BRACE_END_ZW,
+  TOKEN_DOLLAR_IDENT_ZW,
   /* zero-width high priority token */
   TOKEN_NONASSOC,
   /* error condition is always last */
@@ -427,6 +428,15 @@ bool tree_sitter_perl_external_scanner_scan(
   }
   if (lexer->eof(lexer))
     return false;
+
+  if(valid_symbols[TOKEN_DOLLAR_IDENT_ZW]) {
+    // false on word chars, another dollar or {
+    if (!isidcont(c) && !strchr("${:", c)) {
+      // TODO - handling ::
+      TOKEN(TOKEN_DOLLAR_IDENT_ZW);
+    }
+
+  }
 
   if(valid_symbols[TOKEN_APOSTROPHE] && c == '\'') {
     ADVANCE_C;

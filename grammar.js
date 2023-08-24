@@ -131,6 +131,7 @@ module.exports = grammar({
     $._PERLY_COMMA_continue,
     $._fat_comma_zw,
     $._brace_end_zw,
+    $._dollar_ident_zw,
     /* zero-width high priority token */
     $._NONASSOC,
     /* error condition must always be last; we don't use this in the grammar */
@@ -936,9 +937,11 @@ module.exports = grammar({
 
     // prefer identifer to bareword where the grammar allows
     identifier: $ => prec(2, $._identifier),
-    // TODO - borken parsing for : $$
     _identifier: $ => /[a-zA-Z_]\w*/,
-    _ident_special: $ => /[0-9]+|\^([A-Z[?\^_]|])|./,
+    // this pattern tries to encapsulate the joys of S_scan_ident in toke.c in perl core
+    // _dollar_ident_zw takes care of the subtleties that distinguish $$; ( only $$
+    // followed by semicolon ) from $$deref
+    _ident_special: $ => choice(/[0-9]+|\^([A-Z[?\^_]|])|./, seq('$', $._dollar_ident_zw) ),
 
     bareword: $ => prec.dynamic(1, $._bareword),
     // _bareword is at the very end b/c the lexer prefers tokens defined earlier in the grammar

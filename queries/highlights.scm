@@ -31,8 +31,6 @@
 
 (phaser_statement phase: _ @keyword.phaser)
 
-[ "[" "]" "{" "}" "(" ")" ] @punctuation.bracket
-
 [
   "or" "and"
   "eq" "ne" "cmp" "lt" "le" "ge" "gt"
@@ -102,7 +100,8 @@
   (varname)
   "}" @punctuation.special
 )
-; will dis werk?
+
+
 (
   (_
     (varname) @variable.builtin.name
@@ -129,4 +128,10 @@
 
 (
   [ "=>" "," ";" "->" ] @punctuation.delimiter
+)
+
+; ordering so both nvim + ts-cli are happy
+(
+  [ "[" "]" "{" "}" "(" ")" ] @punctuation.bracket
+  (#set! "priority" 90)
 )
