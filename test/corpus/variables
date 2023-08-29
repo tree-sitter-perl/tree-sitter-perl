@@ -257,8 +257,6 @@ $!;
 $^_;
 ${^_arbitrary_VAR};
 ${^Foo};
-$$;
-1
 --------------------------------------------------------------------------------
 
 (source_file
@@ -280,12 +278,29 @@ $$;
   (expression_statement
     (scalar
       (varname)))
+)
+================================================================================
+Double dollar edge cases
+================================================================================
+$$;
+# symbols are invalid names
+$$:;
+$$';
+$[;
+--------------------------------------------------------------------------------
+(source_file
   (expression_statement
-    (scalar
-      (varname)))
+    (scalar (varname)))
+  (comment)
   (expression_statement
-    (number)))
-
+    (scalar (varname)))
+  (ERROR)
+  (expression_statement
+    (scalar (varname)))
+  (ERROR (UNEXPECTED '''))
+  (expression_statement
+    (scalar (varname)))
+)
 ================================================================================
 crazy vars
 ================================================================================

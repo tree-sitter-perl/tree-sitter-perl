@@ -433,6 +433,8 @@ bool tree_sitter_perl_external_scanner_scan(
     // false on word chars, another dollar or {
     if (!isidcont(c) && !strchr("${", c)) {
       if (c == ':') {
+        // NOTE - it's a syntax error to do $$:, so that's why we return dollar_ident_zw in
+        // that case
         lexer->mark_end(lexer);
         ADVANCE_C;
         if (c == ':') {
