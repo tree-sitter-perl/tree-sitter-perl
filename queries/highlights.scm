@@ -100,13 +100,17 @@
   (varname)
   "}" @punctuation.special
 )
+(varname 
+  (block
+    "{" @punctuation.special 
+    "}" @punctuation.special 
+  )
+)
 
 
 (
-  (_
-    (varname) @variable.builtin.name
-   ) @variable.builtin
-  (#match? @variable.builtin.name "^((ENV|ARGV|INC|ARGVOUT|SIG|STDIN|STDOUT|STDERR)|[_ab]|\\W|\\d+|\\^.*)$")
+  (varname) @variable.builtin
+  (#match? @variable.builtin "^((ENV|ARGV|INC|ARGVOUT|SIG|STDIN|STDOUT|STDERR)|[_ab]|\\W|\\d+|\\^.*)$")
 )
 
 [(scalar) (arraylen)] @variable.scalar
@@ -130,8 +134,8 @@
   [ "=>" "," ";" "->" ] @punctuation.delimiter
 )
 
-; ordering so both nvim + ts-cli are happy
 (
   [ "[" "]" "{" "}" "(" ")" ] @punctuation.bracket
+  ; priority hack so nvim + ts-cli behave the same
   (#set! "priority" 90)
 )

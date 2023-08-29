@@ -91,3 +91,7 @@ ${ ^ANY_IDENT1 };
 # ^^^^^^ variable.scalar
 $#array;
 #<- variable.scalar
+${+shift};
+#^ punctuation.special
+#    ^ function.builtin
+#       ^ punctuation.special
