@@ -169,7 +169,7 @@ module.exports = grammar({
 
     // perly.y calls this labfullstmt
     statement_label: $ => seq(field('label', $.identifier), ':', field('statement', $._fullstmt)),
-    _semicolon: $ => alias($._PERLY_SEMICOLON, ';'),
+    _semicolon: $ => choice(';', $._PERLY_SEMICOLON),
 
     _barestmt: $ => choice(
       $.package_statement,

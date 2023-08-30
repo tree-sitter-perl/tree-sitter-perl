@@ -412,11 +412,6 @@ bool tree_sitter_perl_external_scanner_scan(
     TOKEN(TOKEN_CTRL_Z);
 
   if(valid_symbols[PERLY_SEMICOLON]) {
-    if(c == ';') {
-      ADVANCE_C;
-
-      TOKEN(PERLY_SEMICOLON);
-    }
     if(c == '}' || lexer->eof(lexer)) {
       // do a PERLY_SEMICOLON unless we're in brace autoquoting
       if(is_ERROR || !valid_symbols[TOKEN_BRACE_END_ZW]) {
