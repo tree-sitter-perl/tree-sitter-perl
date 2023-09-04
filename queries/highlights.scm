@@ -31,8 +31,6 @@
 
 (phaser_statement phase: _ @keyword.phaser)
 
-[ "[" "]" "{" "}" "(" ")" ] @punctuation.bracket
-
 [
   "or" "and"
   "eq" "ne" "cmp" "lt" "le" "ge" "gt"
@@ -97,9 +95,27 @@
 
 (ERROR) @error
 
-[(scalar) (arraylen)] @variable.scalar
+(_
+  "{" @punctuation.special
+  (varname)
+  "}" @punctuation.special
+)
+(varname 
+  (block
+    "{" @punctuation.special 
+    "}" @punctuation.special 
+  )
+)
+
+
+(
+  (varname) @variable.builtin
+  (#match? @variable.builtin "^((ENV|ARGV|INC|ARGVOUT|SIG|STDIN|STDOUT|STDERR)|[_ab]|\\W|\\d+|\\^.*)$")
+)
+
+(scalar) @variable.scalar
 (scalar_deref_expression [ "$" "*"] @variable.scalar)
-(array) @variable.array
+[(array) (arraylen)] @variable.array
 (array_deref_expression [ "@" "*"] @variable.array)
 (hash) @variable.hash
 (hash_deref_expression [ "%" "*"] @variable.hash)
@@ -116,4 +132,10 @@
 
 (
   [ "=>" "," ";" "->" ] @punctuation.delimiter
+)
+
+(
+  [ "[" "]" "{" "}" "(" ")" ] @punctuation.bracket
+  ; priority hack so nvim + ts-cli behave the same
+  (#set! "priority" 90)
 )

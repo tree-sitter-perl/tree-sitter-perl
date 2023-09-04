@@ -9,6 +9,7 @@ TINGS
 This type does no $interp
 RAW
 --------------------------------------------------------------------------------
+
 (source_file
   (expression_statement
     (function_call_expression
@@ -16,10 +17,17 @@ RAW
       (list_expression
         (heredoc_token)
         (string_literal))))
-  (heredoc_content (scalar) (escape_sequence) (escape_sequence) (heredoc_end))
-  (expression_statement (heredoc_token))
-  (heredoc_content (heredoc_end))
-)
+  (heredoc_content
+    (scalar
+      (varname))
+    (escape_sequence)
+    (escape_sequence)
+    (heredoc_end))
+  (expression_statement
+    (heredoc_token))
+  (heredoc_content
+    (heredoc_end)))
+
 ================================================================================
 Quoted heredocs
 ================================================================================
@@ -31,12 +39,20 @@ you'd think this is just
 CRAZY, but you'd be \n $wrong
   CRAZY
 --------------------------------------------------------------------------------
+
 (source_file
-  (expression_statement (heredoc_token))
-  (heredoc_content (scalar) (escape_sequence) (heredoc_end))
-  (expression_statement (heredoc_token))
-  (heredoc_content (heredoc_end))
-)
+  (expression_statement
+    (heredoc_token))
+  (heredoc_content
+    (scalar
+      (varname))
+    (escape_sequence)
+    (heredoc_end))
+  (expression_statement
+    (heredoc_token))
+  (heredoc_content
+    (heredoc_end)))
+
 ================================================================================
 Command heredocs
 ================================================================================
@@ -44,10 +60,13 @@ Command heredocs
 :(){ :|:& };:
 BASH
 --------------------------------------------------------------------------------
+
 (source_file
-  (expression_statement (command_heredoc_token))
-  (heredoc_content (heredoc_end))
-)
+  (expression_statement
+    (command_heredoc_token))
+  (heredoc_content
+    (heredoc_end)))
+
 ================================================================================
 Indented heredocs
 ================================================================================
@@ -62,14 +81,23 @@ Indented heredocs
     And apparently, this $monstrosity works, too
     LOLWUT
 --------------------------------------------------------------------------------
+
 (source_file
-  (expression_statement (heredoc_token))
-  (heredoc_content (heredoc_end))
-  (expression_statement (heredoc_token))
-  (heredoc_content (scalar) (heredoc_end))
-  (expression_statement (heredoc_token))
-  (heredoc_content (heredoc_end))
-)
+  (expression_statement
+    (heredoc_token))
+  (heredoc_content
+    (heredoc_end))
+  (expression_statement
+    (heredoc_token))
+  (heredoc_content
+    (scalar
+      (varname))
+    (heredoc_end))
+  (expression_statement
+    (heredoc_token))
+  (heredoc_content
+    (heredoc_end)))
+
 ================================================================================
 Insane heredocs
 ================================================================================
@@ -80,12 +108,19 @@ WUT'\n?
  WHY?$CUZ
 WHY?$CUZ
 --------------------------------------------------------------------------------
+
 (source_file
-  (expression_statement (heredoc_token))
-  (heredoc_content (heredoc_end))
-  (expression_statement (heredoc_token))
-  (heredoc_content (scalar) (heredoc_end))
-  )
+  (expression_statement
+    (heredoc_token))
+  (heredoc_content
+    (heredoc_end))
+  (expression_statement
+    (heredoc_token))
+  (heredoc_content
+    (scalar
+      (varname))
+    (heredoc_end)))
+
 ================================================================================
 heredocs after a statement (gh#92)
 ================================================================================
@@ -94,11 +129,17 @@ print <<EOF;
 $tings --tings
 EOF
 --------------------------------------------------------------------------------
+
 (source_file
-  (expression_statement (variable_declaration (scalar)))
-  (expression_statement 
-    (ambiguous_function_call_expression (function) (heredoc_token)))
+  (expression_statement
+    (variable_declaration
+      (scalar
+        (varname))))
+  (expression_statement
+    (ambiguous_function_call_expression
+      (function)
+      (heredoc_token)))
   (heredoc_content
-   (scalar)
-   (heredoc_end))
-)
+    (scalar
+      (varname))
+    (heredoc_end)))

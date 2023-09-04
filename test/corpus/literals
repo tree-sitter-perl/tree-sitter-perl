@@ -164,15 +164,18 @@ qq'with $scalar in single-quotes';
 (source_file
   (expression_statement
     (interpolated_string_literal
-      (scalar)))
+      (scalar
+        (varname))))
   (expression_statement
     (interpolated_string_literal))
   (expression_statement
     (interpolated_string_literal
-      (array)))
+      (array
+        (varname))))
   (expression_statement
     (interpolated_string_literal
-      (scalar))))
+      (scalar
+        (varname)))))
 
 ================================================================================
 qw() lists
@@ -222,7 +225,8 @@ qw\ backslashes \;
     (command_string))
   (expression_statement
     (command_string
-      (scalar))))
+      (scalar
+        (varname)))))
 
 ================================================================================
 qx() strings
@@ -240,6 +244,7 @@ qx'command with no $interpolation';
     (command_string))
   (expression_statement
     (command_string
-      (scalar)))
+      (scalar
+        (varname))))
   (expression_statement
     (command_string)))

@@ -131,6 +131,7 @@ module.exports = grammar({
     $._PERLY_COMMA_continue,
     $._fat_comma_zw,
     $._brace_end_zw,
+    $._dollar_ident_zw,
     /* zero-width high priority token */
     $._NONASSOC,
     /* error condition must always be last; we don't use this in the grammar */
@@ -168,7 +169,7 @@ module.exports = grammar({
 
     // perly.y calls this labfullstmt
     statement_label: $ => seq(field('label', $.identifier), ':', field('statement', $._fullstmt)),
-    _semicolon: $ => alias($._PERLY_SEMICOLON, ';'),
+    _semicolon: $ => choice(';', $._PERLY_SEMICOLON),
 
     _barestmt: $ => choice(
       $.package_statement,
@@ -612,13 +613,13 @@ module.exports = grammar({
     )),
     method: $ => choice($._METHCALL0, $.scalar),
 
-    scalar: $ => seq('$', $._var_indirob),
-    _declare_scalar: $ => seq('$', $._varname),
-    array: $ => seq('@', $._var_indirob),
-    _declare_array: $ => seq('@', $._varname),
-    _HASH_PERCENT: $ => alias(token(prec(2, '%')), '%'),
+    scalar:   $ => seq('$',  $._var_indirob),
+    _declare_scalar:   $ => seq('$',  $.varname),
+    array:    $ => seq('@',  $._var_indirob),
+    _declare_array:    $ => seq('@',  $.varname),
+    _HASH_PERCENT: $ => alias(token(prec(2, '%')), '%'), // self-aliasing b/c token
     hash:     $ => seq($._HASH_PERCENT, $._var_indirob),
-    _declare_hash:    $ => seq($._HASH_PERCENT,  $._varname),
+    _declare_hash:    $ => seq($._HASH_PERCENT,  $.varname),
 
     arraylen: $ => seq('$#', $._var_indirob),
     // perly.y calls this `star`
@@ -632,16 +633,16 @@ module.exports = grammar({
       $.scalar,
       $.block,
     ),
-    _varname: $ => choice(
+    varname: $ => choice(
       $._identifier,
       $._ident_special // TODO - not sure if we wanna make `my $1` error out
     ),
     // not all indirobs are alike; for variables, they have autoquoting behavior
     _var_indirob: $ => choice(
-      $._indirob,
+      alias($._indirob, $.varname),
       seq(
         $._PERLY_BRACE_OPEN,
-        choice($._bareword, $._autoquotables, $._ident_special, /\^[A-Z]\w*/),
+        alias(choice($._bareword, $._autoquotables, $._ident_special, /\^\w+/ ), $.varname),
         $._brace_end_zw, '}'
       )
     ),
@@ -937,7 +938,10 @@ module.exports = grammar({
     // prefer identifer to bareword where the grammar allows
     identifier: $ => prec(2, $._identifier),
     _identifier: $ => /[a-zA-Z_]\w*/,
-    _ident_special: $ => /[0-9]+|\^[A-Z]|./,
+    // this pattern tries to encapsulate the joys of S_scan_ident in toke.c in perl core
+    // _dollar_ident_zw takes care of the subtleties that distinguish $$; ( only $$
+    // followed by semicolon ) from $$deref
+    _ident_special: $ => choice(/[0-9]+|\^([A-Z[?\^_]|])|\S/, seq('$', $._dollar_ident_zw) ),
 
     bareword: $ => prec.dynamic(1, $._bareword),
     // _bareword is at the very end b/c the lexer prefers tokens defined earlier in the grammar

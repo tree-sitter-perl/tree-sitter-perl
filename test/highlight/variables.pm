@@ -3,7 +3,7 @@ $s; @a; %h;
 #   ^ variable.array
 #       ^ variable.hash
 $#arrlen;
-# <- variable.scalar
+# <- variable.array
 $one + $two;
 # <- variable.scalar
 #      ^ variable.scalar
@@ -88,6 +88,8 @@ $!;
 my $not::allowed;
 #       ^ error
 ${ ^ANY_IDENT1 };
-# ^^^^^^ variable.scalar
-$#array;
-#<- variable.scalar
+#  ^^^^^ variable.builtin
+${+shift};
+#^ punctuation.special
+#    ^ function.builtin
+#       ^ punctuation.special
