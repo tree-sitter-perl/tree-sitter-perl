@@ -941,7 +941,7 @@ module.exports = grammar({
     // this pattern tries to encapsulate the joys of S_scan_ident in toke.c in perl core
     // _dollar_ident_zw takes care of the subtleties that distinguish $$; ( only $$
     // followed by semicolon ) from $$deref
-    _ident_special: $ => choice(/[0-9]+|\^([A-Z[?\^_]|])|./, seq('$', $._dollar_ident_zw) ),
+    _ident_special: $ => choice(/[0-9]+|\^([A-Z[?\^_]|])|\S/, seq('$', $._dollar_ident_zw) ),
 
     bareword: $ => prec.dynamic(1, $._bareword),
     // _bareword is at the very end b/c the lexer prefers tokens defined earlier in the grammar

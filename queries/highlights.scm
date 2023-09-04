@@ -113,9 +113,9 @@
   (#match? @variable.builtin "^((ENV|ARGV|INC|ARGVOUT|SIG|STDIN|STDOUT|STDERR)|[_ab]|\\W|\\d+|\\^.*)$")
 )
 
-[(scalar) (arraylen)] @variable.scalar
+(scalar) @variable.scalar
 (scalar_deref_expression [ "$" "*"] @variable.scalar)
-(array) @variable.array
+[(array) (arraylen)] @variable.array
 (array_deref_expression [ "@" "*"] @variable.array)
 (hash) @variable.hash
 (hash_deref_expression [ "%" "*"] @variable.hash)
