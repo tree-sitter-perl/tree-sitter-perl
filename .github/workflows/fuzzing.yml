@@ -1,9 +1,9 @@
 name: Fuzz De Parser
 on:
-  push:
-    paths: 
-      - src/scanner.c
   workflow_dispatch:
+  # push:
+  #   paths: 
+  #     - src/scanner.c
 jobs:
   test:
     name: Fuzz Parser
