@@ -102,6 +102,7 @@ module.exports = grammar({
     $._LOOPEX,
     $._PHASE_NAME,
     $._HASH_PERCENT,
+    $._bareword
   ],
   externals: $ => [
     /* ident-alikes */
@@ -155,7 +156,7 @@ module.exports = grammar({
     [$.elsif],
     [$._listexpr, $.list_expression, $._term_rightward],
     [$._term_rightward],
-    [$._FUNC, $.bareword],
+    [$.function, $.bareword],
   ],
   rules: {
     source_file: $ => seq(repeat($._fullstmt), optional($.__DATA__)),
@@ -607,7 +608,7 @@ module.exports = grammar({
       seq(field('function', $.function), '(', $._NONASSOC, optional(field('arguments', $._expr)), ')'),
     ambiguous_function_call_expression: $ =>
       prec(TERMPREC.LSTOP, seq(field('function', $.function), field('arguments', $._term_rightward))),
-    function: $ => $._FUNC,
+    function: $ => $._bareword,
 
     method_call_expression: $ => prec.left(TERMPREC.ARROW, seq(
       field('invocant', $._term),
@@ -615,7 +616,7 @@ module.exports = grammar({
       field('method', $.method),
       optseq('(', optional(field('arguments', $._expr)), ')')
     )),
-    method: $ => choice($._METHCALL0, $.scalar),
+    method: $ => choice($._bareword, $.scalar),
 
     scalar:   $ => seq('$',  $._var_indirob),
     _declare_scalar:   $ => seq('$',  $.varname),
@@ -660,10 +661,6 @@ module.exports = grammar({
       optseq($._attribute_value_begin, '(', field('value', $.attribute_value), ')'),
     ),
     attribute_name: $ => $._bareword,
-
-    // TODO: These are rediculously complicated in toke.c
-    _FUNC: $ => $._bareword,
-    _METHCALL0: $ => $._bareword,
 
     /****
      * Token types defined by toke.c
