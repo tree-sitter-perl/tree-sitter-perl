@@ -602,8 +602,6 @@ module.exports = grammar({
 
     // the usage of NONASSOC here is to make it that any parse of a paren after a func
     // automatically becomes a non-ambiguous function call
-    // TODO - builtins!
-    // 8738 state when we get rid of ambiguous_func_call 8832 w/
     function_call_expression: $ =>
       seq(field('function', $.function), '(', $._NONASSOC, optional(field('arguments', $._expr)), ')'),
     ambiguous_function_call_expression: $ =>
