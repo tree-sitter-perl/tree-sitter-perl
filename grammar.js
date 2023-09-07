@@ -94,8 +94,13 @@ module.exports = grammar({
     $._quotelikes,
     $._func0op,
     $._func1op,
+    $._map_grep,
     $._autoquotables,
     $._PERLY_COMMA,
+    $._KW_USE,
+    $._KW_FOR,
+    $._LOOPEX,
+    $._PHASE_NAME,
     $._HASH_PERCENT,
   ],
   externals: $ => [
@@ -128,7 +133,6 @@ module.exports = grammar({
     /* zero-width lookahead tokens */
     $._CHEQOP_continue,
     $._CHRELOP_continue,
-    $._PERLY_COMMA_continue,
     $._fat_comma_zw,
     $._brace_end_zw,
     $._dollar_ident_zw,
@@ -149,7 +153,7 @@ module.exports = grammar({
     [$.return_expression],
     [$.conditional_statement],
     [$.elsif],
-    [$.list_expression],
+    [$._listexpr, $.list_expression, $._term_rightward],
     [$._term_rightward],
     [$._FUNC, $.bareword],
   ],
@@ -279,17 +283,15 @@ module.exports = grammar({
     ),
     /* ensure that an entire list expression's contents appear in one big flat
     * list, while permitting multiple internal commas and an optional trailing one */
-    // NOTE - we gave this negative precedence b/c it's kinda just a fallback
-    list_expression: $ => prec(-1, seq(
-      $._term, $._PERLY_COMMA, repeat(seq(optional($._term), $._PERLY_COMMA)), optional($._term)
-    )),
     _term_rightward: $ => prec.right(seq(
       $._term,
-      repeat(seq($._PERLY_COMMA_continue, $._PERLY_COMMA, optional($._term))),
+      repeat(seq($._PERLY_COMMA, optional($._term))),
       // NOTE - we need this here to create a conflict in order to go GLR to handle
       // `die 1, or => die` correctly
-      optional(seq($._PERLY_COMMA_continue, $._PERLY_COMMA))
+      optional(seq($._PERLY_COMMA))
     )),
+    // NOTE - we gave this negative precedence b/c it's kinda just a fallback
+    list_expression: $ => prec(-1, choice($._term, $._term_rightward)),
 
     _subscripted: $ => choice(
       /* TODO:
@@ -567,7 +569,7 @@ module.exports = grammar({
     map_grep_expression: $ => prec.left(TERMPREC.LSTOP, choice(
       seq($._map_grep, field('callback', $.block), field('list', $._term_rightward)),
       seq($._map_grep, field('callback', choice($._term, alias($._tricky_hashref, $.anonymous_hash_expression))), $._PERLY_COMMA, field('list', $._term_rightward)),
-      seq($._map_grep, '(', field('callback', $._term), $._PERLY_COMMA, field('list', $._term_rightward), ')'),
+      seq($._map_grep, '(', $._NONASSOC, field('callback', $._term), $._PERLY_COMMA, field('list', $._term_rightward), ')'),
     )),
 
     _label_arg: $ => choice(alias($.identifier, $.label), $._term),
@@ -599,6 +601,8 @@ module.exports = grammar({
 
     // the usage of NONASSOC here is to make it that any parse of a paren after a func
     // automatically becomes a non-ambiguous function call
+    // TODO - builtins!
+    // 8738 state when we get rid of ambiguous_func_call 8832 w/
     function_call_expression: $ =>
       seq(field('function', $.function), '(', $._NONASSOC, optional(field('arguments', $._expr)), ')'),
     ambiguous_function_call_expression: $ =>
@@ -920,7 +924,7 @@ module.exports = grammar({
     _conditionals: $ => choice('if', 'unless'),
     _loops: $ => choice('while', 'until'),
     _postfixables: $ => choice($._conditionals, $._loops, $._KW_FOR, 'and', 'or'),
-    _keywords: $ => choice($._postfixables, 'else', 'elsif', 'do', 'eval', 'our', 'my', 'local', 'require', 'return', 'eq', 'ne', 'lt', 'le', 'ge', 'gt', 'cmp', 'isa', $._KW_USE, $._LOOPEX, $._PHASE_NAME, '__DATA__', '__END__', 'sub', 'map', 'grep'),
+    _keywords: $ => choice($._postfixables, 'else', 'elsif', 'do', 'eval', 'our', 'my', 'local', 'require', 'return', 'eq', 'ne', 'lt', 'le', 'ge', 'gt', 'cmp', 'isa', $._KW_USE, $._LOOPEX, $._PHASE_NAME, '__DATA__', '__END__', 'sub', $._map_grep),
     _quotelikes: $ => choice('q', 'qq', 'qw', 'qx'),
     _autoquotables: $ => choice($._func0op, $._func1op, $._keywords, $._quotelikes),
     // we need dynamic precedence here so we can resolve things like `print -next`
