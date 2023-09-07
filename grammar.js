@@ -283,10 +283,6 @@ module.exports = grammar({
     ),
     /* ensure that an entire list expression's contents appear in one big flat
     * list, while permitting multiple internal commas and an optional trailing one */
-    // NOTE - we gave this negative precedence b/c it's kinda just a fallback
-    // reworking list_expression drops us to LARGE_STATE_COUNT of 5510
-    // removing PERLY_COMMA_continue completely drops up down to 4908!!
-    list_expression: $ => prec(-1, choice($._term, $._term_rightward)),
     _term_rightward: $ => prec.right(seq(
       $._term,
       repeat(seq($._PERLY_COMMA, optional($._term))),
@@ -294,6 +290,8 @@ module.exports = grammar({
       // `die 1, or => die` correctly
       optional(seq($._PERLY_COMMA))
     )),
+    // NOTE - we gave this negative precedence b/c it's kinda just a fallback
+    list_expression: $ => prec(-1, choice($._term, $._term_rightward)),
 
     _subscripted: $ => choice(
       /* TODO:
