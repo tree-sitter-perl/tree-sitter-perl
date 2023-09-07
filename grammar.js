@@ -133,7 +133,6 @@ module.exports = grammar({
     /* zero-width lookahead tokens */
     $._CHEQOP_continue,
     $._CHRELOP_continue,
-    $._PERLY_COMMA_continue,
     $._fat_comma_zw,
     $._brace_end_zw,
     $._dollar_ident_zw,
@@ -286,13 +285,14 @@ module.exports = grammar({
     * list, while permitting multiple internal commas and an optional trailing one */
     // NOTE - we gave this negative precedence b/c it's kinda just a fallback
     // reworking list_expression drops us to LARGE_STATE_COUNT of 5510
+    // removing PERLY_COMMA_continue completely drops up down to 4908!!
     list_expression: $ => prec(-1, choice($._term, $._term_rightward)),
     _term_rightward: $ => prec.right(seq(
       $._term,
-      repeat(seq($._PERLY_COMMA_continue, $._PERLY_COMMA, optional($._term))),
+      repeat(seq($._PERLY_COMMA, optional($._term))),
       // NOTE - we need this here to create a conflict in order to go GLR to handle
       // `die 1, or => die` correctly
-      optional(seq($._PERLY_COMMA_continue, $._PERLY_COMMA))
+      optional(seq($._PERLY_COMMA))
     )),
 
     _subscripted: $ => choice(
@@ -565,7 +565,7 @@ module.exports = grammar({
     // we use the precedence here to ensure that we turn map { q'thingy" => $_ } into a hashref
     // it just needs to be arbitrarily higher than the _literal rule
     _tricky_hashref: $ => prec(1, seq(
-      $._PERLY_BRACE_OPEN, choice($.string_literal, $.interpolated_string_literal, $.command_string), $._PERLY_COMMA_continue, $._PERLY_COMMA, $._expr, '}'
+      $._PERLY_BRACE_OPEN, choice($.string_literal, $.interpolated_string_literal, $.command_string), $._PERLY_COMMA, $._expr, '}'
     )),
 
     map_grep_expression: $ => prec.left(TERMPREC.LSTOP, choice(

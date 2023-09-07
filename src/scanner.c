@@ -45,7 +45,6 @@ enum TokenType {
   /* zero-width lookahead tokens */
   TOKEN_CHEQOP_CONT,
   TOKEN_CHRELOP_CONT,
-  TOKEN_PERLY_COMMA_CONT,
   TOKEN_FAT_COMMA_ZW,
   TOKEN_BRACE_END_ZW,
   TOKEN_DOLLAR_IDENT_ZW,
@@ -791,12 +790,6 @@ bool tree_sitter_perl_external_scanner_scan(
     DEBUG("ZW-lookahead for => autoquoting\n", 0);
     if(EQ2("=>"))
       TOKEN(TOKEN_FAT_COMMA_ZW);
-  }
-
-  if(valid_symbols[TOKEN_PERLY_COMMA_CONT]) {
-    DEBUG("ZW-lookahead for comma in term_rightwad\n", 0);
-    if(c1 == ',' || EQ2("=>"))
-      TOKEN(TOKEN_PERLY_COMMA_CONT);
   }
 
   if(valid_symbols[TOKEN_CHEQOP_CONT]) {
