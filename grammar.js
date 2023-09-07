@@ -149,7 +149,7 @@ module.exports = grammar({
     [$.return_expression],
     [$.conditional_statement],
     [$.elsif],
-    [$.list_expression],
+    [$._listexpr, $.list_expression, $._term_rightward],
     [$._term_rightward],
     [$._FUNC, $.bareword],
   ],
@@ -280,9 +280,8 @@ module.exports = grammar({
     /* ensure that an entire list expression's contents appear in one big flat
     * list, while permitting multiple internal commas and an optional trailing one */
     // NOTE - we gave this negative precedence b/c it's kinda just a fallback
-    list_expression: $ => prec(-1, seq(
-      $._term, $._PERLY_COMMA, repeat(seq(optional($._term), $._PERLY_COMMA)), optional($._term)
-    )),
+    // reworking list_expression drops us to LARGE_STATE_COUNT of 5510
+    list_expression: $ => prec(-1, choice($._term, $._term_rightward)),
     _term_rightward: $ => prec.right(seq(
       $._term,
       repeat(seq($._PERLY_COMMA_continue, $._PERLY_COMMA, optional($._term))),
@@ -599,6 +598,8 @@ module.exports = grammar({
 
     // the usage of NONASSOC here is to make it that any parse of a paren after a func
     // automatically becomes a non-ambiguous function call
+    // TODO - builtins!
+    // 8738 state when we get rid of ambiguous_func_call 8832 w/
     function_call_expression: $ =>
       seq(field('function', $.function), '(', $._NONASSOC, optional(field('arguments', $._expr)), ')'),
     ambiguous_function_call_expression: $ =>
