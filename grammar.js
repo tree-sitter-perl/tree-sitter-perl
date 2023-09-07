@@ -565,7 +565,7 @@ module.exports = grammar({
     // we use the precedence here to ensure that we turn map { q'thingy" => $_ } into a hashref
     // it just needs to be arbitrarily higher than the _literal rule
     _tricky_hashref: $ => prec(1, seq(
-      $._PERLY_BRACE_OPEN, choice($.string_literal, $.interpolated_string_literal, $.command_string), $._PERLY_COMMA, $._expr, '}'
+      $._PERLY_BRACE_OPEN, choice($.string_literal, $.interpolated_string_literal, $.command_string), $._PERLY_COMMA_continue, $._PERLY_COMMA, $._expr, '}'
     )),
 
     map_grep_expression: $ => prec.left(TERMPREC.LSTOP, choice(
