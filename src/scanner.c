@@ -45,9 +45,9 @@ enum TokenType {
   /* zero-width lookahead tokens */
   TOKEN_CHEQOP_CONT,
   TOKEN_CHRELOP_CONT,
-  TOKEN_PERLY_COMMA_CONT,
   TOKEN_FAT_COMMA_ZW,
   TOKEN_BRACE_END_ZW,
+  TOKEN_DOLLAR_IDENT_ZW,
   /* zero-width high priority token */
   TOKEN_NONASSOC,
   /* error condition is always last */
@@ -411,11 +411,6 @@ bool tree_sitter_perl_external_scanner_scan(
     TOKEN(TOKEN_CTRL_Z);
 
   if(valid_symbols[PERLY_SEMICOLON]) {
-    if(c == ';') {
-      ADVANCE_C;
-
-      TOKEN(PERLY_SEMICOLON);
-    }
     if(c == '}' || lexer->eof(lexer)) {
       // do a PERLY_SEMICOLON unless we're in brace autoquoting
       if(is_ERROR || !valid_symbols[TOKEN_BRACE_END_ZW]) {
@@ -427,6 +422,25 @@ bool tree_sitter_perl_external_scanner_scan(
   }
   if (lexer->eof(lexer))
     return false;
+
+  if(valid_symbols[TOKEN_DOLLAR_IDENT_ZW]) {
+    // false on word chars, another dollar or {
+    if (!isidcont(c) && !strchr("${", c)) {
+      if (c == ':') {
+        // NOTE - it's a syntax error to do $$:, so that's why we return dollar_ident_zw in
+        // that case
+        lexer->mark_end(lexer);
+        ADVANCE_C;
+        if (c == ':') {
+          // we can safely bail out here b/c we know that $:: is handled in the grammar,
+          // and that's the only place we can ever get to this rule here
+          return false;
+        }
+      }
+      TOKEN(TOKEN_DOLLAR_IDENT_ZW);
+    }
+
+  }
 
   if(valid_symbols[TOKEN_APOSTROPHE] && c == '\'') {
     ADVANCE_C;
@@ -776,12 +790,6 @@ bool tree_sitter_perl_external_scanner_scan(
     DEBUG("ZW-lookahead for => autoquoting\n", 0);
     if(EQ2("=>"))
       TOKEN(TOKEN_FAT_COMMA_ZW);
-  }
-
-  if(valid_symbols[TOKEN_PERLY_COMMA_CONT]) {
-    DEBUG("ZW-lookahead for comma in term_rightwad\n", 0);
-    if(c1 == ',' || EQ2("=>"))
-      TOKEN(TOKEN_PERLY_COMMA_CONT);
   }
 
   if(valid_symbols[TOKEN_CHEQOP_CONT]) {

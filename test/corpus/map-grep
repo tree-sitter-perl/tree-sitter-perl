@@ -16,9 +16,11 @@ map { lc($_) => 1 } @array;        # and this.
             (unary_expression
               (interpolated_string_literal
                 (escape_sequence)
-                (scalar)))
+                (scalar
+                  (varname))))
             (number))))
-      (array)))
+      (array
+        (varname))))
   (comment)
   (expression_statement
     (map_grep_expression
@@ -27,9 +29,11 @@ map { lc($_) => 1 } @array;        # and this.
           (list_expression
             (interpolated_string_literal
               (escape_sequence)
-              (scalar))
+              (scalar
+                (varname)))
             (number))))
-      (array)))
+      (array
+        (varname))))
   (comment)
   (expression_statement
     (map_grep_expression
@@ -38,9 +42,11 @@ map { lc($_) => 1 } @array;        # and this.
           (list_expression
             (interpolated_string_literal
               (escape_sequence)
-              (scalar))
+              (scalar
+                (varname)))
             (number))))
-      (array)))
+      (array
+        (varname))))
   (comment)
   (expression_statement
     (map_grep_expression
@@ -48,9 +54,11 @@ map { lc($_) => 1 } @array;        # and this.
         (expression_statement
           (list_expression
             (func1op_call_expression
-              (scalar))
+              (scalar
+                (varname)))
             (number))))
-      (array)))
+      (array
+        (varname))))
   (comment))
 
 ================================================================================
@@ -68,9 +76,11 @@ map { "\L$_"   => 1 }, @array;     # perl guesses EXPR; SURPRISE!
       (unary_expression
         (list_expression
           (func1op_call_expression
-            (scalar))
+            (scalar
+              (varname)))
           (number)))
-      (array)))
+      (array
+        (varname))))
   (comment)
   (expression_statement
     (map_grep_expression
@@ -78,18 +88,22 @@ map { "\L$_"   => 1 }, @array;     # perl guesses EXPR; SURPRISE!
         (anonymous_hash_expression
           (list_expression
             (func1op_call_expression
-              (scalar))
+              (scalar
+                (varname)))
             (number))))
-      (array)))
+      (array
+        (varname))))
   (comment)
   (expression_statement
     (map_grep_expression
       (anonymous_hash_expression
         (interpolated_string_literal
           (escape_sequence)
-          (scalar))
+          (scalar
+            (varname)))
         (number))
-      (array)))
+      (array
+        (varname))))
   (comment)
   (comment))
 
@@ -105,12 +119,15 @@ map - goshdarn parens
   (expression_statement
     (list_expression
       (assignment_expression
-        (hash)
+        (hash
+          (varname))
         (map_grep_expression
           (func1op_call_expression
-            (scalar))
+            (scalar
+              (varname)))
           (number)))
-      (array)))
+      (array
+        (varname))))
   (comment)
   (comment)
   (comment))
@@ -131,7 +148,8 @@ map +(lc($_) => 1 ), (1, 2), 3;
         (expression_statement
           (list_expression
             (func1op_call_expression
-              (scalar))
+              (scalar
+                (varname)))
             (number))))
       list: (number)
       list: (number)
@@ -141,7 +159,8 @@ map +(lc($_) => 1 ), (1, 2), 3;
       callback: (unary_expression
         operand: (list_expression
           (func1op_call_expression
-            (scalar))
+            (scalar
+              (varname)))
           (number)))
       list: (number)
       list: (number)
@@ -152,7 +171,8 @@ map +(lc($_) => 1 ), (1, 2), 3;
         (expression_statement
           (list_expression
             (func1op_call_expression
-              (scalar))
+              (scalar
+                (varname)))
             (number))))
       list: (list_expression
         (number)
@@ -163,7 +183,8 @@ map +(lc($_) => 1 ), (1, 2), 3;
       callback: (unary_expression
         operand: (list_expression
           (func1op_call_expression
-            (scalar))
+            (scalar
+              (varname)))
           (number)))
       list: (list_expression
         (number)

@@ -15,8 +15,9 @@
 
 [ "map" "grep" ] @function.builtin
 
+"package" @include
+
 [
-  "package"
   "do"
   "my" "our" "local"
   "last" "next" "redo" "goto"
@@ -24,6 +25,8 @@
 ] @keyword
 
 (_ operator: _ @operator)
+"\\" @operator
+
 (yadayada) @exception
 
 (phaser_statement phase: _ @keyword.phaser)
@@ -39,27 +42,33 @@
 
 (pod) @text
 
-(number) @number
-(version) @number
+[
+  (number)
+  (version)
+] @number
 
 [
- (string_literal) 
- (interpolated_string_literal) 
- (quoted_word_list) 
- (command_string) 
+  (string_literal) 
+  (interpolated_string_literal) 
+  (quoted_word_list) 
+  (command_string) 
+  (heredoc_content)
 ] @string
 
-[(heredoc_token) (command_heredoc_token)] @label
-(heredoc_content) @string
-(heredoc_end) @label
+[
+  (heredoc_token)
+  (command_heredoc_token)
+  (heredoc_end)
+] @label
 
 [(escape_sequence) (escaped_delimiter)] @string.escape
 
-[(quoted_regexp) (match_regexp)] @string.regex
+[  
+ (quoted_regexp modifiers: _? @character.special)
+ (match_regexp  modifiers: _? @character.special)
+] @string.regex
 
 (autoquoted_bareword _?) @string.special
-
-(hash_element_expression key: (bareword) @string.special)
 
 (use_statement (package) @type)
 (package_statement (package) @type)
@@ -69,8 +78,7 @@
 (attribute_name) @attribute
 (attribute_value) @string
 
-(goto_expression (label) @label)
-(loopex_expression (label) @label)
+(label) @label
 
 (statement_label label: _ @label)
 
@@ -83,29 +91,57 @@
 (func0op_call_expression function: _ @function.builtin)
 (func1op_call_expression function: _ @function.builtin)
 
+([(function)(expression_statement (bareword))] @function.builtin
+ (#set! "priority" 101)
+ (#match? @function.builtin
+   "^(accept|atan2|bind|binmode|bless|crypt|chmod|chown|connect|die|dbmopen|exec|fcntl|flock|getpriority|getprotobynumber|gethostbyaddr|getnetbyaddr|getservbyname|getservbyport|getsockopt|glob|index|ioctl|join|kill|link|listen|mkdir|msgctl|msgget|msgrcv|msgsend|opendir|print|printf|push|pack|pipe|return|rename|rindex|read|recv|reverse|say|select|seek|semctl|semget|semop|send|setpgrp|setpriority|seekdir|setsockopt|shmctl|shmread|shmwrite|shutdown|socket|socketpair|split|sprintf|splice|substr|system|symlink|syscall|sysopen|sysseek|sysread|syswrite|tie|truncate|unlink|unpack|utime|unshift|vec|warn|waitpid|formline|open|sort)$"
+))
+
 (function) @function
 
 (ERROR) @error
 
-[(scalar) (arraylen)] @variable.scalar
-(scalar_deref_expression ["->" "$" "*"] @variable.scalar)
-(array) @variable.array
-(array_deref_expression ["->" "@" "*"] @variable.array)
+(_
+  "{" @punctuation.special
+  (varname)
+  "}" @punctuation.special
+)
+(varname 
+  (block
+    "{" @punctuation.special 
+    "}" @punctuation.special 
+  )
+)
+
+
+(
+  (varname) @variable.builtin
+  (#match? @variable.builtin "^((ENV|ARGV|INC|ARGVOUT|SIG|STDIN|STDOUT|STDERR)|[_ab]|\\W|\\d+|\\^.*)$")
+)
+
+(scalar) @variable.scalar
+(scalar_deref_expression [ "$" "*"] @variable.scalar)
+[(array) (arraylen)] @variable.array
+(array_deref_expression [ "@" "*"] @variable.array)
 (hash) @variable.hash
-(hash_deref_expression ["->" "%" "*"] @variable.hash)
+(hash_deref_expression [ "%" "*"] @variable.hash)
 
-(array_element_expression [array:(_) "->" "[" "]"] @variable.array)
-(slice_expression [array:(_) "->" "[" "]"] @variable.array)
-(keyval_expression [array:(_) "->" "[" "]"] @variable.array)
+(array_element_expression array:(_) @variable.array)
+(slice_expression array:(_) @variable.array)
+(keyval_expression array:(_) @variable.array)
 
-(hash_element_expression [hash:(_) "->" "{" "}"] @variable.hash)
-(slice_expression [hash:(_) "->" "[" "]"] @variable.hash)
-(keyval_expression [hash:(_) "->" "[" "]"] @variable.hash)
+(hash_element_expression hash:(_) @variable.hash)
+(slice_expression hash:(_) @variable.hash)
+(keyval_expression hash:(_) @variable.hash)
 
 (comment) @comment
 
 (
   [ "=>" "," ";" "->" ] @punctuation.delimiter
-  ; this helps patch over the difference between query precedence in TS + nvim
+)
+
+(
+  [ "[" "]" "{" "}" "(" ")" ] @punctuation.bracket
+  ; priority hack so nvim + ts-cli behave the same
   (#set! "priority" 90)
 )

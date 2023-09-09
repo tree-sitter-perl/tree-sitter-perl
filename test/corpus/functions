@@ -44,7 +44,8 @@ $obj->meth;
 (source_file
   (expression_statement
     (method_call_expression
-      invocant: (scalar)
+      invocant: (scalar
+        (varname))
       method: (method))))
 
 ================================================================================
@@ -56,7 +57,8 @@ $obj->meth();
 (source_file
   (expression_statement
     (method_call_expression
-      invocant: (scalar)
+      invocant: (scalar
+        (varname))
       method: (method))))
 
 ================================================================================
@@ -68,7 +70,8 @@ $obj->meth(123);
 (source_file
   (expression_statement
     (method_call_expression
-      invocant: (scalar)
+      invocant: (scalar
+        (varname))
       method: (method)
       arguments: (number))))
 
@@ -81,7 +84,8 @@ $obj->meth(12, 34);
 (source_file
   (expression_statement
     (method_call_expression
-      invocant: (scalar)
+      invocant: (scalar
+        (varname))
       method: (method)
       arguments: (list_expression
         (number)
@@ -131,10 +135,12 @@ keys %hash;
 (source_file
   (expression_statement
     (func1op_call_expression
-      (scalar)))
+      (scalar
+        (varname))))
   (expression_statement
     (func1op_call_expression
-      (scalar)))
+      (scalar
+        (varname))))
   (expression_statement
     (func1op_call_expression))
   (expression_statement
@@ -142,15 +148,19 @@ keys %hash;
   (expression_statement
     (list_expression
       (func1op_call_expression
-        (scalar))
+        (scalar
+          (varname)))
       (func1op_call_expression
-        (scalar))))
+        (scalar
+          (varname)))))
   (expression_statement
     (func1op_call_expression
-      (array)))
+      (array
+        (varname))))
   (expression_statement
     (func1op_call_expression
-    (hash))))
+      (hash
+        (varname)))))
 
 ================================================================================
 Filetest operators
@@ -166,7 +176,8 @@ Filetest operators
       (interpolated_string_literal)))
   (expression_statement
     (func1op_call_expression
-      (scalar)))
+      (scalar
+        (varname))))
   (expression_statement
     (func1op_call_expression
       (bareword))))

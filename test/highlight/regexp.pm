@@ -7,8 +7,10 @@ qr/pattern with $interpolation/;
 #               ^ variable.scalar
 qr'pattern with no $interpolation';
 # <- string.regex
+#                     ^string.regex
 qr/pattern/i;
-# ^^^^^^^^^^ string.regex
+# ^^^^^^^^^ string.regex
+#          ^ character.special
 
 m/pattern/;
 # <- string.regex

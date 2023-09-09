@@ -94,8 +94,15 @@ module.exports = grammar({
     $._quotelikes,
     $._func0op,
     $._func1op,
+    $._map_grep,
     $._autoquotables,
     $._PERLY_COMMA,
+    $._KW_USE,
+    $._KW_FOR,
+    $._LOOPEX,
+    $._PHASE_NAME,
+    $._HASH_PERCENT,
+    $._bareword
   ],
   externals: $ => [
     /* ident-alikes */
@@ -127,9 +134,9 @@ module.exports = grammar({
     /* zero-width lookahead tokens */
     $._CHEQOP_continue,
     $._CHRELOP_continue,
-    $._PERLY_COMMA_continue,
     $._fat_comma_zw,
     $._brace_end_zw,
+    $._dollar_ident_zw,
     /* zero-width high priority token */
     $._NONASSOC,
     /* error condition must always be last; we don't use this in the grammar */
@@ -147,17 +154,19 @@ module.exports = grammar({
     [$.return_expression],
     [$.conditional_statement],
     [$.elsif],
-    [$.list_expression],
+    [$._listexpr, $.list_expression, $._term_rightward],
     [$._term_rightward],
-    [$._FUNC, $.bareword],
+    [$.function, $.bareword],
   ],
   rules: {
     source_file: $ => seq(repeat($._fullstmt), optional($.__DATA__)),
     /****
      * Main grammar rules taken from perly.y.
      ****/
-    _PERLY_BRACE_OPEN: $ => token(prec(2, '{')),
+    // NOTE - the plain token MUST come first, b/c TS will otherwise decide that the plain
+    // old '{' is a non-usable token. Related to the issue from https://github.com/tree-sitter-perl/tree-sitter-perl/pull/110
     _HASHBRACK: $ => '{',
+    _PERLY_BRACE_OPEN: $ => alias(token(prec(2, '{')), '{'),
 
     block: $ => seq($._PERLY_BRACE_OPEN, repeat($._fullstmt), '}'),
 
@@ -165,7 +174,7 @@ module.exports = grammar({
 
     // perly.y calls this labfullstmt
     statement_label: $ => seq(field('label', $.identifier), ':', field('statement', $._fullstmt)),
-    _semicolon: $ => alias($._PERLY_SEMICOLON, ';'),
+    _semicolon: $ => choice(';', $._PERLY_SEMICOLON),
 
     _barestmt: $ => choice(
       $.package_statement,
@@ -275,17 +284,15 @@ module.exports = grammar({
     ),
     /* ensure that an entire list expression's contents appear in one big flat
     * list, while permitting multiple internal commas and an optional trailing one */
-    // NOTE - we gave this negative precedence b/c it's kinda just a fallback
-    list_expression: $ => prec(-1, seq(
-      $._term, $._PERLY_COMMA, repeat(seq(optional($._term), $._PERLY_COMMA)), optional($._term)
-    )),
     _term_rightward: $ => prec.right(seq(
       $._term,
-      repeat(seq($._PERLY_COMMA_continue, $._PERLY_COMMA, optional($._term))),
+      repeat(seq($._PERLY_COMMA, optional($._term))),
       // NOTE - we need this here to create a conflict in order to go GLR to handle
       // `die 1, or => die` correctly
-      optional(seq($._PERLY_COMMA_continue, $._PERLY_COMMA))
+      optional(seq($._PERLY_COMMA))
     )),
+    // NOTE - we gave this negative precedence b/c it's kinda just a fallback
+    list_expression: $ => prec(-1, choice($._term, $._term_rightward)),
 
     _subscripted: $ => choice(
       /* TODO:
@@ -559,13 +566,11 @@ module.exports = grammar({
     _tricky_hashref: $ => prec(1, seq(
       $._PERLY_BRACE_OPEN, choice($.string_literal, $.interpolated_string_literal, $.command_string), $._PERLY_COMMA, $._expr, '}'
     )),
-    // TODO - i think if we use an expanded version of anonymous_hash_expression which
-    // starts w/ a PERLY_BRACE_OPEN and does the string + comma logic, we can avoid having
-    // to do any of this SHTUFF in the scanner!!!
+
     map_grep_expression: $ => prec.left(TERMPREC.LSTOP, choice(
       seq($._map_grep, field('callback', $.block), field('list', $._term_rightward)),
       seq($._map_grep, field('callback', choice($._term, alias($._tricky_hashref, $.anonymous_hash_expression))), $._PERLY_COMMA, field('list', $._term_rightward)),
-      seq($._map_grep, '(', field('callback', $._term), $._PERLY_COMMA, field('list', $._term_rightward), ')'),
+      seq($._map_grep, '(', $._NONASSOC, field('callback', $._term), $._PERLY_COMMA, field('list', $._term_rightward), ')'),
     )),
 
     _label_arg: $ => choice(alias($.identifier, $.label), $._term),
@@ -601,7 +606,7 @@ module.exports = grammar({
       seq(field('function', $.function), '(', $._NONASSOC, optional(field('arguments', $._expr)), ')'),
     ambiguous_function_call_expression: $ =>
       prec(TERMPREC.LSTOP, seq(field('function', $.function), field('arguments', $._term_rightward))),
-    function: $ => $._FUNC,
+    function: $ => $._bareword,
 
     method_call_expression: $ => prec.left(TERMPREC.ARROW, seq(
       field('invocant', $._term),
@@ -609,15 +614,15 @@ module.exports = grammar({
       field('method', $.method),
       optseq('(', optional(field('arguments', $._expr)), ')')
     )),
-    method: $ => choice($._METHCALL0, $.scalar),
+    method: $ => choice($._bareword, $.scalar),
 
-    scalar: $ => seq('$', $._var_indirob),
-    _declare_scalar: $ => seq('$', $._varname),
-    array: $ => seq('@', $._var_indirob),
-    _declare_array: $ => seq('@', $._varname),
-    _HASH_PERCENT: $ => token(prec(2, '%')),
+    scalar:   $ => seq('$',  $._var_indirob),
+    _declare_scalar:   $ => seq('$',  $.varname),
+    array:    $ => seq('@',  $._var_indirob),
+    _declare_array:    $ => seq('@',  $.varname),
+    _HASH_PERCENT: $ => alias(token(prec(2, '%')), '%'), // self-aliasing b/c token
     hash:     $ => seq($._HASH_PERCENT, $._var_indirob),
-    _declare_hash:    $ => seq($._HASH_PERCENT,  $._varname),
+    _declare_hash:    $ => seq($._HASH_PERCENT,  $.varname),
 
     arraylen: $ => seq('$#', $._var_indirob),
     // perly.y calls this `star`
@@ -631,16 +636,16 @@ module.exports = grammar({
       $.scalar,
       $.block,
     ),
-    _varname: $ => choice(
+    varname: $ => choice(
       $._identifier,
       $._ident_special // TODO - not sure if we wanna make `my $1` error out
     ),
     // not all indirobs are alike; for variables, they have autoquoting behavior
     _var_indirob: $ => choice(
-      $._indirob,
+      alias($._indirob, $.varname),
       seq(
         $._PERLY_BRACE_OPEN,
-        choice($._bareword, $._autoquotables, $._ident_special, /\^[A-Z]\w*/),
+        alias(choice($._bareword, $._autoquotables, $._ident_special, /\^\w+/ ), $.varname),
         $._brace_end_zw, '}'
       )
     ),
@@ -654,10 +659,6 @@ module.exports = grammar({
       optseq($._attribute_value_begin, '(', field('value', $.attribute_value), ')'),
     ),
     attribute_name: $ => $._bareword,
-
-    // TODO: These are rediculously complicated in toke.c
-    _FUNC: $ => $._bareword,
-    _METHCALL0: $ => $._bareword,
 
     /****
      * Token types defined by toke.c
@@ -829,14 +830,14 @@ module.exports = grammar({
     quoted_regexp: $ => choice(
       seq(
         seq('qr', $._quotelike_begin),
-        optional($._interpolated_regexp_content),
+        optional(field('content', $._interpolated_regexp_content)),
         $._quotelike_end,
         optional(field('modifiers', $.quoted_regexp_modifiers))
       ),
       seq(
         'qr',
         $._apostrophe,
-        optional($._noninterpolated_string_content), // TODO: regexp content
+        optional(field('content', $._noninterpolated_string_content)), // TODO: regexp content
         $._quotelike_end,
         optional(field('modifiers', $.quoted_regexp_modifiers))
       )
@@ -846,14 +847,14 @@ module.exports = grammar({
       // TODO: recognise /pattern/ as a match regexp as well
       seq(
         seq('m', $._quotelike_begin),
-        optional($._interpolated_regexp_content),
+        optional(field('content', $._interpolated_regexp_content)),
         $._quotelike_end,
         optional(field('modifiers', $.match_regexp_modifiers))
       ),
       seq(
         'm',
         $._apostrophe,
-        optional($._noninterpolated_string_content), // TODO: regexp content
+        optional(field('content', $._noninterpolated_string_content)), // TODO: regexp content
         $._quotelike_end,
         optional(field('modifiers', $.match_regexp_modifiers))
       )
@@ -872,8 +873,8 @@ module.exports = grammar({
       )
     ),
 
-    quoted_regexp_modifiers: $ => token(/[msixpadlun]+/),
-    match_regexp_modifiers: $ => token(/[msixpadluncg]+/),
+    quoted_regexp_modifiers: $ => /[msixpadlun]+/,
+    match_regexp_modifiers:  $ => /[msixpadluncg]+/,
 
     /* quick overview of the heredoc logic
      * 1. we parse the heredoc token (given all of its rules and varieties). We store that in the
@@ -918,7 +919,7 @@ module.exports = grammar({
     _conditionals: $ => choice('if', 'unless'),
     _loops: $ => choice('while', 'until'),
     _postfixables: $ => choice($._conditionals, $._loops, $._KW_FOR, 'and', 'or'),
-    _keywords: $ => choice($._postfixables, 'else', 'elsif', 'do', 'eval', 'our', 'my', 'local', 'require', 'return', 'eq', 'ne', 'lt', 'le', 'ge', 'gt', 'cmp', 'isa', $._KW_USE, $._LOOPEX, $._PHASE_NAME, '__DATA__', '__END__', 'sub', 'map', 'grep'),
+    _keywords: $ => choice($._postfixables, 'else', 'elsif', 'do', 'eval', 'our', 'my', 'local', 'require', 'return', 'eq', 'ne', 'lt', 'le', 'ge', 'gt', 'cmp', 'isa', $._KW_USE, $._LOOPEX, $._PHASE_NAME, '__DATA__', '__END__', 'sub', $._map_grep),
     _quotelikes: $ => choice('q', 'qq', 'qw', 'qx'),
     _autoquotables: $ => choice($._func0op, $._func1op, $._keywords, $._quotelikes),
     // we need dynamic precedence here so we can resolve things like `print -next`
@@ -936,7 +937,10 @@ module.exports = grammar({
     // prefer identifer to bareword where the grammar allows
     identifier: $ => prec(2, $._identifier),
     _identifier: $ => /[a-zA-Z_]\w*/,
-    _ident_special: $ => /[0-9]+|\^[A-Z]|./,
+    // this pattern tries to encapsulate the joys of S_scan_ident in toke.c in perl core
+    // _dollar_ident_zw takes care of the subtleties that distinguish $$; ( only $$
+    // followed by semicolon ) from $$deref
+    _ident_special: $ => choice(/[0-9]+|\^([A-Z[?\^_]|])|\S/, seq('$', $._dollar_ident_zw) ),
 
     bareword: $ => prec.dynamic(1, $._bareword),
     // _bareword is at the very end b/c the lexer prefers tokens defined earlier in the grammar

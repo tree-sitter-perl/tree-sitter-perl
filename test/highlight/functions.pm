@@ -65,7 +65,9 @@ croak 'thing', 'stuff';
 # <- function
 #     ^ string
 print 'things', sum 1, 2, 3;
-# <- function
+# <- function.builtin
 #     ^ string
 #               ^ function
 #                   ^ number
+print;
+# ^ function.builtin

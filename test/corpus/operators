@@ -5,7 +5,11 @@ EXPR or EXPR
 --------------------------------------------------------------------------------
 
 (source_file
-  (expression_statement (lowprec_logical_expression (number) (number))))
+  (expression_statement
+    (lowprec_logical_expression
+      (number)
+      (number))))
+
 ================================================================================
 EXPR and EXPR
 ================================================================================
@@ -13,7 +17,11 @@ EXPR and EXPR
 --------------------------------------------------------------------------------
 
 (source_file
-  (expression_statement (lowprec_logical_expression (number) (number))))
+  (expression_statement
+    (lowprec_logical_expression
+      (number)
+      (number))))
+
 ================================================================================
 EXPR, EXPR
 ================================================================================
@@ -24,10 +32,23 @@ EXPR, EXPR
 --------------------------------------------------------------------------------
 
 (source_file
-  (expression_statement (list_expression (number) (number) (number)))
-  (expression_statement (list_expression (number) (number)))
-  (expression_statement (list_expression (number) (number)))
-  (expression_statement (list_expression (number) (number))))
+  (expression_statement
+    (list_expression
+      (number)
+      (number)
+      (number)))
+  (expression_statement
+    (list_expression
+      (number)
+      (number)))
+  (expression_statement
+    (list_expression
+      (number)
+      (number)))
+  (expression_statement
+    (list_expression
+      (number)
+      (number))))
 
 ================================================================================
 EXPR || EXPR
@@ -38,9 +59,19 @@ EXPR || EXPR
 --------------------------------------------------------------------------------
 
 (source_file
-  (expression_statement (binary_expression (number) (number)))
-  (expression_statement (binary_expression (number) (number)))
-  (expression_statement (binary_expression (number) (number))))
+  (expression_statement
+    (binary_expression
+      (number)
+      (number)))
+  (expression_statement
+    (binary_expression
+      (number)
+      (number)))
+  (expression_statement
+    (binary_expression
+      (number)
+      (number))))
+
 ================================================================================
 EXPR eq EXPR
 ================================================================================
@@ -49,8 +80,15 @@ EXPR eq EXPR
 --------------------------------------------------------------------------------
 
 (source_file
-  (expression_statement (equality_expression (number) (number)))
-  (expression_statement (equality_expression (number) (number))))
+  (expression_statement
+    (equality_expression
+      (number)
+      (number)))
+  (expression_statement
+    (equality_expression
+      (number)
+      (number))))
+
 ================================================================================
 EXPR eq EXPR - list/non assoc
 ================================================================================
@@ -60,11 +98,24 @@ EXPR eq EXPR - list/non assoc
 --------------------------------------------------------------------------------
 
 (source_file
-  (expression_statement (equality_expression (number) (number) (number)))
-  (expression_statement (equality_expression (number) (number) (number) (number)))
-  (expression_statement (equality_expression (number) (number)))
-  (ERROR (number))
-  )
+  (expression_statement
+    (equality_expression
+      (number)
+      (number)
+      (number)))
+  (expression_statement
+    (equality_expression
+      (number)
+      (number)
+      (number)
+      (number)))
+  (expression_statement
+    (equality_expression
+      (number)
+      (number)))
+  (ERROR
+    (number)))
+
 ================================================================================
 EXPR < EXPR
 ================================================================================
@@ -76,11 +127,27 @@ EXPR < EXPR
 --------------------------------------------------------------------------------
 
 (source_file
-  (expression_statement (relational_expression (number) (number)))
-  (expression_statement (relational_expression (number) (number)))
-  (expression_statement (relational_expression (number) (number)))
-  (expression_statement (relational_expression (number) (number)))
-  (expression_statement (relational_expression (number) (number))))
+  (expression_statement
+    (relational_expression
+      (number)
+      (number)))
+  (expression_statement
+    (relational_expression
+      (number)
+      (number)))
+  (expression_statement
+    (relational_expression
+      (number)
+      (number)))
+  (expression_statement
+    (relational_expression
+      (number)
+      (number)))
+  (expression_statement
+    (relational_expression
+      (number)
+      (number))))
+
 ================================================================================
 EXPR < EXPR - list/non assoc
 ================================================================================
@@ -89,22 +156,55 @@ EXPR < EXPR - list/non assoc
 (12 < 34) > 45;
 12 > (34 < 45);
 --------------------------------------------------------------------------------
+
 (source_file
-  (expression_statement (relational_expression (number) (number) (number) (number)))
-  (expression_statement (relational_expression (number) (number))) (ERROR (number))
-  (expression_statement (relational_expression (relational_expression (number) (number)) (number)))
-  (expression_statement (relational_expression (number) (relational_expression (number) (number))))
-)
+  (expression_statement
+    (relational_expression
+      (number)
+      (number)
+      (number)
+      (number)))
+  (expression_statement
+    (relational_expression
+      (number)
+      (number)))
+  (ERROR
+    (number))
+  (expression_statement
+    (relational_expression
+      (relational_expression
+        (number)
+        (number))
+      (number)))
+  (expression_statement
+    (relational_expression
+      (number)
+      (relational_expression
+        (number)
+        (number)))))
+
 ================================================================================
 < and eq - list/non assoc corner cases
 ================================================================================
 '' eq 2 > 3 > 4;
 1 > 2 <=> 3;
 --------------------------------------------------------------------------------
+
 (source_file
-  (expression_statement (equality_expression (string_literal) (relational_expression (number) (number) (number))))
-  (expression_statement (equality_expression (relational_expression (number) (number)) (number) ))
-)
+  (expression_statement
+    (equality_expression
+      (string_literal)
+      (relational_expression
+        (number)
+        (number)
+        (number))))
+  (expression_statement
+    (equality_expression
+      (relational_expression
+        (number)
+        (number))
+      (number))))
+
 ================================================================================
 EXPR << EXPR
 ================================================================================
@@ -112,7 +212,11 @@ EXPR << EXPR
 --------------------------------------------------------------------------------
 
 (source_file
-  (expression_statement (binary_expression left: (number) right: (number))))
+  (expression_statement
+    (binary_expression
+      left: (number)
+      right: (number))))
+
 ================================================================================
 EXPR + EXPR
 ================================================================================
@@ -120,7 +224,11 @@ EXPR + EXPR
 --------------------------------------------------------------------------------
 
 (source_file
-  (expression_statement (binary_expression left: (number) right: (number))))
+  (expression_statement
+    (binary_expression
+      left: (number)
+      right: (number))))
+
 ================================================================================
 EXPR * EXPR
 ================================================================================
@@ -128,7 +236,11 @@ EXPR * EXPR
 --------------------------------------------------------------------------------
 
 (source_file
-  (expression_statement (binary_expression left: (number) right: (number))))
+  (expression_statement
+    (binary_expression
+      left: (number)
+      right: (number))))
+
 ================================================================================
 EXPR =~ EXPR
 ================================================================================
@@ -136,7 +248,13 @@ $str =~ $re;
 --------------------------------------------------------------------------------
 
 (source_file
-  (expression_statement (binary_expression left: (scalar) right: (scalar))))
+  (expression_statement
+    (binary_expression
+      left: (scalar
+        (varname))
+      right: (scalar
+        (varname)))))
+
 ================================================================================
 EXPR ** EXPR
 ================================================================================
@@ -144,7 +262,11 @@ EXPR ** EXPR
 --------------------------------------------------------------------------------
 
 (source_file
-  (expression_statement (binary_expression left: (number) right: (number))))
+  (expression_statement
+    (binary_expression
+      left: (number)
+      right: (number))))
+
 ================================================================================
 (EXPR)
 ================================================================================
@@ -155,7 +277,10 @@ EXPR ** EXPR
   (expression_statement
     (binary_expression
       left: (number)
-      right: (binary_expression left: (number) right: (number)))))
+      right: (binary_expression
+        left: (number)
+        right: (number)))))
+
 ================================================================================
 !EXPR
 ================================================================================
@@ -163,7 +288,10 @@ EXPR ** EXPR
 --------------------------------------------------------------------------------
 
 (source_file
-  (expression_statement (unary_expression operand: (number))))
+  (expression_statement
+    (unary_expression
+      operand: (number))))
+
 ================================================================================
 EXPR ? EXPR : EXPR
 ================================================================================
@@ -181,11 +309,11 @@ EXPR ? EXPR : EXPR
     (conditional_expression
       condition: (number)
       consequent: (number)
-      alternative:
-        (conditional_expression
-          condition: (number)
-          consequent: (number)
-          alternative: (number)))))
+      alternative: (conditional_expression
+        condition: (number)
+        consequent: (number)
+        alternative: (number)))))
+
 ================================================================================
 ++EXPR
 ================================================================================
@@ -194,8 +322,15 @@ EXPR ? EXPR : EXPR
 --------------------------------------------------------------------------------
 
 (source_file
-  (expression_statement (preinc_expression (scalar)))
-  (expression_statement (preinc_expression (scalar))))
+  (expression_statement
+    (preinc_expression
+      (scalar
+        (varname))))
+  (expression_statement
+    (preinc_expression
+      (scalar
+        (varname)))))
+
 ================================================================================
 EXPR++
 ================================================================================
@@ -204,8 +339,15 @@ $var--;
 --------------------------------------------------------------------------------
 
 (source_file
-  (expression_statement (postinc_expression (scalar)))
-  (expression_statement (postinc_expression (scalar))))
+  (expression_statement
+    (postinc_expression
+      (scalar
+        (varname))))
+  (expression_statement
+    (postinc_expression
+      (scalar
+        (varname)))))
+
 ================================================================================
 \EXPR
 ================================================================================
@@ -213,7 +355,9 @@ $var--;
 --------------------------------------------------------------------------------
 
 (source_file
-  (expression_statement (refgen_expression (number))))
+  (expression_statement
+    (refgen_expression
+      (number))))
 
 ================================================================================
 range ops
@@ -222,16 +366,33 @@ range ops
 13 ... 14;
 13 .. (1 .. 4);
 --------------------------------------------------------------------------------
+
 (source_file
-  (expression_statement (binary_expression (number) (number)))
-  (expression_statement (binary_expression (number) (number)))
-  (expression_statement (binary_expression (number) (binary_expression (number) (number))))
-  )
+  (expression_statement
+    (binary_expression
+      (number)
+      (number)))
+  (expression_statement
+    (binary_expression
+      (number)
+      (number)))
+  (expression_statement
+    (binary_expression
+      (number)
+      (binary_expression
+        (number)
+        (number)))))
+
 ================================================================================
 range ops - nonassoc
 ================================================================================
 1 .. 2 .. 3;
 --------------------------------------------------------------------------------
+
 (source_file
-  (expression_statement (binary_expression (number) (number))) (ERROR (number))
-)
+  (expression_statement
+    (binary_expression
+      (number)
+      (number)))
+  (ERROR
+    (number)))
