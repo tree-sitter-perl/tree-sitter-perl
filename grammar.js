@@ -110,6 +110,7 @@ module.exports = grammar({
     $._apostrophe,
     $._double_quote,
     $._backtick,
+    $._search_slash,
     $._PERLY_SEMICOLON,
     $._PERLY_HEREDOC,
     $._ctrl_z_hack,
@@ -846,7 +847,7 @@ module.exports = grammar({
     match_regexp: $ => choice(
       // TODO: recognise /pattern/ as a match regexp as well
       seq(
-        seq('m', $._quotelike_begin),
+        choice($._search_slash, seq('m', $._quotelike_begin)),
         optional(field('content', $._interpolated_regexp_content)),
         $._quotelike_end,
         optional(field('modifiers', $.match_regexp_modifiers))
