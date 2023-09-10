@@ -396,3 +396,18 @@ range ops - nonassoc
       (number)))
   (ERROR
     (number)))
+================================================================================
+diamond operators
+================================================================================
+<>;
+<ARGV>;
+<<>>;
+--------------------------------------------------------------------------------
+(source_file
+ (expression_statement
+   (file_io_expression))
+ (expression_statement
+   (file_io_expression
+   (filehandle)))
+ (expression_statement
+   (file_io_expression)))
