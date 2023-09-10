@@ -349,6 +349,7 @@ module.exports = grammar({
     ),
 
     _term: $ => choice(
+      $.file_io_expression,
       $.assignment_expression,
       $.binary_expression,
       $.equality_expression,
@@ -419,6 +420,11 @@ module.exports = grammar({
       $._literal,
     ),
 
+    // TODO - bind_expression using =~
+    file_io_expression: $ => choice(
+      seq(field('operator', '<'), optional(alias($._indirob, $.filehandle)), field('operator', '>')),
+      field('operator', seq('<<', token.immediate('>>'))),
+    ),
     assignment_expression: $ => prec.right(TERMPREC.ASSIGNOP,
       binop(
         choice( // _ASSIGNOP
