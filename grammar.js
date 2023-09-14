@@ -420,7 +420,6 @@ module.exports = grammar({
       $._literal,
     ),
 
-    // TODO - bind_expression using =~
     file_io_expression: $ => choice(
       seq(field('operator', '<'), optional(alias($._indirob, $.filehandle)), field('operator', '>')),
       field('operator', seq('<<', token.immediate('>>'))),
