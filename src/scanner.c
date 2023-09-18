@@ -21,6 +21,7 @@ enum TokenType {
   TOKEN_APOSTROPHE,
   TOKEN_DOUBLE_QUOTE,
   TOKEN_BACKTICK,
+  TOKEN_SEARCH_SLASH,
   PERLY_SEMICOLON,
   PERLY_HEREDOC,
   TOKEN_CTRL_Z,
@@ -442,6 +443,14 @@ bool tree_sitter_perl_external_scanner_scan(
 
   }
 
+  if(valid_symbols[TOKEN_SEARCH_SLASH] && c == '/') {
+    ADVANCE_C;
+    state->delim_open = 0;
+    state->delim_close = '/';
+    state->delim_count = 0;
+
+    TOKEN(TOKEN_SEARCH_SLASH);
+  }
   if(valid_symbols[TOKEN_APOSTROPHE] && c == '\'') {
     ADVANCE_C;
     state->delim_open = 0;

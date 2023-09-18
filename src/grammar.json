@@ -1760,6 +1760,10 @@
       "members": [
         {
           "type": "SYMBOL",
+          "name": "readline_expression"
+        },
+        {
+          "type": "SYMBOL",
           "name": "assignment_expression"
         },
         {
@@ -1958,6 +1962,69 @@
         {
           "type": "SYMBOL",
           "name": "_literal"
+        }
+      ]
+    },
+    "readline_expression": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "FIELD",
+              "name": "operator",
+              "content": {
+                "type": "STRING",
+                "value": "<"
+              }
+            },
+            {
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "ALIAS",
+                  "content": {
+                    "type": "SYMBOL",
+                    "name": "_indirob"
+                  },
+                  "named": true,
+                  "value": "filehandle"
+                },
+                {
+                  "type": "BLANK"
+                }
+              ]
+            },
+            {
+              "type": "FIELD",
+              "name": "operator",
+              "content": {
+                "type": "STRING",
+                "value": ">"
+              }
+            }
+          ]
+        },
+        {
+          "type": "FIELD",
+          "name": "operator",
+          "content": {
+            "type": "SEQ",
+            "members": [
+              {
+                "type": "STRING",
+                "value": "<<"
+              },
+              {
+                "type": "IMMEDIATE_TOKEN",
+                "content": {
+                  "type": "STRING",
+                  "value": ">>"
+                }
+              }
+            ]
+          }
         }
       ]
     },
@@ -5860,15 +5927,24 @@
           "type": "SEQ",
           "members": [
             {
-              "type": "SEQ",
+              "type": "CHOICE",
               "members": [
                 {
-                  "type": "STRING",
-                  "value": "m"
+                  "type": "SYMBOL",
+                  "name": "_search_slash"
                 },
                 {
-                  "type": "SYMBOL",
-                  "name": "_quotelike_begin"
+                  "type": "SEQ",
+                  "members": [
+                    {
+                      "type": "STRING",
+                      "value": "m"
+                    },
+                    {
+                      "type": "SYMBOL",
+                      "name": "_quotelike_begin"
+                    }
+                  ]
                 }
               ]
             },
@@ -6866,6 +6942,10 @@
     {
       "type": "SYMBOL",
       "name": "_backtick"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_search_slash"
     },
     {
       "type": "SYMBOL",
