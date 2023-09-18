@@ -56,3 +56,27 @@ m/^pattern(?:$|,)/;
     (match_regexp))
   (expression_statement
     (match_regexp)))
+
+================================================================================
+Match w just solidus
+================================================================================
+$var =~ /pattern/;
+time / 2; #comment
+sum /pattern;#still pattern/;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (binary_expression
+      (scalar
+        (varname))
+      (match_regexp)))
+  (expression_statement
+    (binary_expression
+      (func0op_call_expression)
+      (number)))
+  (comment)
+  (expression_statement
+    (ambiguous_function_call_expression
+      (function)
+      (match_regexp))))
