@@ -349,7 +349,7 @@ module.exports = grammar({
     ),
 
     _term: $ => choice(
-      $.file_io_expression,
+      $.readline_expression,
       $.assignment_expression,
       $.binary_expression,
       $.equality_expression,
@@ -420,7 +420,7 @@ module.exports = grammar({
       $._literal,
     ),
 
-    file_io_expression: $ => choice(
+    readline_expression: $ => choice(
       seq(field('operator', '<'), optional(alias($._indirob, $.filehandle)), field('operator', '>')),
       field('operator', seq('<<', token.immediate('>>'))),
     ),
