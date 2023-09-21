@@ -63,12 +63,13 @@ binop.nonassoc = ($, op, term) =>
 binop.listassoc = (op, continue_token, term) =>
   seq(
     field('arg', term),
-    prec.right(repeat1(seq(
+    repeat1(seq(
       continue_token,
       field('operator', op),
       field('arg', term),
-      optional(continue_token),
-    )))
+      optional(continue_token)
+    )),
+    ''
   )
 
 /**
