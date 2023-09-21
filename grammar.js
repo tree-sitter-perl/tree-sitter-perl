@@ -63,13 +63,13 @@ binop.nonassoc = ($, op, term) =>
 binop.listassoc = (op, continue_token, term) =>
   seq(
     field('arg', term),
-    field('operator', op),
-    field('arg', term),
-    repeat(seq(
+    repeat1(seq(
       continue_token,
       field('operator', op),
       field('arg', term),
-    ))
+      optional(continue_token)
+    )),
+    ''
   )
 
 /**
@@ -463,19 +463,18 @@ module.exports = grammar({
 
     // perl.y calls this `termeqop`
     equality_expression: $ =>
-      prec.right(TERMPREC.CHEQOP, choice(
-        binop.listassoc(choice('==', '!=', 'eq', 'ne'), $._CHEQOP_continue, $._term), // _CHEQOP
-        binop.nonassoc($, choice('<=>', 'cmp', '~~'), $._term), // _NCEQOP
-      )
+      choice(
+        prec(TERMPREC.CHEQOP, binop.listassoc(choice('==', '!=', 'eq', 'ne'), $._CHEQOP_continue, $._term)), // _CHEQOP
+        prec.right(TERMPREC.CHEQOP, binop.nonassoc($, choice('<=>', 'cmp', '~~'), $._term)), // _NCEQOP
       ),
 
     // perly.y calls this `termrelop`
     relational_expression: $ =>
-      prec.right(TERMPREC.CHRELOP, choice(
-        binop.listassoc(choice('<', '<=', '>=', '>', 'lt', 'le', 'ge', 'gt'), $._CHRELOP_continue, $._term), // _CHRELOP
-        binop.nonassoc($, 'isa', $._term), // _NCRELOP
+      choice(
+        prec(TERMPREC.CHRELOP, binop.listassoc(choice('<', '<=', '>=', '>', 'lt', 'le', 'ge', 'gt'), $._CHRELOP_continue, $._term)), // _CHRELOP
+        prec.right(TERMPREC.CHRELOP, binop.nonassoc($, 'isa', $._term)), // _NCRELOP
       )
-      ),
+      ,
 
     // perly.y calls this `termunop`
     unary_expression: $ => choice(
