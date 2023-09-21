@@ -27,6 +27,7 @@ enum TokenType {
   TOKEN_CTRL_Z,
   /* immediates */
   TOKEN_QUOTELIKE_BEGIN,
+  TOKEN_QUOTELIKE_MIDDLE,
   TOKEN_QUOTELIKE_END,
   TOKEN_Q_STRING_CONTENT,
   TOKEN_QQ_STRING_CONTENT,
@@ -725,6 +726,19 @@ bool tree_sitter_perl_external_scanner_scan(
       else
         TOKEN(TOKEN_Q_STRING_CONTENT);
     }
+  }
+
+  if(valid_symbols[TOKEN_QUOTELIKE_MIDDLE]) {
+    if(c == state->delim_close && !state->delim_count) {
+      ADVANCE_C;
+      skip_whitespace(lexer);
+      c = lexer->lookahead;
+      if(c == state->delim_open || state->delim_close) {
+        ADVANCE_C;
+        TOKEN(TOKEN_QUOTELIKE_MIDDLE);
+      }
+    }
+
   }
 
   if(valid_symbols[TOKEN_QUOTELIKE_END]) {
