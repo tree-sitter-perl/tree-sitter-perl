@@ -731,12 +731,16 @@ bool tree_sitter_perl_external_scanner_scan(
   if(valid_symbols[TOKEN_QUOTELIKE_MIDDLE]) {
     if(c == state->delim_close && !state->delim_count) {
       ADVANCE_C;
-      skip_whitespace(lexer);
-      c = lexer->lookahead;
-      if(c == state->delim_open || state->delim_close) {
-        ADVANCE_C;
-        TOKEN(TOKEN_QUOTELIKE_MIDDLE);
+      if(state->delim_open) {
+        skip_whitespace(lexer);
+        c = lexer->lookahead;
+        if(c == state->delim_open) {
+          ADVANCE_C;
+        } else {
+          return false;
+        }
       }
+      TOKEN(TOKEN_QUOTELIKE_MIDDLE);
     }
 
   }

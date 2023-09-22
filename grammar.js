@@ -901,9 +901,9 @@ module.exports = grammar({
     ),
 
     // TODO - these are too low precedence
-    quoted_regexp_modifiers: $ => /[msixpadlun]+/,
-    match_regexp_modifiers:  $ => /[msixpadluncg]+/,
-    replacement_regexp_modifiers:  $ => /[msixpogcedual]+/,
+    quoted_regexp_modifiers: $ => token(prec(2, /[msixpadlun]+/)),
+    match_regexp_modifiers:  $ => token(prec(2, /[msixpadluncg]+/)),
+    replacement_regexp_modifiers:  $ => token(prec(2, /[msixpogcedual]+/)),
 
     /* quick overview of the heredoc logic
      * 1. we parse the heredoc token (given all of its rules and varieties). We store that in the
