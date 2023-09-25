@@ -735,7 +735,7 @@ module.exports = grammar({
       $.command_string,
       $.quoted_regexp,
       $.match_regexp,
-      $.replacement_regexp,
+      $.substitution_regexp,
     ),
 
     string_literal: $ => choice($._q_string),
@@ -866,24 +866,24 @@ module.exports = grammar({
       )
     ),
 
-    replacement_regexp: $ => choice(
+    substitution_regexp: $ => choice(
       seq(
-        's',
+        field('operator', 's'),
         $._quotelike_begin,
         optional(field('content', $._interpolated_regexp_content)),
         $._quotelike_middle,
-        optional(field('content', $._interpolated_string_content)),
+        optional(field('replacement', $._interpolated_string_content)),
         $._quotelike_end,
-        optional(field('modifiers', $.replacement_regexp_modifiers))
+        optional(field('modifiers', $.substitution_regexp_modifiers))
       ),
       seq(
-        's',
+        field('operator', 's'),
         $._apostrophe,
         optional(field('content', $._noninterpolated_string_content)),
         $._quotelike_middle,
-        optional(field('content', $._noninterpolated_string_content)),
+        optional(field('replacement', $._noninterpolated_string_content)),
         $._quotelike_end,
-        optional(field('modifiers', $.replacement_regexp_modifiers))
+        optional(field('modifiers', $.substitution_regexp_modifiers))
       ),
     ),
 
@@ -903,7 +903,7 @@ module.exports = grammar({
     // TODO - these are too low precedence
     quoted_regexp_modifiers: $ => token(prec(2, /[msixpadlun]+/)),
     match_regexp_modifiers:  $ => token(prec(2, /[msixpadluncg]+/)),
-    replacement_regexp_modifiers:  $ => token(prec(2, /[msixpogcedual]+/)),
+    substitution_regexp_modifiers:  $ => token(prec(2, /[msixpogcedual]+/)),
 
     /* quick overview of the heredoc logic
      * 1. we parse the heredoc token (given all of its rules and varieties). We store that in the

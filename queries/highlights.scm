@@ -68,6 +68,12 @@
  (match_regexp  modifiers: _? @character.special)
 ] @string.regex
 
+(substitution_regexp
+  content: _ @string.regex
+  replacement: _ @string
+  modifiers: _? @character.special
+)
+
 (autoquoted_bareword _?) @string.special
 
 (use_statement (package) @type)
