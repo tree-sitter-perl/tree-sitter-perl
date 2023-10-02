@@ -450,7 +450,7 @@ module.exports = grammar({
         [prec.left, binop, choice('<<', '>>'), TERMPREC.SHIFTOP], // _SHIFTOP
         [prec.left, binop, choice('+', '-', '.'), TERMPREC.ADDOP], // _ADDOP
         [prec.left, binop, choice('*', '/', '%', 'x'), TERMPREC.MULOP], // _MULOP
-        [prec.left, binop, choice('=~', '|~'), TERMPREC.MATCHOP], // _MATCHOP
+        [prec.left, binop, choice('=~', '!~'), TERMPREC.MATCHOP], // _MATCHOP
       ]
 
       // @ts-ignore
