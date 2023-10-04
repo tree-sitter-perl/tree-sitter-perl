@@ -2573,79 +2573,51 @@
       "type": "CHOICE",
       "members": [
         {
-          "type": "PREC",
+          "type": "PREC_LEFT",
           "value": 13,
           "content": {
             "type": "SEQ",
             "members": [
               {
                 "type": "FIELD",
-                "name": "arg",
+                "name": "left",
                 "content": {
                   "type": "SYMBOL",
                   "name": "_term"
                 }
               },
               {
-                "type": "REPEAT1",
+                "type": "FIELD",
+                "name": "operator",
                 "content": {
-                  "type": "SEQ",
+                  "type": "CHOICE",
                   "members": [
                     {
-                      "type": "SYMBOL",
-                      "name": "_CHEQOP_continue"
+                      "type": "STRING",
+                      "value": "=="
                     },
                     {
-                      "type": "FIELD",
-                      "name": "operator",
-                      "content": {
-                        "type": "CHOICE",
-                        "members": [
-                          {
-                            "type": "STRING",
-                            "value": "=="
-                          },
-                          {
-                            "type": "STRING",
-                            "value": "!="
-                          },
-                          {
-                            "type": "STRING",
-                            "value": "eq"
-                          },
-                          {
-                            "type": "STRING",
-                            "value": "ne"
-                          }
-                        ]
-                      }
+                      "type": "STRING",
+                      "value": "!="
                     },
                     {
-                      "type": "FIELD",
-                      "name": "arg",
-                      "content": {
-                        "type": "SYMBOL",
-                        "name": "_term"
-                      }
+                      "type": "STRING",
+                      "value": "eq"
                     },
                     {
-                      "type": "CHOICE",
-                      "members": [
-                        {
-                          "type": "SYMBOL",
-                          "name": "_CHEQOP_continue"
-                        },
-                        {
-                          "type": "BLANK"
-                        }
-                      ]
+                      "type": "STRING",
+                      "value": "ne"
                     }
                   ]
                 }
               },
               {
-                "type": "STRING",
-                "value": ""
+                "type": "FIELD",
+                "name": "right",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "_term"
+                }
               }
             ]
           }
@@ -2744,95 +2716,67 @@
       "type": "CHOICE",
       "members": [
         {
-          "type": "PREC",
+          "type": "PREC_LEFT",
           "value": 14,
           "content": {
             "type": "SEQ",
             "members": [
               {
                 "type": "FIELD",
-                "name": "arg",
+                "name": "left",
                 "content": {
                   "type": "SYMBOL",
                   "name": "_term"
                 }
               },
               {
-                "type": "REPEAT1",
+                "type": "FIELD",
+                "name": "operator",
                 "content": {
-                  "type": "SEQ",
+                  "type": "CHOICE",
                   "members": [
                     {
-                      "type": "SYMBOL",
-                      "name": "_CHRELOP_continue"
+                      "type": "STRING",
+                      "value": "<"
                     },
                     {
-                      "type": "FIELD",
-                      "name": "operator",
-                      "content": {
-                        "type": "CHOICE",
-                        "members": [
-                          {
-                            "type": "STRING",
-                            "value": "<"
-                          },
-                          {
-                            "type": "STRING",
-                            "value": "<="
-                          },
-                          {
-                            "type": "STRING",
-                            "value": ">="
-                          },
-                          {
-                            "type": "STRING",
-                            "value": ">"
-                          },
-                          {
-                            "type": "STRING",
-                            "value": "lt"
-                          },
-                          {
-                            "type": "STRING",
-                            "value": "le"
-                          },
-                          {
-                            "type": "STRING",
-                            "value": "ge"
-                          },
-                          {
-                            "type": "STRING",
-                            "value": "gt"
-                          }
-                        ]
-                      }
+                      "type": "STRING",
+                      "value": "<="
                     },
                     {
-                      "type": "FIELD",
-                      "name": "arg",
-                      "content": {
-                        "type": "SYMBOL",
-                        "name": "_term"
-                      }
+                      "type": "STRING",
+                      "value": ">="
                     },
                     {
-                      "type": "CHOICE",
-                      "members": [
-                        {
-                          "type": "SYMBOL",
-                          "name": "_CHRELOP_continue"
-                        },
-                        {
-                          "type": "BLANK"
-                        }
-                      ]
+                      "type": "STRING",
+                      "value": ">"
+                    },
+                    {
+                      "type": "STRING",
+                      "value": "lt"
+                    },
+                    {
+                      "type": "STRING",
+                      "value": "le"
+                    },
+                    {
+                      "type": "STRING",
+                      "value": "ge"
+                    },
+                    {
+                      "type": "STRING",
+                      "value": "gt"
                     }
                   ]
                 }
               },
               {
-                "type": "STRING",
-                "value": ""
+                "type": "FIELD",
+                "name": "right",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "_term"
+                }
               }
             ]
           }
