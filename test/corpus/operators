@@ -100,14 +100,17 @@ EXPR eq EXPR - list/non assoc
 (source_file
   (expression_statement
     (equality_expression
-      (number)
-      (number)
+      (equality_expression
+        (number)
+        (number))
       (number)))
   (expression_statement
     (equality_expression
-      (number)
-      (number)
-      (number)
+      (equality_expression
+        (equality_expression
+          (number)
+          (number))
+        (number))
       (number)))
   (expression_statement
     (equality_expression
@@ -160,9 +163,11 @@ EXPR < EXPR - list/non assoc
 (source_file
   (expression_statement
     (relational_expression
-      (number)
-      (number)
-      (number)
+      (relational_expression
+        (relational_expression
+          (number)
+          (number))
+        (number))
       (number)))
   (expression_statement
     (relational_expression
@@ -195,8 +200,9 @@ EXPR < EXPR - list/non assoc
     (equality_expression
       (string_literal)
       (relational_expression
-        (number)
-        (number)
+        (relational_expression
+          (number)
+          (number))
         (number))))
   (expression_statement
     (equality_expression
