@@ -349,9 +349,9 @@ for (my $i = 0; $i < 10; $i++) { 123; }
           (varname)))
       right: (number))
     condition: (relational_expression
-      arg: (scalar
+      left: (scalar
         (varname))
-      arg: (number))
+      right: (number))
     iterator: (postinc_expression
       operand: (scalar
         (varname)))
