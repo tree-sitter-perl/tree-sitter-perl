@@ -27,7 +27,8 @@ enum TokenType {
   TOKEN_CTRL_Z,
   /* immediates */
   TOKEN_QUOTELIKE_BEGIN,
-  TOKEN_QUOTELIKE_MIDDLE,
+  TOKEN_QUOTELIKE_MIDDLE_CLOSE,
+  TOKEN_QUOTELIKE_MIDDLE_SKIP,
   TOKEN_QUOTELIKE_END,
   TOKEN_Q_STRING_CONTENT,
   TOKEN_QQ_STRING_CONTENT,
@@ -603,6 +604,12 @@ bool tree_sitter_perl_external_scanner_scan(
     }
   }
 
+  // the idea here is in a 3 part quotelike, we return a skip instead of a begin
+  if(valid_symbols[TOKEN_QUOTELIKE_MIDDLE_SKIP]) {
+    if(!state->delim_open)
+      TOKEN(TOKEN_QUOTELIKE_MIDDLE_SKIP);
+  }
+
   if(valid_symbols[TOKEN_QUOTELIKE_BEGIN]) {
     int delim = c;
     if (skipped_whitespace && c == '#')
@@ -612,7 +619,7 @@ bool tree_sitter_perl_external_scanner_scan(
     ADVANCE_C;
     // we return a fat_comma zw in the event that we see it, b/c that has higher
     // precedence than the quoting op
-    if (delim == '=' && c == '>')
+    if (valid_symbols[TOKEN_FAT_COMMA_ZW] && delim == '=' && c == '>')
       TOKEN(TOKEN_FAT_COMMA_ZW);
 
     if(valid_symbols[TOKEN_BRACE_END_ZW] && delim == '}') {
@@ -728,19 +735,10 @@ bool tree_sitter_perl_external_scanner_scan(
     }
   }
 
-  if(valid_symbols[TOKEN_QUOTELIKE_MIDDLE]) {
+  if(valid_symbols[TOKEN_QUOTELIKE_MIDDLE_CLOSE]) {
     if(c == state->delim_close && !state->delim_count) {
       ADVANCE_C;
-      if(state->delim_open) {
-        skip_whitespace(lexer);
-        c = lexer->lookahead;
-        if(c == state->delim_open) {
-          ADVANCE_C;
-        } else {
-          return false;
-        }
-      }
-      TOKEN(TOKEN_QUOTELIKE_MIDDLE);
+      TOKEN(TOKEN_QUOTELIKE_MIDDLE_CLOSE);
     }
 
   }

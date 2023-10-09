@@ -100,7 +100,8 @@ module.exports = grammar({
     $._ctrl_z_hack,
     /* immediates */
     $._quotelike_begin,
-    $._quotelike_middle,
+    $._quotelike_middle_close,
+    $._quotelike_middle_skip,
     $._quotelike_end,
     $._q_string_content,
     $._qq_string_content,
@@ -851,6 +852,10 @@ module.exports = grammar({
       ),
       $._quotelike_end,
       optional(field('modifiers', $.match_regexp_modifiers))
+    ),
+    _quotelike_middle: $ => seq(
+      $._quotelike_middle_close,
+      choice($._quotelike_middle_skip, $._quotelike_begin),
     ),
 
     substitution_regexp: $ => seq(
