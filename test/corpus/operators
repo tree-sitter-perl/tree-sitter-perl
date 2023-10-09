@@ -421,6 +421,21 @@ diamond operators
     (readline_expression)))
 
 ================================================================================
+transliteration
+================================================================================
+tr/$things/@shtuff/cd;
+tr[$things][@shtuff]cd;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (transliteration_expression
+      (transliteration_modifiers)))
+  (expression_statement
+    (transliteration_expression
+      (transliteration_modifiers))))
+
+================================================================================
 transliteration - 3 part quotelike insanity
 ================================================================================
 tr[$things] (@shtuff)cd;

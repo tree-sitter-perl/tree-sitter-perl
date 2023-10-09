@@ -80,3 +80,18 @@ sum /pattern;#still pattern/;
     (ambiguous_function_call_expression
       (function)
       (match_regexp))))
+
+================================================================================
+substitution
+================================================================================
+s/thing $var/$tings/xg;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (substitution_regexp
+      (scalar
+        (varname))
+      (scalar
+        (varname))
+      (substitution_regexp_modifiers))))
