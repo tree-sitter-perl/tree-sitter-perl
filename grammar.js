@@ -720,10 +720,10 @@ module.exports = grammar({
       $.quoted_regexp,
       $.match_regexp,
       $.substitution_regexp,
+      $.transliteration_expression,
     ),
 
-    string_literal: $ => choice($._q_string),
-    _q_string: $ => seq(
+    string_literal: $ => seq(
       choice(
         seq('q', $._quotelike_begin),
         $._apostrophe
@@ -818,57 +818,59 @@ module.exports = grammar({
       )
     ),
 
-    quoted_regexp: $ => choice(
-      seq(
-        seq('qr', $._quotelike_begin),
-        optional(field('content', $._interpolated_regexp_content)),
-        $._quotelike_end,
-        optional(field('modifiers', $.quoted_regexp_modifiers))
+    quoted_regexp: $ => seq(
+      'qr',
+      choice(
+        seq(
+          $._quotelike_begin,
+          optional(field('content', $._interpolated_regexp_content)),
+        ),
+        seq(
+          $._apostrophe,
+          optional(field('content', $._noninterpolated_string_content)), // TODO: regexp content
+        ),
       ),
-      seq(
-        'qr',
-        $._apostrophe,
-        optional(field('content', $._noninterpolated_string_content)), // TODO: regexp content
-        $._quotelike_end,
-        optional(field('modifiers', $.quoted_regexp_modifiers))
-      )
+      $._quotelike_end,
+      optional(field('modifiers', $.quoted_regexp_modifiers))
     ),
 
-    match_regexp: $ => choice(
-      seq(
-        choice($._search_slash, seq('m', $._quotelike_begin)),
-        optional(field('content', $._interpolated_regexp_content)),
-        $._quotelike_end,
-        optional(field('modifiers', $.match_regexp_modifiers))
+    match_regexp: $ => seq(
+      choice(
+        seq(
+          choice(
+            $._search_slash,
+            seq(field('operator', 'm'), $._quotelike_begin)
+          ),
+          optional(field('content', $._interpolated_regexp_content)),
+        ),
+        seq(
+          field('operator', 'm'),
+          $._apostrophe,
+          optional(field('content', $._noninterpolated_string_content)), // TODO: regexp content
+        ),
       ),
-      seq(
-        'm',
-        $._apostrophe,
-        optional(field('content', $._noninterpolated_string_content)), // TODO: regexp content
-        $._quotelike_end,
-        optional(field('modifiers', $.match_regexp_modifiers))
-      )
+      $._quotelike_end,
+      optional(field('modifiers', $.match_regexp_modifiers))
     ),
 
-    substitution_regexp: $ => choice(
-      seq(
-        field('operator', 's'),
-        $._quotelike_begin,
-        optional(field('content', $._interpolated_regexp_content)),
-        $._quotelike_middle,
-        optional(field('replacement', $._interpolated_string_content)),
-        $._quotelike_end,
-        optional(field('modifiers', $.substitution_regexp_modifiers))
+    substitution_regexp: $ => seq(
+      field('operator', 's'),
+      choice(
+        seq(
+          $._quotelike_begin,
+          optional(field('content', $._interpolated_regexp_content)),
+          $._quotelike_middle,
+          optional(field('replacement', $._interpolated_string_content)),
+        ),
+        seq(
+          $._apostrophe,
+          optional(field('content', $._noninterpolated_string_content)),
+          $._quotelike_middle,
+          optional(field('replacement', $._noninterpolated_string_content)),
+        ),
       ),
-      seq(
-        field('operator', 's'),
-        $._apostrophe,
-        optional(field('content', $._noninterpolated_string_content)),
-        $._quotelike_middle,
-        optional(field('replacement', $._noninterpolated_string_content)),
-        $._quotelike_end,
-        optional(field('modifiers', $.substitution_regexp_modifiers))
-      ),
+      $._quotelike_end,
+      optional(field('modifiers', $.substitution_regexp_modifiers))
     ),
 
     _interpolated_regexp_content: $ => repeat1(
@@ -887,10 +889,38 @@ module.exports = grammar({
     quoted_regexp_modifiers: $ => token(prec(2, /[msixpadlun]+/)),
     match_regexp_modifiers:  $ => token(prec(2, /[msixpadluncg]+/)),
     substitution_regexp_modifiers:  $ => token(prec(2, /[msixpogcedual]+/)),
+    transliteration_modifiers: $ => token(prec(2, /[cdsr]+/)),
 
-    // TODO - implement. do we really need to manually support an `apostrophe` version?
-    // the difference is if we interpret backslashes except on other backslashes
-    translation_expression: $ => seq(),
+    _interpolated_transliteration_content: $ => repeat1(
+      choice(
+        $._qq_string_content,
+        $._interpolation_fallbacks,
+        seq(choice('$', '@'), /./), // no variables interpolate AT ALL
+        $.escape_sequence,
+        $.escaped_delimiter,
+       // $._interpolations <-- it's the same as _interpolated_string_content minus the
+        // variable interpol
+      )
+    ),
+    transliteration_expression: $ => seq(
+      field('operator', choice('tr', 'y')),
+      choice(
+        seq(
+          $._quotelike_begin,
+          optional(field('content', $._interpolated_transliteration_content)),
+          $._quotelike_middle,
+          optional(field('replacement', $._interpolated_transliteration_content)),
+        ),
+        seq(
+          $._apostrophe,
+          optional(field('content', $._noninterpolated_string_content)),
+          $._quotelike_middle,
+          optional(field('replacement', $._noninterpolated_string_content)),
+        ),
+      ),
+      $._quotelike_end,
+      optional(field('modifiers', $.transliteration_modifiers))
+    ),
 
     /* quick overview of the heredoc logic
      * 1. we parse the heredoc token (given all of its rules and varieties). We store that in the
@@ -936,7 +966,7 @@ module.exports = grammar({
     _loops: $ => choice('while', 'until'),
     _postfixables: $ => choice($._conditionals, $._loops, $._KW_FOR, 'and', 'or'),
     _keywords: $ => choice($._postfixables, 'else', 'elsif', 'do', 'eval', 'our', 'my', 'local', 'require', 'return', 'eq', 'ne', 'lt', 'le', 'ge', 'gt', 'cmp', 'isa', $._KW_USE, $._LOOPEX, $._PHASE_NAME, '__DATA__', '__END__', 'sub', $._map_grep),
-    _quotelikes: $ => choice('q', 'qq', 'qw', 'qx'),
+    _quotelikes: $ => choice('q', 'qq', 'qw', 'qx', 's', 'tr', 'y'),
     _autoquotables: $ => choice($._func0op, $._func1op, $._keywords, $._quotelikes),
     // we need dynamic precedence here so we can resolve things like `print -next`
     autoquoted_bareword: $ => prec.dynamic(2, choice(
