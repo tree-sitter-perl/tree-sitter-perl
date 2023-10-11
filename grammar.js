@@ -56,6 +56,15 @@ binop.nonassoc = ($, op, term) =>
     )
   )
 
+regexpContent = ($, node) => 
+  field('content', alias(node, $.regexp_content))
+
+replacement = ($, node) => 
+  alias(node, $.replacement)
+
+trContent = ($, node) => 
+  field('content', alias(node, $.transliteration_content))
+
 /**
  *
  * @param {RuleOrLiteral[]} terms
@@ -822,17 +831,18 @@ module.exports = grammar({
       choice(
         seq(
           $._quotelike_begin,
-          optional(field('content', $._interpolated_regexp_content)),
+          optional(regexpContent($, $._interpolated_regexp_content)),
         ),
         seq(
           $._apostrophe,
-          optional(field('content', $._noninterpolated_string_content)), // TODO: regexp content
+          optional(regexpContent($, $._noninterpolated_string_content)), // TODO: regexp content
         ),
       ),
       $._quotelike_end,
       optional(field('modifiers', $.quoted_regexp_modifiers))
     ),
 
+    // we need to make a regex node, b/c you can't make an unnamed node a field
     match_regexp: $ => seq(
       choice(
         seq(
@@ -840,12 +850,12 @@ module.exports = grammar({
             $._search_slash,
             seq(field('operator', 'm'), $._quotelike_begin)
           ),
-          optional(field('content', $._interpolated_regexp_content)),
+          optional(regexpContent($, $._interpolated_regexp_content)),
         ),
         seq(
           field('operator', 'm'),
           $._apostrophe,
-          optional(field('content', $._noninterpolated_string_content)), // TODO: regexp content
+          optional(regexpContent($, $._noninterpolated_string_content)), // TODO: regexp content
         ),
       ),
       $._quotelike_end,
@@ -861,15 +871,15 @@ module.exports = grammar({
       choice(
         seq(
           $._quotelike_begin,
-          optional(field('content', $._interpolated_regexp_content)),
+          optional(regexpContent($, $._interpolated_regexp_content)),
           $._quotelike_middle,
-          optional(field('replacement', $._interpolated_string_content)),
+          optional(replacement($, $._interpolated_string_content)),
         ),
         seq(
           $._apostrophe,
-          optional(field('content', $._noninterpolated_string_content)),
+          optional(regexpContent($, $._noninterpolated_string_content)),
           $._quotelike_middle,
-          optional(field('replacement', $._noninterpolated_string_content)),
+          optional(replacement($, $._noninterpolated_string_content)),
         ),
       ),
       $._quotelike_end,
@@ -908,15 +918,15 @@ module.exports = grammar({
       choice(
         seq(
           $._quotelike_begin,
-          optional(field('content', $._interpolated_transliteration_content)),
+          optional(trContent($, $._interpolated_transliteration_content)),
           $._quotelike_middle,
-          optional(field('replacement', $._interpolated_transliteration_content)),
+          optional(replacement($, $._interpolated_transliteration_content)),
         ),
         seq(
           $._apostrophe,
-          optional(field('content', $._noninterpolated_string_content)),
+          optional(trContent($, $._noninterpolated_string_content)),
           $._quotelike_middle,
-          optional(field('replacement', $._noninterpolated_string_content)),
+          optional(replacement($, $._noninterpolated_string_content)),
         ),
       ),
       $._quotelike_end,

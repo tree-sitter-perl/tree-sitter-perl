@@ -13,17 +13,21 @@ qr/pattern/i;
 #          ^ character.special
 
 m/pattern/;
-# <- string.regex
+# <- operator
 m/pattern with (parens)/;
-# <- string.regex
+# ^^ string.regex
 m/pattern with $interpolation/;
-# <- string.regex
+# ^^ string.regex
 #               ^ variable.scalar
 m'pattern with no $interpolation';
-# <- string.regex
+# ^^ string.regex
 m/pattern/i;
 # ^^^^^^^^^^ string.regex
 m/^anchored pattern$/;
 # ^^^^^^^^^^^^^^^^^^ string.regex
 m/^pattern(?:$|,)/;
 # ^^^^^^^^^^^^^^^ string.regex
+s/^pattern$/replacement/;
+# <- operator
+#  ^^ string.regex
+#              ^^ string

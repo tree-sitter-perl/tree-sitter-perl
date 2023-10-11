@@ -430,9 +430,13 @@ tr[$things][@shtuff]sr;
 (source_file
   (expression_statement
     (transliteration_expression
+      (transliteration_content)
+      (replacement)
       (transliteration_modifiers)))
   (expression_statement
     (transliteration_expression
+      (transliteration_content)
+      (replacement)
       (transliteration_modifiers))))
 
 ================================================================================
@@ -448,13 +452,21 @@ tr[$things] #@shtuff# cd <-- tricks! it's a comment
 (source_file
   (expression_statement
     (transliteration_expression
+      (transliteration_content)
+      (replacement)
       (transliteration_modifiers)))
   (expression_statement
     (transliteration_expression
+      (transliteration_content)
+      (replacement)
       (transliteration_modifiers)))
   (expression_statement
     (transliteration_expression
+      (transliteration_content)
+      (replacement)
       (transliteration_modifiers)))
   (expression_statement
     (transliteration_expression
-      (comment))))
+      (transliteration_content)
+      (comment)
+      (replacement))))
