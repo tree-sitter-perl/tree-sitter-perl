@@ -46,8 +46,6 @@ enum TokenType {
   TOKEN_HEREDOC_MIDDLE,
   TOKEN_HEREDOC_END,
   /* zero-width lookahead tokens */
-  TOKEN_CHEQOP_CONT,
-  TOKEN_CHRELOP_CONT,
   TOKEN_FAT_COMMA_ZW,
   TOKEN_BRACE_END_ZW,
   TOKEN_DOLLAR_IDENT_ZW,
@@ -740,7 +738,6 @@ bool tree_sitter_perl_external_scanner_scan(
       ADVANCE_C;
       TOKEN(TOKEN_QUOTELIKE_MIDDLE_CLOSE);
     }
-
   }
 
   if(valid_symbols[TOKEN_QUOTELIKE_END]) {
@@ -815,34 +812,6 @@ bool tree_sitter_perl_external_scanner_scan(
     DEBUG("ZW-lookahead for => autoquoting\n", 0);
     if(EQ2("=>"))
       TOKEN(TOKEN_FAT_COMMA_ZW);
-  }
-
-  if(valid_symbols[TOKEN_CHEQOP_CONT]) {
-    DEBUG("ZW-lookahead for equality ops\n", 0);
-    if(EQ2("==") || EQ2("!=") || EQ2("eq") || EQ2("ne"))
-      TOKEN(TOKEN_CHEQOP_CONT);
-  }
-
-  if(valid_symbols[TOKEN_CHRELOP_CONT]) {
-    DEBUG("ZW-lookahead for relational ops\n", 0);
-    if(EQ2("lt") || EQ2("le") || EQ2("ge") || EQ2("gt"))
-      TOKEN(TOKEN_CHRELOP_CONT);
-
-    if(EQ2(">=") || EQ2("<=")) {
-      ADVANCE_C;
-      /* exclude <=>, >=>, <=< and other friends */
-      if(c == '<' || c == '>')
-        return false;
-
-      TOKEN(TOKEN_CHRELOP_CONT);
-    }
-
-    if(c1 == '>' || c1 == '<') {
-      /* exclude <<, >> and other friends */
-      if(c2 == '<' || c2 == '>')
-        return false;
-      TOKEN(TOKEN_CHRELOP_CONT);
-    }
   }
 
   if(valid_symbols[TOKEN_BRACE_END_ZW]){

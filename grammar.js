@@ -119,8 +119,6 @@ module.exports = grammar({
     $._heredoc_middle,
     $.heredoc_end,
     /* zero-width lookahead tokens */
-    $._CHEQOP_continue,
-    $._CHRELOP_continue,
     $._fat_comma_zw,
     $._brace_end_zw,
     $._dollar_ident_zw,
@@ -903,8 +901,6 @@ module.exports = grammar({
         seq(choice('$', '@'), /./), // no variables interpolate AT ALL
         $.escape_sequence,
         $.escaped_delimiter,
-       // $._interpolations <-- it's the same as _interpolated_string_content minus the
-        // variable interpol
       )
     ),
     transliteration_expression: $ => seq(

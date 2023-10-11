@@ -424,7 +424,7 @@ diamond operators
 transliteration
 ================================================================================
 tr/$things/@shtuff/cd;
-tr[$things][@shtuff]cd;
+tr[$things][@shtuff]sr;
 --------------------------------------------------------------------------------
 
 (source_file
