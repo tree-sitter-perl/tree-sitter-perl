@@ -419,3 +419,54 @@ diamond operators
       (filehandle)))
   (expression_statement
     (readline_expression)))
+
+================================================================================
+transliteration
+================================================================================
+tr/$things/@shtuff/cd;
+tr[$things][@shtuff]sr;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (transliteration_expression
+      (transliteration_content)
+      (replacement)
+      (transliteration_modifiers)))
+  (expression_statement
+    (transliteration_expression
+      (transliteration_content)
+      (replacement)
+      (transliteration_modifiers))))
+
+================================================================================
+transliteration - 3 part quotelike insanity
+================================================================================
+tr[$things] (@shtuff)cd;
+tr[$things] '@shtuff'cd;
+tr[$things] =>@shtuff= cd;
+tr[$things] #@shtuff# cd <-- tricks! it's a comment
+  '@shtuff';
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (transliteration_expression
+      (transliteration_content)
+      (replacement)
+      (transliteration_modifiers)))
+  (expression_statement
+    (transliteration_expression
+      (transliteration_content)
+      (replacement)
+      (transliteration_modifiers)))
+  (expression_statement
+    (transliteration_expression
+      (transliteration_content)
+      (replacement)
+      (transliteration_modifiers)))
+  (expression_statement
+    (transliteration_expression
+      (transliteration_content)
+      (comment)
+      (replacement))))

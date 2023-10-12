@@ -86,7 +86,8 @@ $^X;
 $!;
 # <- variable.scalar
 my $not::allowed;
-#       ^ error
+#         ^ attribute
+#         this is b/c it's a syntax error
 ${ ^ANY_IDENT1 };
 #  ^^^^^ variable.builtin
 ${+shift};

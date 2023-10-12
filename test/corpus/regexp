@@ -11,20 +11,26 @@ qr/^anchored pattern$/;
 
 (source_file
   (expression_statement
-    (quoted_regexp))
-  (expression_statement
-    (quoted_regexp))
+    (quoted_regexp
+      (regexp_content)))
   (expression_statement
     (quoted_regexp
-      (scalar
-        (varname))))
-  (expression_statement
-    (quoted_regexp))
+      (regexp_content)))
   (expression_statement
     (quoted_regexp
+      (regexp_content
+        (scalar
+          (varname)))))
+  (expression_statement
+    (quoted_regexp
+      (regexp_content)))
+  (expression_statement
+    (quoted_regexp
+      (regexp_content)
       (quoted_regexp_modifiers)))
   (expression_statement
-    (quoted_regexp)))
+    (quoted_regexp
+      (regexp_content))))
 
 ================================================================================
 Regexp match
@@ -40,22 +46,29 @@ m/^pattern(?:$|,)/;
 
 (source_file
   (expression_statement
-    (match_regexp))
-  (expression_statement
-    (match_regexp))
+    (match_regexp
+      (regexp_content)))
   (expression_statement
     (match_regexp
-      (scalar
-        (varname))))
-  (expression_statement
-    (match_regexp))
+      (regexp_content)))
   (expression_statement
     (match_regexp
+      (regexp_content
+        (scalar
+          (varname)))))
+  (expression_statement
+    (match_regexp
+      (regexp_content)))
+  (expression_statement
+    (match_regexp
+      (regexp_content)
       (match_regexp_modifiers)))
   (expression_statement
-    (match_regexp))
+    (match_regexp
+      (regexp_content)))
   (expression_statement
-    (match_regexp)))
+    (match_regexp
+      (regexp_content))))
 
 ================================================================================
 Match w just solidus
@@ -70,7 +83,8 @@ sum /pattern;#still pattern/;
     (binary_expression
       (scalar
         (varname))
-      (match_regexp)))
+      (match_regexp
+        (regexp_content))))
   (expression_statement
     (binary_expression
       (func0op_call_expression)
@@ -79,4 +93,22 @@ sum /pattern;#still pattern/;
   (expression_statement
     (ambiguous_function_call_expression
       (function)
-      (match_regexp))))
+      (match_regexp
+        (regexp_content)))))
+
+================================================================================
+substitution
+================================================================================
+s/thing $var/$tings/xg;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (substitution_regexp
+      (regexp_content
+        (scalar
+          (varname)))
+      (replacement
+        (scalar
+          (varname)))
+      (substitution_regexp_modifiers))))

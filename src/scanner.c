@@ -27,6 +27,8 @@ enum TokenType {
   TOKEN_CTRL_Z,
   /* immediates */
   TOKEN_QUOTELIKE_BEGIN,
+  TOKEN_QUOTELIKE_MIDDLE_CLOSE,
+  TOKEN_QUOTELIKE_MIDDLE_SKIP,
   TOKEN_QUOTELIKE_END,
   TOKEN_Q_STRING_CONTENT,
   TOKEN_QQ_STRING_CONTENT,
@@ -44,8 +46,6 @@ enum TokenType {
   TOKEN_HEREDOC_MIDDLE,
   TOKEN_HEREDOC_END,
   /* zero-width lookahead tokens */
-  TOKEN_CHEQOP_CONT,
-  TOKEN_CHRELOP_CONT,
   TOKEN_FAT_COMMA_ZW,
   TOKEN_BRACE_END_ZW,
   TOKEN_DOLLAR_IDENT_ZW,
@@ -602,6 +602,12 @@ bool tree_sitter_perl_external_scanner_scan(
     }
   }
 
+  // the idea here is in a 3 part quotelike, we return a skip instead of a begin
+  if(valid_symbols[TOKEN_QUOTELIKE_MIDDLE_SKIP]) {
+    if(!state->delim_open)
+      TOKEN(TOKEN_QUOTELIKE_MIDDLE_SKIP);
+  }
+
   if(valid_symbols[TOKEN_QUOTELIKE_BEGIN]) {
     int delim = c;
     if (skipped_whitespace && c == '#')
@@ -611,7 +617,7 @@ bool tree_sitter_perl_external_scanner_scan(
     ADVANCE_C;
     // we return a fat_comma zw in the event that we see it, b/c that has higher
     // precedence than the quoting op
-    if (delim == '=' && c == '>')
+    if (valid_symbols[TOKEN_FAT_COMMA_ZW] && delim == '=' && c == '>')
       TOKEN(TOKEN_FAT_COMMA_ZW);
 
     if(valid_symbols[TOKEN_BRACE_END_ZW] && delim == '}') {
@@ -727,6 +733,13 @@ bool tree_sitter_perl_external_scanner_scan(
     }
   }
 
+  if(valid_symbols[TOKEN_QUOTELIKE_MIDDLE_CLOSE]) {
+    if(c == state->delim_close && !state->delim_count) {
+      ADVANCE_C;
+      TOKEN(TOKEN_QUOTELIKE_MIDDLE_CLOSE);
+    }
+  }
+
   if(valid_symbols[TOKEN_QUOTELIKE_END]) {
     if(c == state->delim_close && !state->delim_count) {
       ADVANCE_C;
@@ -799,34 +812,6 @@ bool tree_sitter_perl_external_scanner_scan(
     DEBUG("ZW-lookahead for => autoquoting\n", 0);
     if(EQ2("=>"))
       TOKEN(TOKEN_FAT_COMMA_ZW);
-  }
-
-  if(valid_symbols[TOKEN_CHEQOP_CONT]) {
-    DEBUG("ZW-lookahead for equality ops\n", 0);
-    if(EQ2("==") || EQ2("!=") || EQ2("eq") || EQ2("ne"))
-      TOKEN(TOKEN_CHEQOP_CONT);
-  }
-
-  if(valid_symbols[TOKEN_CHRELOP_CONT]) {
-    DEBUG("ZW-lookahead for relational ops\n", 0);
-    if(EQ2("lt") || EQ2("le") || EQ2("ge") || EQ2("gt"))
-      TOKEN(TOKEN_CHRELOP_CONT);
-
-    if(EQ2(">=") || EQ2("<=")) {
-      ADVANCE_C;
-      /* exclude <=>, >=>, <=< and other friends */
-      if(c == '<' || c == '>')
-        return false;
-
-      TOKEN(TOKEN_CHRELOP_CONT);
-    }
-
-    if(c1 == '>' || c1 == '<') {
-      /* exclude <<, >> and other friends */
-      if(c2 == '<' || c2 == '>')
-        return false;
-      TOKEN(TOKEN_CHRELOP_CONT);
-    }
   }
 
   if(valid_symbols[TOKEN_BRACE_END_ZW]){

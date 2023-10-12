@@ -63,10 +63,16 @@
 
 [(escape_sequence) (escaped_delimiter)] @string.escape
 
+(_ modifiers: _ @character.special)
 [  
- (quoted_regexp modifiers: _? @character.special)
- (match_regexp  modifiers: _? @character.special)
+ (quoted_regexp)
+ (match_regexp)
 ] @string.regex
+
+(regexp_content) @string.regex
+(replacement) @string
+
+(transliteration_content) @string
 
 (autoquoted_bareword _?) @string.special
 
