@@ -8,10 +8,10 @@
 (
   (substitution_regexp
     (replacement) @injection.content
-    (substitution_regexp_modifiers) @modifiers
+    (substitution_regexp_modifiers) @_modifiers
     ; match if there's a single `e` in the modifiers list
-    (#match? @modifiers "e")
-    (#not-match? @modifiers "e.*e")
+    (#match? @_modifiers "e")
+    (#not-match? @_modifiers "e.*e")
   )
   (#set! injection.language "perl")
 )
