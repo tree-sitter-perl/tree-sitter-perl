@@ -899,10 +899,10 @@ module.exports = grammar({
       )
     ),
 
-    quoted_regexp_modifiers: $ => token(prec(2, /[msixpadlun]+/)),
-    match_regexp_modifiers:  $ => token(prec(2, /[msixpadluncg]+/)),
-    substitution_regexp_modifiers:  $ => token(prec(2, /[msixpogcedual]+/)),
-    transliteration_modifiers: $ => token(prec(2, /[cdsr]+/)),
+    quoted_regexp_modifiers:        $ => token.immediate(prec(2, /[msixpadlun]+/)),
+    match_regexp_modifiers:         $ => token.immediate(prec(2, /[msixpadluncg]+/)),
+    substitution_regexp_modifiers:  $ => token.immediate(prec(2, /[msixpogcedual]+/)),
+    transliteration_modifiers:      $ => token.immediate(prec(2, /[cdsr]+/)),
 
     _interpolated_transliteration_content: $ => repeat1(
       choice(
