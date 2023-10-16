@@ -53,6 +53,8 @@
   (quoted_word_list) 
   (command_string) 
   (heredoc_content)
+  (replacement)
+  (transliteration_content)
 ] @string
 
 [
@@ -67,12 +69,8 @@
 [  
  (quoted_regexp)
  (match_regexp)
+ (regexp_content)
 ] @string.regex
-
-(regexp_content) @string.regex
-(replacement) @string
-
-(transliteration_content) @string
 
 (autoquoted_bareword _?) @string.special
 
@@ -80,7 +78,7 @@
 (package_statement (package) @type)
 (require_expression (bareword) @type)
 
-(subroutine_declaration_statement name: (_) @function)
+(subroutine_declaration_statement name: (bareword) @function)
 (attribute_name) @attribute
 (attribute_value) @string
 
@@ -110,14 +108,12 @@
 (_
   "{" @punctuation.special
   (varname)
-  "}" @punctuation.special
-)
+  "}" @punctuation.special)
+
 (varname 
   (block
     "{" @punctuation.special 
-    "}" @punctuation.special 
-  )
-)
+    "}" @punctuation.special))
 
 
 (
@@ -142,12 +138,9 @@
 
 (comment) @comment
 
-(
-  [ "=>" "," ";" "->" ] @punctuation.delimiter
-)
+([ "=>" "," ";" "->" ] @punctuation.delimiter)
 
 (
   [ "[" "]" "{" "}" "(" ")" ] @punctuation.bracket
   ; priority hack so nvim + ts-cli behave the same
-  (#set! "priority" 90)
-)
+  (#set! "priority" 90))
