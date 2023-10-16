@@ -444,8 +444,8 @@ transliteration - 3 part quotelike insanity
 ================================================================================
 tr[$things] (@shtuff)cd;
 tr[$things] '@shtuff'cd;
-tr[$things] =>@shtuff= cd;
-tr[$things] #@shtuff# cd <-- tricks! it's a comment
+tr[$things] =>@shtuff=cd;
+tr[$things] #@shtuff#cd <-- tricks! it's a comment
   '@shtuff';
 --------------------------------------------------------------------------------
 
