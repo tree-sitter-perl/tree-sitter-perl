@@ -204,3 +204,68 @@ print 'things', sum 1, 2, 3;
         (number)
         (number)
         (number)))))
+
+================================================================================
+ambiguous funcs with indirect objects
+================================================================================
+print $sner 'herro';
+print { $sner{boppers} } 'herro';
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (ambiguous_function_call_expression
+      (function)
+      (indirect_object
+        (scalar
+          (varname)))
+      (string_literal)))
+  (expression_statement
+    (ambiguous_function_call_expression
+      (function)
+      (indirect_object
+        (block
+          (expression_statement
+            (hash_element_expression
+              (container_variable
+                (varname))
+              (autoquoted_bareword)))))
+      (string_literal))))
+
+================================================================================
+ambiguous funcs - indirect object fakeouts
+================================================================================
+print print 'herro';
+print $sner{bop};
+print $sner, $bler;
+print $sner and die;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (ambiguous_function_call_expression
+      (function)
+      (ambiguous_function_call_expression
+        (function)
+        (string_literal))))
+  (expression_statement
+    (ambiguous_function_call_expression
+      (function)
+      (hash_element_expression
+        (container_variable
+          (varname))
+        (autoquoted_bareword))))
+  (expression_statement
+    (ambiguous_function_call_expression
+      (function)
+      (scalar
+        (varname))
+      (scalar
+        (varname))))
+  (expression_statement
+    (lowprec_logical_expression
+      (ambiguous_function_call_expression
+        (function)
+        (scalar
+          (varname)))
+      (bareword))))
