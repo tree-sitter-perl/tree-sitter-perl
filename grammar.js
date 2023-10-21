@@ -95,7 +95,7 @@ module.exports = grammar({
     $._LOOPEX,
     $._PHASE_NAME,
     $._HASH_PERCENT,
-    $._bareword
+    $._bareword,
   ],
   externals: $ => [
     /* ident-alikes */
@@ -151,6 +151,7 @@ module.exports = grammar({
     [$._listexpr, $.list_expression, $._term_rightward],
     [$._term_rightward],
     [$.function, $.bareword],
+    [$._term, $.indirect_object],
   ],
   rules: {
     source_file: $ => seq(repeat($._fullstmt), optional($.__DATA__)),
@@ -299,8 +300,9 @@ module.exports = grammar({
     ),
 
     // NOTE - we have container_variable as a named node so we can match against it nicely
-    // for highlighting.
-    container_variable: $ => seq('$', $._var_indirob),
+    // for highlighting. We raise its prec b/c in a print (print $thing{stuff}) it becomes a var
+    // not an indirob
+    container_variable: $ => prec(2, seq('$', $._var_indirob)),
     array_element_expression: $ => choice(
       // perly.y matches scalar '[' expr ']' here but that would yield a scalar var node
       seq(field('array', $.container_variable), '[', field('index', $._expr), ']'),
@@ -602,8 +604,24 @@ module.exports = grammar({
     // automatically becomes a non-ambiguous function call
     function_call_expression: $ =>
       seq(field('function', $.function), '(', $._NONASSOC, optional(field('arguments', $._expr)), ')'),
+    indirect_object: $ => choice(
+      // we intentionally don't do bareword filehandles b/c we can't possibly do it right
+      // since we can't know what subs have been defined
+      $.scalar,
+      $.block
+    ),
     ambiguous_function_call_expression: $ =>
-      prec(TERMPREC.LSTOP, seq(field('function', $.function), field('arguments', $._term_rightward))),
+      prec(TERMPREC.LSTOP,
+        choice(
+          seq(field('function', $.function), field('arguments', $._term_rightward)),
+          // indirob cases: `print $thing{shtuff}` is NOT indirob
+          // `print print 'herro'` is NOT indirob (b/c parser recognizes the function as non-bareword)
+          // oh nose; the indirob rules actually parses any known sub as a sub; maybe we
+          // should special-case the globals rather than using the correct correct grammar
+          seq(field('function', $.function), $.indirect_object, field('arguments', $._term_rightward))
+        )
+      ),
+    // we only parse a function if it won't be an indirob
     function: $ => $._bareword,
 
     method_call_expression: $ => prec.left(TERMPREC.ARROW, seq(
