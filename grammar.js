@@ -111,6 +111,7 @@ module.exports = grammar({
     $._quotelike_begin,
     $._quotelike_middle_close,
     $._quotelike_middle_skip,
+    $._quotelike_end_zw,
     $._quotelike_end,
     $._q_string_content,
     $._qq_string_content,
@@ -787,7 +788,8 @@ module.exports = grammar({
     _interpolation_fallbacks: $ => choice(
       seq(choice('$', '@'), /\s/),
       // Most array punctuation vars do not interpolate
-      seq('@', /[^A-Za-z0-9_\$'+:-]/),
+      // we need the zw quote-end for "" (we leave regular _end so the scanner looks for it)
+      seq('@', choice(/[^A-Za-z0-9_\$'+:-]/, $._quotelike_end_zw, $._quotelike_end)),
       '-',
       '{',
       '[',

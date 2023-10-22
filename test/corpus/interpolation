@@ -181,9 +181,12 @@ Punctuation vars that do not interpolate
 ================================================================================
 "@(";
 "@)";
+"@";
 --------------------------------------------------------------------------------
 
 (source_file
+  (expression_statement
+    (interpolated_string_literal))
   (expression_statement
     (interpolated_string_literal))
   (expression_statement

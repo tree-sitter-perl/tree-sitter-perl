@@ -29,6 +29,7 @@ enum TokenType {
   TOKEN_QUOTELIKE_BEGIN,
   TOKEN_QUOTELIKE_MIDDLE_CLOSE,
   TOKEN_QUOTELIKE_MIDDLE_SKIP,
+  TOKEN_QUOTELIKE_END_ZW,
   TOKEN_QUOTELIKE_END,
   TOKEN_Q_STRING_CONTENT,
   TOKEN_QQ_STRING_CONTENT,
@@ -742,8 +743,10 @@ bool tree_sitter_perl_external_scanner_scan(
 
   if(valid_symbols[TOKEN_QUOTELIKE_END]) {
     if(c == state->delim_close && !state->delim_count) {
-      ADVANCE_C;
+      if(valid_symbols[TOKEN_QUOTELIKE_END_ZW])
+        TOKEN(TOKEN_QUOTELIKE_END_ZW);
 
+      ADVANCE_C;
       TOKEN(TOKEN_QUOTELIKE_END);
     }
   }
