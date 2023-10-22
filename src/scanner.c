@@ -29,6 +29,7 @@ enum TokenType {
   TOKEN_QUOTELIKE_BEGIN,
   TOKEN_QUOTELIKE_MIDDLE_CLOSE,
   TOKEN_QUOTELIKE_MIDDLE_SKIP,
+  TOKEN_QUOTELIKE_END_ZW,
   TOKEN_QUOTELIKE_END,
   TOKEN_Q_STRING_CONTENT,
   TOKEN_QQ_STRING_CONTENT,
@@ -49,6 +50,7 @@ enum TokenType {
   TOKEN_FAT_COMMA_ZW,
   TOKEN_BRACE_END_ZW,
   TOKEN_DOLLAR_IDENT_ZW,
+  TOKEN_NO_INTERP_WHITESPACE_ZW,
   /* zero-width high priority token */
   TOKEN_NONASSOC,
   /* error condition is always last */
@@ -361,6 +363,8 @@ bool tree_sitter_perl_external_scanner_scan(
       }
   }
 
+  if (iswspace(c) && valid_symbols[TOKEN_NO_INTERP_WHITESPACE_ZW]) 
+      TOKEN(TOKEN_NO_INTERP_WHITESPACE_ZW);
   skip_ws_to_eol(lexer);
   /* heredocs override everything, so they must be here before */
   if(valid_symbols[TOKEN_HEREDOC_START]) {
@@ -402,6 +406,7 @@ bool tree_sitter_perl_external_scanner_scan(
   }
 
   if (iswspace(c)) {
+    // NOTE - the first whitespace skipping is skip_ws_to_eol over in heredoc handling
     skipped_whitespace = true;
     skip_whitespace(lexer);
     c = lexer->lookahead;
@@ -742,8 +747,10 @@ bool tree_sitter_perl_external_scanner_scan(
 
   if(valid_symbols[TOKEN_QUOTELIKE_END]) {
     if(c == state->delim_close && !state->delim_count) {
-      ADVANCE_C;
+      if(valid_symbols[TOKEN_QUOTELIKE_END_ZW])
+        TOKEN(TOKEN_QUOTELIKE_END_ZW);
 
+      ADVANCE_C;
       TOKEN(TOKEN_QUOTELIKE_END);
     }
   }
