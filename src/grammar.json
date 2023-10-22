@@ -5547,8 +5547,8 @@
               ]
             },
             {
-              "type": "PATTERN",
-              "value": "\\s"
+              "type": "SYMBOL",
+              "name": "_no_interp_whitespace_zw"
             }
           ]
         },
@@ -5560,8 +5560,21 @@
               "value": "@"
             },
             {
-              "type": "PATTERN",
-              "value": "[^A-Za-z0-9_\\$'+:-]"
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "PATTERN",
+                  "value": "[^A-Za-z0-9_\\$'+:-]"
+                },
+                {
+                  "type": "SYMBOL",
+                  "name": "_quotelike_end_zw"
+                },
+                {
+                  "type": "SYMBOL",
+                  "name": "_quotelike_end"
+                }
+              ]
             }
           ]
         },
@@ -7268,6 +7281,10 @@
     },
     {
       "type": "SYMBOL",
+      "name": "_quotelike_end_zw"
+    },
+    {
+      "type": "SYMBOL",
       "name": "_quotelike_end"
     },
     {
@@ -7341,6 +7358,10 @@
     {
       "type": "SYMBOL",
       "name": "_dollar_ident_zw"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_no_interp_whitespace_zw"
     },
     {
       "type": "SYMBOL",
