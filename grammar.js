@@ -402,6 +402,7 @@ module.exports = grammar({
       /* PMFUNC */
       $.bareword,
       $.autoquoted_bareword,
+      $._fat_comma_autoquoted_bareword,
       $._listop,
 
       /* perly.y doesn't know about `my` because that is handled weirdly in
@@ -983,12 +984,16 @@ module.exports = grammar({
     _quotelikes: $ => choice('q', 'qq', 'qw', 'qx', 's', 'tr', 'y'),
     _autoquotables: $ => choice($._func0op, $._func1op, $._keywords, $._quotelikes),
     // we need dynamic precedence here so we can resolve things like `print -next`
-    autoquoted_bareword: $ => prec.dynamic(2, choice(
-      // NOTE - these have zw lookaheads so they override just being read as barewords
-      seq(choice($._identifier, $._autoquotables), $._fat_comma_zw),
+    autoquoted_bareword: $ => prec.dynamic(2,
       // give this autoquote the highest precedence we gots
       prec(TERMPREC.PAREN, seq('-', choice($._bareword, $._autoquotables))),
-    )),
+    ),
+    _fat_comma_autoquoted_bareword: $ => prec.dynamic(2, 
+      // NOTE - these have zw lookaheads so they override just being read as barewords
+      // NOTE - we have this as a hidden node + alias the actual target b/c we don't need
+      // the whitespace b4 the zw assetion to be part of our node
+      seq(alias(choice($._identifier, $._autoquotables), $.autoquoted_bareword), $._fat_comma_zw),
+    ),
     _brace_autoquoted: $ => seq(
       alias(choice($._bareword, $._autoquotables), $.autoquoted_bareword),
       $._brace_end_zw

@@ -10,8 +10,8 @@ plain::bareword => 'here';
 (source_file
   (expression_statement
     (list_expression
-      (autoquoted_bareword
-        (comment))
+      (autoquoted_bareword)
+      (comment)
       (string_literal)))
   (expression_statement
     (list_expression
