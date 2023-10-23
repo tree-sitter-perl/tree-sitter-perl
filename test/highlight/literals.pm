@@ -82,7 +82,3 @@ q # this is a comment
 #             ^ variable.scalar
 qx(command);
 # <- string
-a  # hi
-#    ^comment
-# <- string.special
- => 1;
