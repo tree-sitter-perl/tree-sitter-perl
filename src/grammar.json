@@ -6116,18 +6116,6 @@
             "name": "_qq_string_content"
           },
           {
-            "type": "STRING",
-            "value": "-"
-          },
-          {
-            "type": "STRING",
-            "value": "{"
-          },
-          {
-            "type": "STRING",
-            "value": "["
-          },
-          {
             "type": "SYMBOL",
             "name": "escape_sequence"
           },
@@ -6138,6 +6126,10 @@
           {
             "type": "SYMBOL",
             "name": "_dollar_in_regexp"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "_interpolation_fallbacks"
           },
           {
             "type": "SYMBOL",
