@@ -893,12 +893,10 @@ module.exports = grammar({
     _interpolated_regexp_content: $ => repeat1(
       choice(
         $._qq_string_content,
-        '-',
-        '{',
-        '[',
         $.escape_sequence,
         $.escaped_delimiter,
         $._dollar_in_regexp,
+        $._interpolation_fallbacks,
         $._interpolations,
       )
     ),
