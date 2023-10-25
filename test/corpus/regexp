@@ -50,7 +50,7 @@ Regexp match
 ================================================================================
 m/pattern/;
 m/pattern with (parens)/;
-m/pattern with $interpolation/;
+m/pattern with $interpolation->{things}/;
 m'pattern with no $interpolation';
 m/pattern/i;
 m/^anchored pattern$/;
@@ -67,8 +67,10 @@ m/^pattern(?:$|,)/;
   (expression_statement
     (match_regexp
       (regexp_content
-        (scalar
-          (varname)))))
+        (hash_element_expression
+          (scalar
+            (varname))
+          (autoquoted_bareword)))))
   (expression_statement
     (match_regexp
       (regexp_content)))
@@ -112,7 +114,7 @@ sum /pattern;#still pattern/;
 ================================================================================
 substitution
 ================================================================================
-s/thing $var/$tings/xg;
+s/thing $var/$tings/xgr;
 --------------------------------------------------------------------------------
 
 (source_file
@@ -125,3 +127,32 @@ s/thing $var/$tings/xg;
         (scalar
           (varname)))
       (substitution_regexp_modifiers))))
+
+================================================================================
+non-interpolating vars
+================================================================================
+m/@/;
+m/@!/;
+m/$ things/;
+m/$/;
+m/tings$
+  /x;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (match_regexp
+      (regexp_content)))
+  (expression_statement
+    (match_regexp
+      (regexp_content)))
+  (expression_statement
+    (match_regexp
+      (regexp_content)))
+  (expression_statement
+    (match_regexp
+      (regexp_content)))
+  (expression_statement
+    (match_regexp
+      (regexp_content)
+      (match_regexp_modifiers))))
