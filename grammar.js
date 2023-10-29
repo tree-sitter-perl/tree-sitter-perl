@@ -708,7 +708,7 @@ module.exports = grammar({
       'tell', 'telldir', 'tied', 'uc', 'ucfirst', 'untie', 'umask',
       'values', 'write',
       // filetest operators
-      seq('-', token.immediate(/[rwxoRWXOezsfdlpSbctugkTBMAC]/))
+      seq('-', token.immediate(prec(1, /[rwxoRWXOezsfdlpSbctugkTBMAC]/)))
       /* TODO: all the set*ent */
     ),
 
@@ -996,7 +996,13 @@ module.exports = grammar({
     // we need dynamic precedence here so we can resolve things like `print -next`
     autoquoted_bareword: $ => prec.dynamic(20,
       // give this autoquote the highest precedence we gots
-      prec(TERMPREC.PAREN, seq('-', choice($._bareword, $._autoquotables))),
+      prec(TERMPREC.PAREN, seq('-', choice(
+        $._bareword,
+        $._autoquotables,
+        // b/c we needed to bump up prec for filetests, we had to also inline a filetest
+        // followed by a bareword (see gh#145)
+        token.immediate(prec(1, /[rwxoRWXOezsfdlpSbctugkTBMAC]((::)|([a-zA-Z_]\w*))+/))
+      ))),
     ),
     _fat_comma_autoquoted_bareword: $ => prec.dynamic(2, 
       // NOTE - these have zw lookaheads so they override just being read as barewords
