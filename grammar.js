@@ -234,11 +234,8 @@ module.exports = grammar({
     for_statement: $ =>
       seq($._KW_FOR,
         optional(choice(
-          seq('my', field('my_var', $.scalar)),
-          seq('state', field('state_var', $.scalar)),
-          seq('our', field('var', $.scalar)),
-          field('var', $.scalar),
-          seq('my', paren_list_of($.scalar)),
+          seq(optional(choice('my', 'state', 'our')), field('variable', $.scalar)),
+          seq('my', field('variables', paren_list_of($.scalar))),
         )),
         '(', field('list', $._expr), ')',
         field('block', $.block),
@@ -514,7 +511,7 @@ module.exports = grammar({
 
     variable_declaration: $ => prec.left(TERMPREC.QUESTION_MARK + 1,
       seq(
-        choice('my', 'our'),
+        choice('my', 'state', 'our'),
         choice(
           field('variable', alias($._declare_scalar, $.scalar)),
           field('variable', alias($._declare_array, $.array)),
@@ -978,7 +975,7 @@ module.exports = grammar({
     _conditionals: $ => choice('if', 'unless'),
     _loops: $ => choice('while', 'until'),
     _postfixables: $ => choice($._conditionals, $._loops, $._KW_FOR, 'and', 'or'),
-    _keywords: $ => choice($._postfixables, 'else', 'elsif', 'do', 'eval', 'our', 'my', 'local', 'require', 'return', 'eq', 'ne', 'lt', 'le', 'ge', 'gt', 'cmp', 'isa', $._KW_USE, $._LOOPEX, $._PHASE_NAME, '__DATA__', '__END__', 'sub', $._map_grep),
+    _keywords: $ => choice($._postfixables, 'else', 'elsif', 'do', 'eval', 'our', 'state', 'my', 'local', 'require', 'return', 'eq', 'ne', 'lt', 'le', 'ge', 'gt', 'cmp', 'isa', $._KW_USE, $._LOOPEX, $._PHASE_NAME, '__DATA__', '__END__', 'sub', $._map_grep),
     _quotelikes: $ => choice('q', 'qq', 'qw', 'qx', 's', 'tr', 'y'),
     _autoquotables: $ => choice($._func0op, $._func1op, $._keywords, $._quotelikes),
     // we need dynamic precedence here so we can resolve things like `print -next`

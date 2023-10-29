@@ -19,7 +19,7 @@
 
 [
   "do"
-  "my" "our" "local"
+  "my" "our" "local" "state"
   "last" "next" "redo" "goto"
   "undef"
 ] @keyword
