@@ -13,7 +13,7 @@
 
 "sub" @keyword.function
 
-[ "map" "grep" ] @function.builtin
+[ "map" "grep" "sort" ] @function.builtin
 
 "package" @include
 
