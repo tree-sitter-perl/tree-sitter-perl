@@ -167,6 +167,7 @@ Filetest operators
 ================================================================================
 -r "path";
 -w $path;
+-s $file;
 -x _;
 --------------------------------------------------------------------------------
 
@@ -174,6 +175,10 @@ Filetest operators
   (expression_statement
     (func1op_call_expression
       (interpolated_string_literal)))
+  (expression_statement
+    (func1op_call_expression
+      (scalar
+        (varname))))
   (expression_statement
     (func1op_call_expression
       (scalar

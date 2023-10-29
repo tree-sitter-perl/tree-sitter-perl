@@ -994,7 +994,7 @@ module.exports = grammar({
     _quotelikes: $ => choice('q', 'qq', 'qw', 'qx', 's', 'tr', 'y'),
     _autoquotables: $ => choice($._func0op, $._func1op, $._keywords, $._quotelikes),
     // we need dynamic precedence here so we can resolve things like `print -next`
-    autoquoted_bareword: $ => prec.dynamic(2,
+    autoquoted_bareword: $ => prec.dynamic(20,
       // give this autoquote the highest precedence we gots
       prec(TERMPREC.PAREN, seq('-', choice($._bareword, $._autoquotables))),
     ),
