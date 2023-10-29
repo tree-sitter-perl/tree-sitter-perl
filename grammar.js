@@ -396,6 +396,7 @@ module.exports = grammar({
       $.func0op_call_expression,
       $.func1op_call_expression,
       $.map_grep_expression,
+      // $.sort_expression, TODO
       /* PMFUNC */
       $.bareword,
       $.autoquoted_bareword,
@@ -568,7 +569,8 @@ module.exports = grammar({
     map_grep_expression: $ => prec.left(TERMPREC.LSTOP, choice(
       seq($._map_grep, field('callback', $.block), field('list', $._term_rightward)),
       seq($._map_grep, field('callback', choice($._term, alias($._tricky_hashref, $.anonymous_hash_expression))), $._PERLY_COMMA, field('list', $._term_rightward)),
-      seq($._map_grep, '(', $._NONASSOC, field('callback', $._term), $._PERLY_COMMA, field('list', $._term_rightward), ')'),
+      seq($._map_grep, '(', $._NONASSOC, field('callback', choice($._term, alias($._tricky_hashref, $.anonymous_hash_expression))), $._PERLY_COMMA, field('list', $._term_rightward), ')'),
+      seq($._map_grep, '(', $._NONASSOC, field('callback', $.block), field('list', $._term_rightward), ')'),
     )),
 
     _label_arg: $ => choice(alias($.identifier, $.label), $._term),
