@@ -234,11 +234,8 @@ module.exports = grammar({
     for_statement: $ =>
       seq($._KW_FOR,
         optional(choice(
-          seq('my', field('my_var', $.scalar)),
-          seq('state', field('state_var', $.scalar)),
-          seq('our', field('var', $.scalar)),
-          field('var', $.scalar),
-          seq('my', paren_list_of($.scalar)),
+          seq(optional(choice('my', 'state', 'our')), field('variable', $.scalar)),
+          seq('my', field('variables', paren_list_of($.scalar))),
         )),
         '(', field('list', $._expr), ')',
         field('block', $.block),
@@ -399,6 +396,7 @@ module.exports = grammar({
       $.func0op_call_expression,
       $.func1op_call_expression,
       $.map_grep_expression,
+      $.sort_expression,
       /* PMFUNC */
       $.bareword,
       $.autoquoted_bareword,
@@ -514,7 +512,7 @@ module.exports = grammar({
 
     variable_declaration: $ => prec.left(TERMPREC.QUESTION_MARK + 1,
       seq(
-        choice('my', 'our'),
+        choice('my', 'state', 'our'),
         choice(
           field('variable', alias($._declare_scalar, $.scalar)),
           field('variable', alias($._declare_array, $.array)),
@@ -571,8 +569,22 @@ module.exports = grammar({
     map_grep_expression: $ => prec.left(TERMPREC.LSTOP, choice(
       seq($._map_grep, field('callback', $.block), field('list', $._term_rightward)),
       seq($._map_grep, field('callback', choice($._term, alias($._tricky_hashref, $.anonymous_hash_expression))), $._PERLY_COMMA, field('list', $._term_rightward)),
-      seq($._map_grep, '(', $._NONASSOC, field('callback', $._term), $._PERLY_COMMA, field('list', $._term_rightward), ')'),
+      seq($._map_grep, '(', $._NONASSOC, field('callback', choice($._term, alias($._tricky_hashref, $.anonymous_hash_expression))), $._PERLY_COMMA, field('list', $._term_rightward), ')'),
+      seq($._map_grep, '(', $._NONASSOC, field('callback', $.block), field('list', $._term_rightward), ')'),
     )),
+
+    // even though technically you need the _tricky_hashref handling here, we punt on that,
+    // b/c it's quite unlikely that someone is sorting a hashref w/ the default string
+    // sort
+    // sigh, here we go SUBNAME (bareword vers)! we'll cover this with indirobs
+    //   - if it's the only thing on the list, then it's autoquoted.
+    //   - if there's a comma, it's autoquoted
+    //   - if there isn't, then it's a SUBNAME (unless it's builting)
+    sort_expression: $ => prec.left(TERMPREC.LSTOP, choice(
+      seq('sort', optional(field('callback', $.block)), field('list', $._term_rightward)),
+      seq('sort', '(', $._NONASSOC, optional(field('callback', $.block)), field('list', $._term_rightward), ')'),
+    )),
+
 
     _label_arg: $ => choice(alias($.identifier, $.label), $._term),
     loopex_expression: $ =>
@@ -696,7 +708,7 @@ module.exports = grammar({
       'tell', 'telldir', 'tied', 'uc', 'ucfirst', 'untie', 'umask',
       'values', 'write',
       // filetest operators
-      seq('-', token.immediate(/[rwxoRWXOezsfdlpSbctugkTBMAC]/))
+      seq('-', token.immediate(prec(1, /[rwxoRWXOezsfdlpSbctugkTBMAC]/)))
       /* TODO: all the set*ent */
     ),
 
@@ -978,13 +990,19 @@ module.exports = grammar({
     _conditionals: $ => choice('if', 'unless'),
     _loops: $ => choice('while', 'until'),
     _postfixables: $ => choice($._conditionals, $._loops, $._KW_FOR, 'and', 'or'),
-    _keywords: $ => choice($._postfixables, 'else', 'elsif', 'do', 'eval', 'our', 'my', 'local', 'require', 'return', 'eq', 'ne', 'lt', 'le', 'ge', 'gt', 'cmp', 'isa', $._KW_USE, $._LOOPEX, $._PHASE_NAME, '__DATA__', '__END__', 'sub', $._map_grep),
+    _keywords: $ => choice($._postfixables, 'else', 'elsif', 'do', 'eval', 'our', 'state', 'my', 'local', 'require', 'return', 'eq', 'ne', 'lt', 'le', 'ge', 'gt', 'cmp', 'isa', $._KW_USE, $._LOOPEX, $._PHASE_NAME, '__DATA__', '__END__', 'sub', $._map_grep, 'sort'),
     _quotelikes: $ => choice('q', 'qq', 'qw', 'qx', 's', 'tr', 'y'),
     _autoquotables: $ => choice($._func0op, $._func1op, $._keywords, $._quotelikes),
     // we need dynamic precedence here so we can resolve things like `print -next`
-    autoquoted_bareword: $ => prec.dynamic(2,
+    autoquoted_bareword: $ => prec.dynamic(20,
       // give this autoquote the highest precedence we gots
-      prec(TERMPREC.PAREN, seq('-', choice($._bareword, $._autoquotables))),
+      prec(TERMPREC.PAREN, seq('-', choice(
+        $._bareword,
+        $._autoquotables,
+        // b/c we needed to bump up prec for filetests, we had to also inline a filetest
+        // followed by a bareword (see gh#145)
+        token.immediate(prec(1, /[rwxoRWXOezsfdlpSbctugkTBMAC]((::)|([a-zA-Z_]\w*))+/))
+      ))),
     ),
     _fat_comma_autoquoted_bareword: $ => prec.dynamic(2, 
       // NOTE - these have zw lookaheads so they override just being read as barewords
