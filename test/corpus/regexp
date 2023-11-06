@@ -112,6 +112,25 @@ sum /pattern;#still pattern/;
         (regexp_content)))))
 
 ================================================================================
+just solidus - DOR vs regex
+================================================================================
+sum //, 2, 3;
+shift // 1;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (ambiguous_function_call_expression
+      (function)
+      (match_regexp)
+      (number)
+      (number)))
+  (expression_statement
+    (binary_expression
+      (func1op_call_expression)
+      (number))))
+
+================================================================================
 substitution
 ================================================================================
 s/thing $var/$tings/xgr;

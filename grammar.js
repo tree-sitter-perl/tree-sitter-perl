@@ -863,18 +863,23 @@ module.exports = grammar({
       choice(
         seq(
           choice(
-            $._search_slash,
-            seq(field('operator', 'm'), $._quotelike_begin)
+          seq(
+            choice(
+              $._search_slash,
+              seq(field('operator', 'm'), $._quotelike_begin)
+            ),
+            optional(regexpContent($, $._interpolated_regexp_content)),
           ),
-          optional(regexpContent($, $._interpolated_regexp_content)),
+          seq(
+            field('operator', 'm'),
+            $._apostrophe,
+            optional(regexpContent($, $._noninterpolated_string_content)), // TODO: regexp content
+          ),
         ),
-        seq(
-          field('operator', 'm'),
-          $._apostrophe,
-          optional(regexpContent($, $._noninterpolated_string_content)), // TODO: regexp content
+        $._quotelike_end,
         ),
+        '//' // empty pattern is handled specially so we can manage shift // 'default'
       ),
-      $._quotelike_end,
       optional(field('modifiers', $.match_regexp_modifiers))
     ),
     _quotelike_middle: $ => seq(
