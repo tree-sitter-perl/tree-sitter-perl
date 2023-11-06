@@ -5970,8 +5970,56 @@
                   "type": "CHOICE",
                   "members": [
                     {
-                      "type": "SYMBOL",
-                      "name": "_search_slash"
+                      "type": "SEQ",
+                      "members": [
+                        {
+                          "type": "CHOICE",
+                          "members": [
+                            {
+                              "type": "SYMBOL",
+                              "name": "_search_slash"
+                            },
+                            {
+                              "type": "SEQ",
+                              "members": [
+                                {
+                                  "type": "FIELD",
+                                  "name": "operator",
+                                  "content": {
+                                    "type": "STRING",
+                                    "value": "m"
+                                  }
+                                },
+                                {
+                                  "type": "SYMBOL",
+                                  "name": "_quotelike_begin"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "CHOICE",
+                          "members": [
+                            {
+                              "type": "FIELD",
+                              "name": "content",
+                              "content": {
+                                "type": "ALIAS",
+                                "content": {
+                                  "type": "SYMBOL",
+                                  "name": "_interpolated_regexp_content"
+                                },
+                                "named": true,
+                                "value": "regexp_content"
+                              }
+                            },
+                            {
+                              "type": "BLANK"
+                            }
+                          ]
+                        }
+                      ]
                     },
                     {
                       "type": "SEQ",
@@ -5986,78 +6034,44 @@
                         },
                         {
                           "type": "SYMBOL",
-                          "name": "_quotelike_begin"
+                          "name": "_apostrophe"
+                        },
+                        {
+                          "type": "CHOICE",
+                          "members": [
+                            {
+                              "type": "FIELD",
+                              "name": "content",
+                              "content": {
+                                "type": "ALIAS",
+                                "content": {
+                                  "type": "SYMBOL",
+                                  "name": "_noninterpolated_string_content"
+                                },
+                                "named": true,
+                                "value": "regexp_content"
+                              }
+                            },
+                            {
+                              "type": "BLANK"
+                            }
+                          ]
                         }
                       ]
                     }
                   ]
                 },
                 {
-                  "type": "CHOICE",
-                  "members": [
-                    {
-                      "type": "FIELD",
-                      "name": "content",
-                      "content": {
-                        "type": "ALIAS",
-                        "content": {
-                          "type": "SYMBOL",
-                          "name": "_interpolated_regexp_content"
-                        },
-                        "named": true,
-                        "value": "regexp_content"
-                      }
-                    },
-                    {
-                      "type": "BLANK"
-                    }
-                  ]
+                  "type": "SYMBOL",
+                  "name": "_quotelike_end"
                 }
               ]
             },
             {
-              "type": "SEQ",
-              "members": [
-                {
-                  "type": "FIELD",
-                  "name": "operator",
-                  "content": {
-                    "type": "STRING",
-                    "value": "m"
-                  }
-                },
-                {
-                  "type": "SYMBOL",
-                  "name": "_apostrophe"
-                },
-                {
-                  "type": "CHOICE",
-                  "members": [
-                    {
-                      "type": "FIELD",
-                      "name": "content",
-                      "content": {
-                        "type": "ALIAS",
-                        "content": {
-                          "type": "SYMBOL",
-                          "name": "_noninterpolated_string_content"
-                        },
-                        "named": true,
-                        "value": "regexp_content"
-                      }
-                    },
-                    {
-                      "type": "BLANK"
-                    }
-                  ]
-                }
-              ]
+              "type": "STRING",
+              "value": "//"
             }
           ]
-        },
-        {
-          "type": "SYMBOL",
-          "name": "_quotelike_end"
         },
         {
           "type": "CHOICE",

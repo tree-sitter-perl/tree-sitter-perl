@@ -450,11 +450,15 @@ bool tree_sitter_perl_external_scanner_scan(
 
   if(valid_symbols[TOKEN_SEARCH_SLASH] && c == '/') {
     ADVANCE_C;
+    lexer->mark_end(lexer);
     state->delim_open = 0;
     state->delim_close = '/';
     state->delim_count = 0;
 
-    TOKEN(TOKEN_SEARCH_SLASH);
+    if (c != '/') 
+      TOKEN(TOKEN_SEARCH_SLASH);
+    /* if we didn't get a search-slash, we fall back to the main parser */
+    return false;
   }
   if(valid_symbols[TOKEN_APOSTROPHE] && c == '\'') {
     ADVANCE_C;
