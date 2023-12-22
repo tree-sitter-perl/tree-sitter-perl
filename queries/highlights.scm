@@ -9,6 +9,8 @@
 
 [ "while" "until" "for" "foreach" ] @repeat
 
+[ "try" "catch" "finally" ] @exception
+
 "return" @keyword.return
 
 "sub" @keyword.function
@@ -18,6 +20,7 @@
 "package" @include
 
 [
+  "defer"
   "do"
   "my" "our" "local" "state"
   "last" "next" "redo" "goto"

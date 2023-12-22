@@ -183,8 +183,10 @@ module.exports = grammar({
       $.loop_statement,
       $.cstyle_for_statement,
       $.for_statement,
+      $.try_statement,
       alias($.block, $.block_statement),
       seq($.expression_statement, choice($._semicolon, $.__DATA__)),
+      $.defer_statement,
       ';', // this is not _semicolon so as not to generate an infinite stream of them
     ),
     package_statement: $ => choice(
@@ -240,6 +242,19 @@ module.exports = grammar({
         '(', field('list', $._expr), ')',
         field('block', $.block),
       ),
+
+    try_statement: $ => seq(
+      'try',
+      field('try_block', $.block),
+      'catch', '(', field('catch_variable', $.scalar), ')',
+      field('catch_block', $.block),
+      optseq('finally', field('finally_block', $.block)),
+    ),
+
+    defer_statement: $ => seq(
+      'defer',
+      field('block', $.block),
+    ),
 
     // perly.y calls this `sideff`
     expression_statement: $ => choice(
