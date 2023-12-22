@@ -484,3 +484,46 @@ bare blocks
     (block_statement
       (expression_statement
         (number)))))
+
+================================================================================
+Class syntax
+================================================================================
+use feature 'class';
+class Example :isa(BaseClass) {
+  field $x :attribute = 123;
+  ADJUST { $x++; }
+  method y { 456; }
+}
+--------------------------------------------------------------------------------
+
+(source_file
+  (use_statement
+    (package)
+    (string_literal))
+  (class_statement
+    (package)
+    (attrlist
+      (attribute
+        (attribute_name)
+        (attribute_value)))
+    (block
+      (expression_statement
+        (assignment_expression
+          (variable_declaration
+            (scalar
+              (varname))
+            (attrlist
+              (attribute
+                (attribute_name))))
+          (number)))
+      (phaser_statement
+        (block
+          (expression_statement
+            (postinc_expression
+              (scalar
+                (varname))))))
+      (method_declaration_statement
+        (bareword)
+        (block
+          (expression_statement
+            (number)))))))

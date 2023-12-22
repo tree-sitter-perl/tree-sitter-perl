@@ -110,3 +110,16 @@ BEGIN { 123; }
 END { 456; }
 # <- keyword.phaser
 #     ^ number
+use feature 'class';
+class Example {
+# <- include
+  field $x = 123;
+# ^^^^^ keyword
+#       ^^ variable.scalar
+  ADJUST { $x++; }
+# ^^^^^^ keyword.phaser
+#          ^^ variable.scalar
+  method y { 456; }
+# ^^^^^^ keyword.function
+#        ^ method
+}

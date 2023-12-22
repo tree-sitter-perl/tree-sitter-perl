@@ -14,15 +14,16 @@
 "return" @keyword.return
 
 "sub" @keyword.function
+"method" @keyword.function
 
 [ "map" "grep" "sort" ] @function.builtin
 
-"package" @include
+[ "package" "class" ] @include
 
 [
   "defer"
   "do"
-  "my" "our" "local" "state"
+  "my" "our" "local" "state" "field"
   "last" "next" "redo" "goto"
   "undef"
 ] @keyword
@@ -79,9 +80,11 @@
 
 (use_statement (package) @type)
 (package_statement (package) @type)
+(class_statement (package) @type)
 (require_expression (bareword) @type)
 
 (subroutine_declaration_statement name: (bareword) @function)
+(method_declaration_statement name: (bareword) @method)
 (attribute_name) @attribute
 (attribute_value) @string
 
