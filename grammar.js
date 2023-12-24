@@ -389,6 +389,7 @@ module.exports = grammar({
       $.anonymous_array_expression,
       $.anonymous_hash_expression,
       $.anonymous_subroutine_expression,
+      $.anonymous_method_expression,
       $.do_expression,
       $.eval_expression,
       $.conditional_expression,
@@ -535,6 +536,13 @@ module.exports = grammar({
 
     anonymous_subroutine_expression: $ => seq(
       'sub',
+      optseq(':', optional(field('attributes', $.attrlist))),
+      optional($.prototype_or_signature),
+      field('body', $.block),
+    ),
+
+    anonymous_method_expression: $ => seq(
+      'method',
       optseq(':', optional(field('attributes', $.attrlist))),
       optional($.prototype_or_signature),
       field('body', $.block),
