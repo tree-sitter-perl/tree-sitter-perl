@@ -13,8 +13,7 @@
 
 "return" @keyword.return
 
-"sub" @keyword.function
-"method" @keyword.function
+[ "sub" "method" ] @keyword.function
 
 [ "map" "grep" "sort" ] @function.builtin
 
