@@ -156,7 +156,7 @@ q\backslashes\;
 Interpolation in "" strings
 ================================================================================
 "with $scalar";
-"but not with a $ space after";
+"even with a $ space after";
 "with @array";
 qq'with $scalar in single-quotes';
 --------------------------------------------------------------------------------
@@ -167,7 +167,9 @@ qq'with $scalar in single-quotes';
       (scalar
         (varname))))
   (expression_statement
-    (interpolated_string_literal))
+    (interpolated_string_literal
+      (scalar
+        (varname))))
   (expression_statement
     (interpolated_string_literal
       (array

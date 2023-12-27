@@ -800,7 +800,7 @@ module.exports = grammar({
       )
     ),
     _interpolation_fallbacks: $ => choice(
-      seq(choice('$', '@'), $._no_interp_whitespace_zw),
+      seq('@', $._no_interp_whitespace_zw),
       // Most array punctuation vars do not interpolate
       // we need the zw quote-end for "" (we leave regular _end so the scanner looks for it)
       seq('@', choice(/[^A-Za-z0-9_\$'+:-]/, $._quotelike_end_zw, $._quotelike_end)),
@@ -915,6 +915,7 @@ module.exports = grammar({
         $._dollar_in_regexp,
         $._interpolation_fallbacks,
         $._interpolations,
+        seq('$', $._no_interp_whitespace_zw),
       )
     ),
 
