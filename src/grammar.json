@@ -5671,17 +5671,8 @@
           "type": "SEQ",
           "members": [
             {
-              "type": "CHOICE",
-              "members": [
-                {
-                  "type": "STRING",
-                  "value": "$"
-                },
-                {
-                  "type": "STRING",
-                  "value": "@"
-                }
-              ]
+              "type": "STRING",
+              "value": "@"
             },
             {
               "type": "SYMBOL",
@@ -6281,6 +6272,19 @@
           {
             "type": "SYMBOL",
             "name": "_interpolations"
+          },
+          {
+            "type": "SEQ",
+            "members": [
+              {
+                "type": "STRING",
+                "value": "$"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "_no_interp_whitespace_zw"
+              }
+            ]
           }
         ]
       }
