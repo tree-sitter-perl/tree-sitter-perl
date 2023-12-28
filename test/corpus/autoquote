@@ -116,10 +116,14 @@ autoquoting keywords
 ================================================================================
 if =>;
 for =>;
+method =>;
 return =>;
 --------------------------------------------------------------------------------
 
 (source_file
+  (expression_statement
+    (list_expression
+      (autoquoted_bareword)))
   (expression_statement
     (list_expression
       (autoquoted_bareword)))
