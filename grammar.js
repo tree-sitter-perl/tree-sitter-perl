@@ -268,9 +268,12 @@ module.exports = grammar({
     try_statement: $ => seq(
       'try',
       field('try_block', $.block),
-      'catch', '(', field('catch_variable', $.scalar), ')',
-      field('catch_block', $.block),
-      optseq('finally', field('finally_block', $.block)),
+      // regular perl only permits catch(VAR) but we get easy compatibility
+      // with Syntax::Keyword::Try too by being a bit more flexible
+      optseq('catch', optseq('(', field('catch_expr', $._expr), ')'),
+        field('catch_block', $.block)),
+      optseq('finally',
+        field('finally_block', $.block)),
     ),
 
     defer_statement: $ => seq(

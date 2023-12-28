@@ -380,6 +380,28 @@ try { A(); } catch($e) { B(); } finally { C(); }
     (block (expression_statement (function_call_expression (function)))))
     )
 ================================================================================
+Extended try / catch of Syntax::Keyword::Try
+================================================================================
+use Syntax::Keyword::Try;
+try { A(); } catch { B(); }
+try { A(); } catch($e isa Class) { B(); }
+try { A(); } finally { C(); }
+--------------------------------------------------------------------------------
+
+(source_file
+  (use_statement (package))
+  (try_statement
+    (block (expression_statement (function_call_expression (function))))
+    (block (expression_statement (function_call_expression (function)))))
+  (try_statement
+    (block (expression_statement (function_call_expression (function))))
+    (relational_expression (scalar (varname)) (bareword))
+    (block (expression_statement (function_call_expression (function)))))
+  (try_statement
+    (block (expression_statement (function_call_expression (function))))
+    (block (expression_statement (function_call_expression (function)))))
+    )
+================================================================================
 Defer
 ================================================================================
 use feature 'defer';
