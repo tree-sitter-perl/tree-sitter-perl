@@ -7202,6 +7202,22 @@
         {
           "type": "STRING",
           "value": "sort"
+        },
+        {
+          "type": "STRING",
+          "value": "try"
+        },
+        {
+          "type": "STRING",
+          "value": "class"
+        },
+        {
+          "type": "STRING",
+          "value": "field"
+        },
+        {
+          "type": "STRING",
+          "value": "method"
         }
       ]
     },
