@@ -60,6 +60,16 @@ for (my $i = 0; $i < 10; $i++) { 123; }
 #       ^ variable.scalar
 #               ^ variable.scalar
 #                        ^ variable.scalar
+use feature 'try';
+try { A(); } catch($e) { B(); }
+# <- exception
+#            ^^^^^ exception
+#                  ^^ variable.scalar
+try { A(); } catch($e) { B(); } finally { C(); }
+#                               ^^^^^^^ exception
+use feature 'defer';
+defer { A(); }
+# <- keyword
 package AAA;
 # <- include
 #       ^ type
@@ -100,3 +110,16 @@ BEGIN { 123; }
 END { 456; }
 # <- keyword.phaser
 #     ^ number
+use feature 'class';
+class Example {
+# <- include
+  field $x = 123;
+# ^^^^^ keyword
+#       ^^ variable.scalar
+  ADJUST { $x++; }
+# ^^^^^^ keyword.phaser
+#          ^^ variable.scalar
+  method y { 456; }
+# ^^^^^^ keyword.function
+#        ^ method
+}

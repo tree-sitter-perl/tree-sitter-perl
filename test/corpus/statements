@@ -360,6 +360,60 @@ for (my $i = 0; $i < 10; $i++) { 123; }
         (number)))))
 
 ================================================================================
+try / catch
+================================================================================
+use feature 'try';
+try { A(); } catch($e) { B(); }
+try { A(); } catch($e) { B(); } finally { C(); }
+--------------------------------------------------------------------------------
+
+(source_file
+  (use_statement (package) (string_literal))
+  (try_statement
+    (block (expression_statement (function_call_expression (function))))
+    (scalar (varname))
+    (block (expression_statement (function_call_expression (function)))))
+  (try_statement
+    (block (expression_statement (function_call_expression (function))))
+    (scalar (varname))
+    (block (expression_statement (function_call_expression (function))))
+    (block (expression_statement (function_call_expression (function)))))
+    )
+================================================================================
+Extended try / catch of Syntax::Keyword::Try
+================================================================================
+use Syntax::Keyword::Try;
+try { A(); } catch { B(); }
+try { A(); } catch($e isa Class) { B(); }
+try { A(); } finally { C(); }
+--------------------------------------------------------------------------------
+
+(source_file
+  (use_statement (package))
+  (try_statement
+    (block (expression_statement (function_call_expression (function))))
+    (block (expression_statement (function_call_expression (function)))))
+  (try_statement
+    (block (expression_statement (function_call_expression (function))))
+    (relational_expression (scalar (varname)) (bareword))
+    (block (expression_statement (function_call_expression (function)))))
+  (try_statement
+    (block (expression_statement (function_call_expression (function))))
+    (block (expression_statement (function_call_expression (function)))))
+    )
+================================================================================
+Defer
+================================================================================
+use feature 'defer';
+defer { A(); }
+--------------------------------------------------------------------------------
+
+(source_file
+  (use_statement (package) (string_literal))
+  (defer_statement
+    (block (expression_statement (function_call_expression (function)))))
+    )
+================================================================================
 package;
 ================================================================================
 package AAA;
@@ -452,3 +506,46 @@ bare blocks
     (block_statement
       (expression_statement
         (number)))))
+
+================================================================================
+Class syntax
+================================================================================
+use feature 'class';
+class Example :isa(BaseClass) {
+  field $x :attribute = 123;
+  ADJUST { $x++; }
+  method y { 456; }
+}
+--------------------------------------------------------------------------------
+
+(source_file
+  (use_statement
+    (package)
+    (string_literal))
+  (class_statement
+    (package)
+    (attrlist
+      (attribute
+        (attribute_name)
+        (attribute_value)))
+    (block
+      (expression_statement
+        (assignment_expression
+          (variable_declaration
+            (scalar
+              (varname))
+            (attrlist
+              (attribute
+                (attribute_name))))
+          (number)))
+      (phaser_statement
+        (block
+          (expression_statement
+            (postinc_expression
+              (scalar
+                (varname))))))
+      (method_declaration_statement
+        (bareword)
+        (block
+          (expression_statement
+            (number)))))))

@@ -174,22 +174,38 @@ module.exports = grammar({
 
     _barestmt: $ => choice(
       $.package_statement,
+      $.class_statement,
       $.use_version_statement,
       $.use_statement,
       $.subroutine_declaration_statement,
+      $.method_declaration_statement,
       $.phaser_statement,
       $.conditional_statement,
       /* TODO: given/when/default */
       $.loop_statement,
       $.cstyle_for_statement,
       $.for_statement,
+      $.try_statement,
       alias($.block, $.block_statement),
       seq($.expression_statement, choice($._semicolon, $.__DATA__)),
+      $.defer_statement,
       ';', // this is not _semicolon so as not to generate an infinite stream of them
     ),
     package_statement: $ => choice(
       seq('package', field('name', $.package), optional(field('version', $._version)), $._semicolon),
       seq('package', field('name', $.package), optional(field('version', $._version)), $.block),
+    ),
+    class_statement: $ => choice(
+      seq('class',
+        field('name', $.package),
+        optional(field('version', $._version)), 
+        optseq(':', optional(field('attributes', $.attrlist))),
+        $._semicolon),
+      seq('class',
+        field('name', $.package),
+        optional(field('version', $._version)),
+        optseq(':', optional(field('attributes', $.attrlist))),
+        $.block),
     ),
     use_version_statement: $ => seq($._KW_USE, field('version', $._version), $._semicolon),
     use_statement: $ => seq(
@@ -202,6 +218,14 @@ module.exports = grammar({
 
     subroutine_declaration_statement: $ => seq(
       'sub',
+      field('name', $.bareword),
+      optseq(':', optional(field('attributes', $.attrlist))),
+      optional($.prototype_or_signature),
+      field('body', $.block),
+    ),
+
+    method_declaration_statement: $ => seq(
+      'method',
       field('name', $.bareword),
       optseq(':', optional(field('attributes', $.attrlist))),
       optional($.prototype_or_signature),
@@ -240,6 +264,22 @@ module.exports = grammar({
         '(', field('list', $._expr), ')',
         field('block', $.block),
       ),
+
+    try_statement: $ => seq(
+      'try',
+      field('try_block', $.block),
+      // regular perl only permits catch(VAR) but we get easy compatibility
+      // with Syntax::Keyword::Try too by being a bit more flexible
+      optseq('catch', optseq('(', field('catch_expr', $._expr), ')'),
+        field('catch_block', $.block)),
+      optseq('finally',
+        field('finally_block', $.block)),
+    ),
+
+    defer_statement: $ => seq(
+      'defer',
+      field('block', $.block),
+    ),
 
     // perly.y calls this `sideff`
     expression_statement: $ => choice(
@@ -352,6 +392,7 @@ module.exports = grammar({
       $.anonymous_array_expression,
       $.anonymous_hash_expression,
       $.anonymous_subroutine_expression,
+      $.anonymous_method_expression,
       $.do_expression,
       $.eval_expression,
       $.conditional_expression,
@@ -503,6 +544,13 @@ module.exports = grammar({
       field('body', $.block),
     ),
 
+    anonymous_method_expression: $ => seq(
+      'method',
+      optseq(':', optional(field('attributes', $.attrlist))),
+      optional($.prototype_or_signature),
+      field('body', $.block),
+    ),
+
     do_expression: $ => choice(
       /* TODO: do FILENAME */
       seq('do', $.block),
@@ -512,7 +560,7 @@ module.exports = grammar({
 
     variable_declaration: $ => prec.left(TERMPREC.QUESTION_MARK + 1,
       seq(
-        choice('my', 'state', 'our'),
+        choice('my', 'state', 'our', 'field'),
         choice(
           field('variable', alias($._declare_scalar, $.scalar)),
           field('variable', alias($._declare_array, $.array)),
@@ -683,7 +731,7 @@ module.exports = grammar({
     _KW_FOR: $ => choice('for', 'foreach'),
     _LOOPEX: $ => choice('last', 'next', 'redo'),
 
-    _PHASE_NAME: $ => choice('BEGIN', 'INIT', 'CHECK', 'UNITCHECK', 'END'),
+    _PHASE_NAME: $ => choice('BEGIN', 'INIT', 'CHECK', 'UNITCHECK', 'END', 'ADJUST'),
 
     // Anything toke.c calls FUN0 or FUN0OP; the distinction does not matter to us
     _func0op: $ => choice(
