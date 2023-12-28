@@ -17,6 +17,8 @@
 
 (try_statement (block) @fold)
 
+(eval_expression (block) @fold)
+
 (anonymous_subroutine_expression) @fold
 
 ; perhaps folks want to fold these too?
