@@ -26,7 +26,8 @@
         "pm",
         "pl"
       ],
-      "first-line-regex": "#!.*\\bperl\\b"
+      "first-line-regex": "#!.*\\bperl\\b",
+      "injection-regex": "(perl|pl)"
     }
   ]
 }
