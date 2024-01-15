@@ -95,7 +95,7 @@ module.exports = grammar({
     $._LOOPEX,
     $._PHASE_NAME,
     $._HASH_PERCENT,
-    $._bareword
+    $._bareword,
   ],
   externals: $ => [
     /* ident-alikes */
@@ -153,6 +153,8 @@ module.exports = grammar({
     [$._listexpr, $.list_expression, $._term_rightward],
     [$._term_rightward],
     [$.function, $.bareword],
+    [$._term, $.indirect_object],
+    [$.expression_statement, $._tricky_indirob_hashref]
   ],
   rules: {
     source_file: $ => seq(repeat($._fullstmt), optional($.__DATA__)),
@@ -338,8 +340,9 @@ module.exports = grammar({
     ),
 
     // NOTE - we have container_variable as a named node so we can match against it nicely
-    // for highlighting.
-    container_variable: $ => seq('$', $._var_indirob),
+    // for highlighting. We raise its prec b/c in a print (print $thing{stuff}) it becomes a var
+    // not an indirob
+    container_variable: $ => prec(2, seq('$', $._var_indirob)),
     array_element_expression: $ => choice(
       // perly.y matches scalar '[' expr ']' here but that would yield a scalar var node
       seq(field('array', $.container_variable), '[', field('index', $._expr), ']'),
@@ -648,14 +651,12 @@ module.exports = grammar({
 
     _listop: $ => choice(
       /* TODO:
-       * LSTOP indirob listexpr
        * FUNC '(' indirob expr ')'
        */
       $.method_call_expression,
       /* METHCALL0 indirob optlistexpr
        * METHCALL indirb '(' optexpr ')'
        * LSTOP optlistexpr
-       * LSTOPSUB block optlistexpr
        */
       $.function_call_expression,
       $.ambiguous_function_call_expression,
@@ -663,10 +664,30 @@ module.exports = grammar({
 
     // the usage of NONASSOC here is to make it that any parse of a paren after a func
     // automatically becomes a non-ambiguous function call
-    function_call_expression: $ =>
+    function_call_expression: $ => choice(
       seq(field('function', $.function), '(', $._NONASSOC, optional(field('arguments', $._expr)), ')'),
+      seq(field('function', $.function), '(', $._NONASSOC, $.indirect_object, field('arguments', $._expr), ')'),
+    ),
+    indirect_object: $ => choice(
+      // we intentionally don't do bareword filehandles b/c we can't possibly do it right
+      // since we can't know what subs have been defined
+      $.scalar,
+      $.block
+    ),
+    _tricky_indirob_hashref: $ => seq($._PERLY_BRACE_OPEN, $._expr, $._PERLY_SEMICOLON, '}'),
     ambiguous_function_call_expression: $ =>
-      prec(TERMPREC.LSTOP, seq(field('function', $.function), field('arguments', $._term_rightward))),
+      // we need the right precedence here so we can read ahead for the hash/sub disambiguation
+      prec.right(TERMPREC.LSTOP,
+        choice(
+          seq(field('function', $.function), field('arguments', $._term_rightward)),
+          seq(field('function', $.function), $.indirect_object, field('arguments', $._term_rightward)),
+          // we handle this_takes_a_block { thing; other_thing }; here. we don't wanna accept an indirob of scalar tho
+          seq(field('function', $.function), alias($.block, $.indirect_object)),
+          // we handle cases like takes_a_hash { 1 => 2 }; by having this special case
+          seq(field('function', $.function), field('arguments', alias($._tricky_indirob_hashref, $.anonymous_hash_expression)), optseq($._PERLY_COMMA , field('arguments', $._term_rightward)))
+        )
+      ),
+    // we only parse a function if it won't be an indirob
     function: $ => $._bareword,
 
     method_call_expression: $ => prec.left(TERMPREC.ARROW, seq(
