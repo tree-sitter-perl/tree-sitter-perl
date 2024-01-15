@@ -313,3 +313,30 @@ for_sure_a_hash { hi => 'there' }, 9001;
           (autoquoted_bareword)
           (string_literal)))
       (number))))
+
+================================================================================
+non-ambiguous indirob handling (for builtins)
+================================================================================
+print($sner 'herro');
+print({ $sner{boppers} } 'herro');
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (function_call_expression
+      (function)
+      (indirect_object
+        (scalar
+          (varname)))
+      (string_literal)))
+  (expression_statement
+    (function_call_expression
+      (function)
+      (indirect_object
+        (block
+          (expression_statement
+            (hash_element_expression
+              (container_variable
+                (varname))
+              (autoquoted_bareword)))))
+      (string_literal))))

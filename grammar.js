@@ -651,14 +651,12 @@ module.exports = grammar({
 
     _listop: $ => choice(
       /* TODO:
-       * LSTOP indirob listexpr
        * FUNC '(' indirob expr ')'
        */
       $.method_call_expression,
       /* METHCALL0 indirob optlistexpr
        * METHCALL indirb '(' optexpr ')'
        * LSTOP optlistexpr
-       * LSTOPSUB block optlistexpr
        */
       $.function_call_expression,
       $.ambiguous_function_call_expression,
@@ -666,8 +664,10 @@ module.exports = grammar({
 
     // the usage of NONASSOC here is to make it that any parse of a paren after a func
     // automatically becomes a non-ambiguous function call
-    function_call_expression: $ =>
+    function_call_expression: $ => choice(
       seq(field('function', $.function), '(', $._NONASSOC, optional(field('arguments', $._expr)), ')'),
+      seq(field('function', $.function), '(', $._NONASSOC, $.indirect_object, field('arguments', $._expr), ')'),
+    ),
     indirect_object: $ => choice(
       // we intentionally don't do bareword filehandles b/c we can't possibly do it right
       // since we can't know what subs have been defined
