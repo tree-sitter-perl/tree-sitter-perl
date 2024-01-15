@@ -190,3 +190,29 @@ map +(lc($_) => 1 ), (1, 2), 3;
         (number)
         (number))
       list: (number))))
+
+================================================================================
+sort - with and without a BLOCK
+================================================================================
+sort 1, 2, 3;
+sort { $a <=> $b } 1, 2, 3;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (sort_expression
+      (number)
+      (number)
+      (number)))
+  (expression_statement
+    (sort_expression
+      (block
+        (expression_statement
+          (equality_expression
+            (scalar
+              (varname))
+            (scalar
+              (varname)))))
+      (number)
+      (number)
+      (number))))

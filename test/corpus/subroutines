@@ -192,3 +192,29 @@ sub f :attr ($sig) {}
         (attribute_name)))
     (prototype_or_signature)
     (block)))
+
+================================================================================
+Methods
+================================================================================
+method m1 { 123; }
+method { "anon" };
+method m2 :lvalue { }
+--------------------------------------------------------------------------------
+
+(source_file
+  (method_declaration_statement
+    name: (bareword)
+    body: (block
+      (expression_statement
+        (number))))
+  (expression_statement
+    (anonymous_method_expression
+      body: (block
+        (expression_statement
+          (interpolated_string_literal)))))
+  (method_declaration_statement
+    name: (bareword)
+    attributes: (attrlist
+      (attribute
+        name: (attribute_name)))
+    body: (block)))

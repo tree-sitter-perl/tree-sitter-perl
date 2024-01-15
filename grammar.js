@@ -111,6 +111,7 @@ module.exports = grammar({
     $._quotelike_begin,
     $._quotelike_middle_close,
     $._quotelike_middle_skip,
+    $._quotelike_end_zw,
     $._quotelike_end,
     $._q_string_content,
     $._qq_string_content,
@@ -131,6 +132,7 @@ module.exports = grammar({
     $._fat_comma_zw,
     $._brace_end_zw,
     $._dollar_ident_zw,
+    $._no_interp_whitespace_zw,
     /* zero-width high priority token */
     $._NONASSOC,
     /* error condition must always be last; we don't use this in the grammar */
@@ -173,22 +175,38 @@ module.exports = grammar({
 
     _barestmt: $ => choice(
       $.package_statement,
+      $.class_statement,
       $.use_version_statement,
       $.use_statement,
       $.subroutine_declaration_statement,
+      $.method_declaration_statement,
       $.phaser_statement,
       $.conditional_statement,
       /* TODO: given/when/default */
       $.loop_statement,
       $.cstyle_for_statement,
       $.for_statement,
+      $.try_statement,
       alias($.block, $.block_statement),
       seq($.expression_statement, choice($._semicolon, $.__DATA__)),
+      $.defer_statement,
       ';', // this is not _semicolon so as not to generate an infinite stream of them
     ),
     package_statement: $ => choice(
       seq('package', field('name', $.package), optional(field('version', $._version)), $._semicolon),
       seq('package', field('name', $.package), optional(field('version', $._version)), $.block),
+    ),
+    class_statement: $ => choice(
+      seq('class',
+        field('name', $.package),
+        optional(field('version', $._version)), 
+        optseq(':', optional(field('attributes', $.attrlist))),
+        $._semicolon),
+      seq('class',
+        field('name', $.package),
+        optional(field('version', $._version)),
+        optseq(':', optional(field('attributes', $.attrlist))),
+        $.block),
     ),
     use_version_statement: $ => seq($._KW_USE, field('version', $._version), $._semicolon),
     use_statement: $ => seq(
@@ -201,6 +219,14 @@ module.exports = grammar({
 
     subroutine_declaration_statement: $ => seq(
       'sub',
+      field('name', $.bareword),
+      optseq(':', optional(field('attributes', $.attrlist))),
+      optional($.prototype_or_signature),
+      field('body', $.block),
+    ),
+
+    method_declaration_statement: $ => seq(
+      'method',
       field('name', $.bareword),
       optseq(':', optional(field('attributes', $.attrlist))),
       optional($.prototype_or_signature),
@@ -233,15 +259,28 @@ module.exports = grammar({
     for_statement: $ =>
       seq($._KW_FOR,
         optional(choice(
-          seq('my', field('my_var', $.scalar)),
-          seq('state', field('state_var', $.scalar)),
-          seq('our', field('var', $.scalar)),
-          field('var', $.scalar),
-          seq('my', paren_list_of($.scalar)),
+          seq(optional(choice('my', 'state', 'our')), field('variable', $.scalar)),
+          seq('my', field('variables', paren_list_of($.scalar))),
         )),
         '(', field('list', $._expr), ')',
         field('block', $.block),
       ),
+
+    try_statement: $ => seq(
+      'try',
+      field('try_block', $.block),
+      // regular perl only permits catch(VAR) but we get easy compatibility
+      // with Syntax::Keyword::Try too by being a bit more flexible
+      optseq('catch', optseq('(', field('catch_expr', $._expr), ')'),
+        field('catch_block', $.block)),
+      optseq('finally',
+        field('finally_block', $.block)),
+    ),
+
+    defer_statement: $ => seq(
+      'defer',
+      field('block', $.block),
+    ),
 
     // perly.y calls this `sideff`
     expression_statement: $ => choice(
@@ -355,6 +394,7 @@ module.exports = grammar({
       $.anonymous_array_expression,
       $.anonymous_hash_expression,
       $.anonymous_subroutine_expression,
+      $.anonymous_method_expression,
       $.do_expression,
       $.eval_expression,
       $.conditional_expression,
@@ -399,9 +439,11 @@ module.exports = grammar({
       $.func0op_call_expression,
       $.func1op_call_expression,
       $.map_grep_expression,
+      $.sort_expression,
       /* PMFUNC */
       $.bareword,
       $.autoquoted_bareword,
+      $._fat_comma_autoquoted_bareword,
       $._listop,
 
       /* perly.y doesn't know about `my` because that is handled weirdly in
@@ -504,6 +546,13 @@ module.exports = grammar({
       field('body', $.block),
     ),
 
+    anonymous_method_expression: $ => seq(
+      'method',
+      optseq(':', optional(field('attributes', $.attrlist))),
+      optional($.prototype_or_signature),
+      field('body', $.block),
+    ),
+
     do_expression: $ => choice(
       /* TODO: do FILENAME */
       seq('do', $.block),
@@ -513,7 +562,7 @@ module.exports = grammar({
 
     variable_declaration: $ => prec.left(TERMPREC.QUESTION_MARK + 1,
       seq(
-        choice('my', 'our'),
+        choice('my', 'state', 'our', 'field'),
         choice(
           field('variable', alias($._declare_scalar, $.scalar)),
           field('variable', alias($._declare_array, $.array)),
@@ -570,8 +619,22 @@ module.exports = grammar({
     map_grep_expression: $ => prec.left(TERMPREC.LSTOP, choice(
       seq($._map_grep, field('callback', $.block), field('list', $._term_rightward)),
       seq($._map_grep, field('callback', choice($._term, alias($._tricky_hashref, $.anonymous_hash_expression))), $._PERLY_COMMA, field('list', $._term_rightward)),
-      seq($._map_grep, '(', $._NONASSOC, field('callback', $._term), $._PERLY_COMMA, field('list', $._term_rightward), ')'),
+      seq($._map_grep, '(', $._NONASSOC, field('callback', choice($._term, alias($._tricky_hashref, $.anonymous_hash_expression))), $._PERLY_COMMA, field('list', $._term_rightward), ')'),
+      seq($._map_grep, '(', $._NONASSOC, field('callback', $.block), field('list', $._term_rightward), ')'),
     )),
+
+    // even though technically you need the _tricky_hashref handling here, we punt on that,
+    // b/c it's quite unlikely that someone is sorting a hashref w/ the default string
+    // sort
+    // sigh, here we go SUBNAME (bareword vers)! we'll cover this with indirobs
+    //   - if it's the only thing on the list, then it's autoquoted.
+    //   - if there's a comma, it's autoquoted
+    //   - if there isn't, then it's a SUBNAME (unless it's builting)
+    sort_expression: $ => prec.left(TERMPREC.LSTOP, choice(
+      seq('sort', optional(field('callback', $.block)), field('list', $._term_rightward)),
+      seq('sort', '(', $._NONASSOC, optional(field('callback', $.block)), field('list', $._term_rightward), ')'),
+    )),
+
 
     _label_arg: $ => choice(alias($.identifier, $.label), $._term),
     loopex_expression: $ =>
@@ -686,7 +749,7 @@ module.exports = grammar({
     _KW_FOR: $ => choice('for', 'foreach'),
     _LOOPEX: $ => choice('last', 'next', 'redo'),
 
-    _PHASE_NAME: $ => choice('BEGIN', 'INIT', 'CHECK', 'UNITCHECK', 'END'),
+    _PHASE_NAME: $ => choice('BEGIN', 'INIT', 'CHECK', 'UNITCHECK', 'END', 'ADJUST'),
 
     // Anything toke.c calls FUN0 or FUN0OP; the distinction does not matter to us
     _func0op: $ => choice(
@@ -711,7 +774,7 @@ module.exports = grammar({
       'tell', 'telldir', 'tied', 'uc', 'ucfirst', 'untie', 'umask',
       'values', 'write',
       // filetest operators
-      seq('-', token.immediate(/[rwxoRWXOezsfdlpSbctugkTBMAC]/))
+      seq('-', token.immediate(prec(1, /[rwxoRWXOezsfdlpSbctugkTBMAC]/)))
       /* TODO: all the set*ent */
     ),
 
@@ -803,9 +866,10 @@ module.exports = grammar({
       )
     ),
     _interpolation_fallbacks: $ => choice(
-      seq(choice('$', '@'), /\s/),
+      seq('@', $._no_interp_whitespace_zw),
       // Most array punctuation vars do not interpolate
-      seq('@', /[^A-Za-z0-9_\$'+:-]/),
+      // we need the zw quote-end for "" (we leave regular _end so the scanner looks for it)
+      seq('@', choice(/[^A-Za-z0-9_\$'+:-]/, $._quotelike_end_zw, $._quotelike_end)),
       '-',
       '{',
       '[',
@@ -865,18 +929,23 @@ module.exports = grammar({
       choice(
         seq(
           choice(
-            $._search_slash,
-            seq(field('operator', 'm'), $._quotelike_begin)
+          seq(
+            choice(
+              $._search_slash,
+              seq(field('operator', 'm'), $._quotelike_begin)
+            ),
+            optional(regexpContent($, $._interpolated_regexp_content)),
           ),
-          optional(regexpContent($, $._interpolated_regexp_content)),
+          seq(
+            field('operator', 'm'),
+            $._apostrophe,
+            optional(regexpContent($, $._noninterpolated_string_content)), // TODO: regexp content
+          ),
         ),
-        seq(
-          field('operator', 'm'),
-          $._apostrophe,
-          optional(regexpContent($, $._noninterpolated_string_content)), // TODO: regexp content
+        $._quotelike_end,
         ),
+        '//' // empty pattern is handled specially so we can manage shift // 'default'
       ),
-      $._quotelike_end,
       optional(field('modifiers', $.match_regexp_modifiers))
     ),
     _quotelike_middle: $ => seq(
@@ -907,19 +976,18 @@ module.exports = grammar({
     _interpolated_regexp_content: $ => repeat1(
       choice(
         $._qq_string_content,
-        '-',
-        '{',
-        '[',
         $.escape_sequence,
         $.escaped_delimiter,
         $._dollar_in_regexp,
+        $._interpolation_fallbacks,
         $._interpolations,
+        seq('$', $._no_interp_whitespace_zw),
       )
     ),
 
     quoted_regexp_modifiers:        $ => token.immediate(prec(2, /[msixpadlun]+/)),
     match_regexp_modifiers:         $ => token.immediate(prec(2, /[msixpadluncg]+/)),
-    substitution_regexp_modifiers:  $ => token.immediate(prec(2, /[msixpogcedual]+/)),
+    substitution_regexp_modifiers:  $ => token.immediate(prec(2, /[msixpogcedualr]+/)),
     transliteration_modifiers:      $ => token.immediate(prec(2, /[cdsr]+/)),
 
     _interpolated_transliteration_content: $ => repeat1(
@@ -994,16 +1062,26 @@ module.exports = grammar({
     _conditionals: $ => choice('if', 'unless'),
     _loops: $ => choice('while', 'until'),
     _postfixables: $ => choice($._conditionals, $._loops, $._KW_FOR, 'and', 'or'),
-    _keywords: $ => choice($._postfixables, 'else', 'elsif', 'do', 'eval', 'our', 'my', 'local', 'require', 'return', 'eq', 'ne', 'lt', 'le', 'ge', 'gt', 'cmp', 'isa', $._KW_USE, $._LOOPEX, $._PHASE_NAME, '__DATA__', '__END__', 'sub', $._map_grep),
+    _keywords: $ => choice($._postfixables, 'else', 'elsif', 'do', 'eval', 'our', 'state', 'my', 'local', 'require', 'return', 'eq', 'ne', 'lt', 'le', 'ge', 'gt', 'cmp', 'isa', $._KW_USE, $._LOOPEX, $._PHASE_NAME, '__DATA__', '__END__', 'sub', $._map_grep, 'sort', 'try', 'class', 'field', 'method'),
     _quotelikes: $ => choice('q', 'qq', 'qw', 'qx', 's', 'tr', 'y'),
     _autoquotables: $ => choice($._func0op, $._func1op, $._keywords, $._quotelikes),
     // we need dynamic precedence here so we can resolve things like `print -next`
-    autoquoted_bareword: $ => prec.dynamic(2, choice(
-      // NOTE - these have zw lookaheads so they override just being read as barewords
-      seq(choice($._identifier, $._autoquotables), $._fat_comma_zw),
+    autoquoted_bareword: $ => prec.dynamic(20,
       // give this autoquote the highest precedence we gots
-      prec(TERMPREC.PAREN, seq('-', choice($._bareword, $._autoquotables))),
-    )),
+      prec(TERMPREC.PAREN, seq('-', choice(
+        $._bareword,
+        $._autoquotables,
+        // b/c we needed to bump up prec for filetests, we had to also inline a filetest
+        // followed by a bareword (see gh#145)
+        token.immediate(prec(1, /[rwxoRWXOezsfdlpSbctugkTBMAC]((::)|([a-zA-Z_]\w*))+/))
+      ))),
+    ),
+    _fat_comma_autoquoted_bareword: $ => prec.dynamic(2, 
+      // NOTE - these have zw lookaheads so they override just being read as barewords
+      // NOTE - we have this as a hidden node + alias the actual target b/c we don't need
+      // the whitespace b4 the zw assetion to be part of our node
+      seq(alias(choice($._identifier, $._autoquotables), $.autoquoted_bareword), $._fat_comma_zw),
+    ),
     _brace_autoquoted: $ => seq(
       alias(choice($._bareword, $._autoquotables), $.autoquoted_bareword),
       $._brace_end_zw

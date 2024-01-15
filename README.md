@@ -53,9 +53,9 @@ spent on the comments in dev will go a long way in the big picture.
 
 ### Neovim
 
-You can install these bindings in neovim by using the following snippet. Hopefully soon
-we'll get upstreamed + you won't need this patchery.
+A version of this parser is now part of the nvim-treesitter plugin! Hurrah!
 
+If you'd like to use a version that has not yet made it into nvim-treesitter, you can install these bindings in neovim by using the following snippet.
 ```lua
 local parser_config = require "nvim-treesitter.parsers".get_parser_configs()
 parser_config.perl = {

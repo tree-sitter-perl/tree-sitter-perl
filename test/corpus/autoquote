@@ -10,8 +10,8 @@ plain::bareword => 'here';
 (source_file
   (expression_statement
     (list_expression
-      (autoquoted_bareword
-        (comment))
+      (autoquoted_bareword)
+      (comment)
       (string_literal)))
   (expression_statement
     (list_expression
@@ -116,10 +116,14 @@ autoquoting keywords
 ================================================================================
 if =>;
 for =>;
+method =>;
 return =>;
 --------------------------------------------------------------------------------
 
 (source_file
+  (expression_statement
+    (list_expression
+      (autoquoted_bareword)))
   (expression_statement
     (list_expression
       (autoquoted_bareword)))
@@ -246,7 +250,7 @@ unary minus autoquoting
 ================================================================================
 -next;
 -next and 1;
-say -next;
+say -say;
 print -next and 1;
 --------------------------------------------------------------------------------
 

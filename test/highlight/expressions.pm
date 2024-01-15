@@ -1,6 +1,10 @@
 do { 123; };
 # <- keyword
 #    ^ number
+eval "string";
+# <- keyword
+eval { "block" };
+# <- keyword
 require 123;
 # <- include
 #       ^ number
