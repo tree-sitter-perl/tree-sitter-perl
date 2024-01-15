@@ -676,20 +676,15 @@ module.exports = grammar({
     ),
     _tricky_indirob_hashref: $ => seq($._PERLY_BRACE_OPEN, $._expr, $._PERLY_SEMICOLON, '}'),
     ambiguous_function_call_expression: $ =>
+      // we need the right precedence here so we can read ahead for the hash/sub disambiguation
       prec.right(TERMPREC.LSTOP,
         choice(
           seq(field('function', $.function), field('arguments', $._term_rightward)),
-          // indirob cases: `print $thing{shtuff}` is NOT indirob
-          // `print print 'herro'` is NOT indirob (b/c parser recognizes the function as non-bareword)
-          // oh nose; the indirob rules actually parses any known sub as a sub; maybe we
-          // should special-case the globals rather than using the correct correct grammar
           seq(field('function', $.function), $.indirect_object, field('arguments', $._term_rightward)),
+          // we handle this_takes_a_block { thing; other_thing }; here. we don't wanna accept an indirob of scalar tho
+          seq(field('function', $.function), alias($.block, $.indirect_object)),
+          // we handle cases like takes_a_hash { 1 => 2 }; by having this special case
           seq(field('function', $.function), field('arguments', alias($._tricky_indirob_hashref, $.anonymous_hash_expression)), optseq($._PERLY_COMMA , field('arguments', $._term_rightward)))
-          // TODO - in order to better handle ambiguous hashrefs vs possible blocks, we
-          // need special handling for the _PERLY_SEMICOLON of the end of the block. if we
-          // leave it ambiguous at that point, then we can lookahead again to see if we
-          // gots us a PERLY_COMMA of sorts, and then we'll prefer being _term_rightward.
-          // as it stands, any first arg that COULD be an indirob gets read as one
         )
       ),
     // we only parse a function if it won't be an indirob

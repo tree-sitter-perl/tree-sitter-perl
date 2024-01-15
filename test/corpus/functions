@@ -276,9 +276,10 @@ print $sner and die;
       (bareword))))
 
 ================================================================================
-ambiguous funcs - tricky indirob vs hashref
+ambiguous funcs - tricky block vs hashref
 ================================================================================
 takes_a_hash { 1, 2, 3, 4 };
+its_a_block { 1, 2, 3, 4; 9 };
 for_sure_a_hash { hi => 'there' }, 9001;
 --------------------------------------------------------------------------------
 
@@ -291,6 +292,18 @@ for_sure_a_hash { hi => 'there' }, 9001;
           (number)
           (number)
           (number)
+          (number)))))
+  (expression_statement
+    (ambiguous_function_call_expression
+      (function)
+      (indirect_object
+        (expression_statement
+          (list_expression
+            (number)
+            (number)
+            (number)
+            (number)))
+        (expression_statement
           (number)))))
   (expression_statement
     (ambiguous_function_call_expression
