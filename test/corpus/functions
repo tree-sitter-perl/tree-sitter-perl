@@ -274,3 +274,29 @@ print $sner and die;
         (scalar
           (varname)))
       (bareword))))
+
+================================================================================
+ambiguous funcs - tricky indirob vs hashref
+================================================================================
+takes_a_hash { 1, 2, 3, 4 };
+for_sure_a_hash { hi => 'there' }, 9001;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (ambiguous_function_call_expression
+      (function)
+      (anonymous_hash_expression
+        (list_expression
+          (number)
+          (number)
+          (number)
+          (number)))))
+  (expression_statement
+    (ambiguous_function_call_expression
+      (function)
+      (anonymous_hash_expression
+        (list_expression
+          (autoquoted_bareword)
+          (string_literal)))
+      (number))))
