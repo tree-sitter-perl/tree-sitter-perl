@@ -244,28 +244,32 @@ module.exports = grammar({
         field('block', $.block),
         optional($._else)
       ),
+    // these all need prec.left to allow continue BLOCK
     loop_statement: $ =>
-      seq($._loops, '(', field('condition', $._expr), ')',
+      prec.left(seq($._loops, '(', field('condition', $._expr), ')',
         field('block', $.block),
-      ),
+        optseq('continue', $.block)
+      )),
     cstyle_for_statement: $ =>
-      seq($._KW_FOR,
+      prec.left(seq($._KW_FOR,
         '(',
         field('initialiser', optional($._expr)), ';',
         field('condition', optional($._expr)), ';',
         field('iterator', optional($._expr)),
         ')',
-        $.block
-      ),
+        $.block,
+        optseq('continue', $.block)
+      )),
     for_statement: $ =>
-      seq($._KW_FOR,
+      prec.left(seq($._KW_FOR,
         optional(choice(
           seq(optional(choice('my', 'state', 'our')), field('variable', $.scalar)),
           seq('my', field('variables', paren_list_of($.scalar))),
         )),
         '(', field('list', $._expr), ')',
         field('block', $.block),
-      ),
+        optseq('continue', $.block)
+      )),
 
     try_statement: $ => seq(
       'try',
@@ -758,6 +762,7 @@ module.exports = grammar({
     _func0op: $ => choice(
       '__FILE__', '__LINE__', '__PACKAGE__', '__SUB__',
       'break', 'fork', 'getppid', 'time', 'times', 'wait', 'wantarray',
+      'continue' // non-block continue is func0
       /* TODO: all the end*ent, get*ent, set*ent, etc... */
     ),
 
@@ -1065,7 +1070,7 @@ module.exports = grammar({
     _conditionals: $ => choice('if', 'unless'),
     _loops: $ => choice('while', 'until'),
     _postfixables: $ => choice($._conditionals, $._loops, $._KW_FOR, 'and', 'or'),
-    _keywords: $ => choice($._postfixables, 'else', 'elsif', 'do', 'eval', 'our', 'state', 'my', 'local', 'require', 'return', 'eq', 'ne', 'lt', 'le', 'ge', 'gt', 'cmp', 'isa', $._KW_USE, $._LOOPEX, $._PHASE_NAME, '__DATA__', '__END__', 'sub', $._map_grep, 'sort', 'try', 'class', 'field', 'method'),
+    _keywords: $ => choice($._postfixables, 'else', 'elsif', 'do', 'eval', 'our', 'state', 'my', 'local', 'require', 'return', 'eq', 'ne', 'lt', 'le', 'ge', 'gt', 'cmp', 'isa', $._KW_USE, $._LOOPEX, $._PHASE_NAME, '__DATA__', '__END__', 'sub', $._map_grep, 'sort', 'try', 'class', 'field', 'method', 'continue'),
     _quotelikes: $ => choice('q', 'qq', 'qw', 'qx', 's', 'tr', 'y'),
     _autoquotables: $ => choice($._func0op, $._func1op, $._keywords, $._quotelikes),
     // we need dynamic precedence here so we can resolve things like `print -next`
