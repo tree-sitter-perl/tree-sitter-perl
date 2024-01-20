@@ -154,7 +154,11 @@ module.exports = grammar({
     [$._term_rightward],
     [$.function, $.bareword],
     [$._term, $.indirect_object],
-    [$.expression_statement, $._tricky_indirob_hashref]
+    [$.expression_statement, $._tricky_indirob_hashref],
+    // these are all dynamic handling for continue BLOCK vs autoquoted
+    [$.loop_statement],
+    [$.cstyle_for_statement],
+    [$.for_statement],
   ],
   rules: {
     source_file: $ => seq(repeat($._fullstmt), optional($.__DATA__)),
@@ -244,14 +248,13 @@ module.exports = grammar({
         field('block', $.block),
         optional($._else)
       ),
-    // these all need prec.right to allow continue BLOCK
     loop_statement: $ =>
-      prec.right(seq($._loops, '(', field('condition', $._expr), ')',
+      seq($._loops, '(', field('condition', $._expr), ')',
         field('block', $.block),
         optseq('continue', field('continue', $.block))
-      )),
+      ),
     cstyle_for_statement: $ =>
-      prec.right(seq($._KW_FOR,
+      seq($._KW_FOR,
         '(',
         field('initialiser', optional($._expr)), ';',
         field('condition', optional($._expr)), ';',
@@ -259,9 +262,9 @@ module.exports = grammar({
         ')',
         $.block,
         optseq('continue', field('continue', $.block))
-      )),
+      ),
     for_statement: $ =>
-      prec.right(seq($._KW_FOR,
+      seq($._KW_FOR,
         optional(choice(
           seq(optional(choice('my', 'state', 'our')), field('variable', $.scalar)),
           seq('my', field('variables', paren_list_of($.scalar))),
@@ -269,7 +272,7 @@ module.exports = grammar({
         '(', field('list', $._expr), ')',
         field('block', $.block),
         optseq('continue', field('continue', $.block))
-      )),
+      ),
 
     try_statement: $ => seq(
       'try',

@@ -340,6 +340,7 @@ continue BLOCK
 ================================================================================
 while ($power_level > 9000) { $power_level-- } continue { say 'HOW CAN IT BE?' }
 continue;
+while ($p) {} continue => 1;
 --------------------------------------------------------------------------------
 
 (source_file
@@ -359,7 +360,15 @@ continue;
           (function)
           (string_literal)))))
   (expression_statement
-    (func0op_call_expression)))
+    (func0op_call_expression))
+  (loop_statement
+    (scalar
+      (varname))
+    (block))
+  (expression_statement
+    (list_expression
+      (autoquoted_bareword)
+      (number))))
 
 ================================================================================
 C-style for
