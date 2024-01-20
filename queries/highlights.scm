@@ -8,6 +8,7 @@
 (conditional_expression [ "?" ":" ] @conditional.ternary) 
 
 [ "while" "until" "for" "foreach" ] @repeat
+("continue" @repeat (block))
 
 [ "try" "catch" "finally" ] @exception
 

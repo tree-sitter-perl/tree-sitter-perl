@@ -734,6 +734,31 @@
             "type": "SYMBOL",
             "name": "block"
           }
+        },
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SEQ",
+              "members": [
+                {
+                  "type": "STRING",
+                  "value": "continue"
+                },
+                {
+                  "type": "FIELD",
+                  "name": "continue",
+                  "content": {
+                    "type": "SYMBOL",
+                    "name": "block"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
         }
       ]
     },
@@ -811,6 +836,31 @@
         {
           "type": "SYMBOL",
           "name": "block"
+        },
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SEQ",
+              "members": [
+                {
+                  "type": "STRING",
+                  "value": "continue"
+                },
+                {
+                  "type": "FIELD",
+                  "name": "continue",
+                  "content": {
+                    "type": "SYMBOL",
+                    "name": "block"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
         }
       ]
     },
@@ -957,6 +1007,31 @@
             "type": "SYMBOL",
             "name": "block"
           }
+        },
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SEQ",
+              "members": [
+                {
+                  "type": "STRING",
+                  "value": "continue"
+                },
+                {
+                  "type": "FIELD",
+                  "name": "continue",
+                  "content": {
+                    "type": "SYMBOL",
+                    "name": "block"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
         }
       ]
     },
@@ -5337,6 +5412,10 @@
         {
           "type": "STRING",
           "value": "wantarray"
+        },
+        {
+          "type": "STRING",
+          "value": "continue"
         }
       ]
     },
@@ -7401,6 +7480,10 @@
         {
           "type": "STRING",
           "value": "method"
+        },
+        {
+          "type": "STRING",
+          "value": "continue"
         }
       ]
     },
@@ -8030,6 +8113,15 @@
     [
       "expression_statement",
       "_tricky_indirob_hashref"
+    ],
+    [
+      "loop_statement"
+    ],
+    [
+      "cstyle_for_statement"
+    ],
+    [
+      "for_statement"
     ]
   ],
   "precedences": [],
