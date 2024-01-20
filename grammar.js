@@ -244,31 +244,31 @@ module.exports = grammar({
         field('block', $.block),
         optional($._else)
       ),
-    // these all need prec.left to allow continue BLOCK
+    // these all need prec.right to allow continue BLOCK
     loop_statement: $ =>
-      prec.left(seq($._loops, '(', field('condition', $._expr), ')',
+      prec.right(seq($._loops, '(', field('condition', $._expr), ')',
         field('block', $.block),
-        optseq('continue', $.block)
+        optseq('continue', field('continue', $.block))
       )),
     cstyle_for_statement: $ =>
-      prec.left(seq($._KW_FOR,
+      prec.right(seq($._KW_FOR,
         '(',
         field('initialiser', optional($._expr)), ';',
         field('condition', optional($._expr)), ';',
         field('iterator', optional($._expr)),
         ')',
         $.block,
-        optseq('continue', $.block)
+        optseq('continue', field('continue', $.block))
       )),
     for_statement: $ =>
-      prec.left(seq($._KW_FOR,
+      prec.right(seq($._KW_FOR,
         optional(choice(
           seq(optional(choice('my', 'state', 'our')), field('variable', $.scalar)),
           seq('my', field('variables', paren_list_of($.scalar))),
         )),
         '(', field('list', $._expr), ')',
         field('block', $.block),
-        optseq('continue', $.block)
+        optseq('continue', field('continue', $.block))
       )),
 
     try_statement: $ => seq(
