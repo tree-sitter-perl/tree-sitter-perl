@@ -336,6 +336,41 @@ foreach my ($k, $v) (%hash) { 456; }
         (number)))))
 
 ================================================================================
+continue BLOCK
+================================================================================
+while ($power_level > 9000) { $power_level-- } continue { say 'HOW CAN IT BE?' }
+continue;
+while ($p) {} continue => 1;
+--------------------------------------------------------------------------------
+
+(source_file
+  (loop_statement
+    (relational_expression
+      (scalar
+        (varname))
+      (number))
+    (block
+      (expression_statement
+        (postinc_expression
+          (scalar
+            (varname)))))
+    (block
+      (expression_statement
+        (ambiguous_function_call_expression
+          (function)
+          (string_literal)))))
+  (expression_statement
+    (func0op_call_expression))
+  (loop_statement
+    (scalar
+      (varname))
+    (block))
+  (expression_statement
+    (list_expression
+      (autoquoted_bareword)
+      (number))))
+
+================================================================================
 C-style for
 ================================================================================
 for (my $i = 0; $i < 10; $i++) { 123; }
@@ -368,17 +403,36 @@ try { A(); } catch($e) { B(); } finally { C(); }
 --------------------------------------------------------------------------------
 
 (source_file
-  (use_statement (package) (string_literal))
+  (use_statement
+    (package)
+    (string_literal))
   (try_statement
-    (block (expression_statement (function_call_expression (function))))
-    (scalar (varname))
-    (block (expression_statement (function_call_expression (function)))))
+    (block
+      (expression_statement
+        (function_call_expression
+          (function))))
+    (scalar
+      (varname))
+    (block
+      (expression_statement
+        (function_call_expression
+          (function)))))
   (try_statement
-    (block (expression_statement (function_call_expression (function))))
-    (scalar (varname))
-    (block (expression_statement (function_call_expression (function))))
-    (block (expression_statement (function_call_expression (function)))))
-    )
+    (block
+      (expression_statement
+        (function_call_expression
+          (function))))
+    (scalar
+      (varname))
+    (block
+      (expression_statement
+        (function_call_expression
+          (function))))
+    (block
+      (expression_statement
+        (function_call_expression
+          (function))))))
+
 ================================================================================
 Extended try / catch of Syntax::Keyword::Try
 ================================================================================
@@ -389,18 +443,40 @@ try { A(); } finally { C(); }
 --------------------------------------------------------------------------------
 
 (source_file
-  (use_statement (package))
+  (use_statement
+    (package))
   (try_statement
-    (block (expression_statement (function_call_expression (function))))
-    (block (expression_statement (function_call_expression (function)))))
+    (block
+      (expression_statement
+        (function_call_expression
+          (function))))
+    (block
+      (expression_statement
+        (function_call_expression
+          (function)))))
   (try_statement
-    (block (expression_statement (function_call_expression (function))))
-    (relational_expression (scalar (varname)) (bareword))
-    (block (expression_statement (function_call_expression (function)))))
+    (block
+      (expression_statement
+        (function_call_expression
+          (function))))
+    (relational_expression
+      (scalar
+        (varname))
+      (bareword))
+    (block
+      (expression_statement
+        (function_call_expression
+          (function)))))
   (try_statement
-    (block (expression_statement (function_call_expression (function))))
-    (block (expression_statement (function_call_expression (function)))))
-    )
+    (block
+      (expression_statement
+        (function_call_expression
+          (function))))
+    (block
+      (expression_statement
+        (function_call_expression
+          (function))))))
+
 ================================================================================
 Defer
 ================================================================================
@@ -409,10 +485,15 @@ defer { A(); }
 --------------------------------------------------------------------------------
 
 (source_file
-  (use_statement (package) (string_literal))
+  (use_statement
+    (package)
+    (string_literal))
   (defer_statement
-    (block (expression_statement (function_call_expression (function)))))
-    )
+    (block
+      (expression_statement
+        (function_call_expression
+          (function))))))
+
 ================================================================================
 package;
 ================================================================================
