@@ -1,7 +1,7 @@
 #include <tree_sitter/parser.h>
 
 /* Set this to #define instead to enable debug printing */
-#undef DEBUGGING
+#define DEBUGGING
 
 /* for debug */
 #ifdef DEBUGGING
@@ -61,11 +61,11 @@ enum TokenType {
 /* this is a arbitrary string where we only care about the first MAX_TSPSTRING_LEN chars */
 struct TSPString {
   int length;
-  int contents[MAX_TSPSTRING_LEN];
+  int32_t contents[MAX_TSPSTRING_LEN];
 };
 
 /* we record the length, b/c that's still relevant for our cheapo comparison */
-static void tspstring_push(struct TSPString *s, int c)
+static void tspstring_push(struct TSPString *s, int32_t c)
 {
   if (s->length++ < MAX_TSPSTRING_LEN)
     s->contents[s->length - 1] = c;
@@ -139,7 +139,7 @@ static void lexerstate_finish_heredoc(struct LexerState *state)
 static void skip_whitespace(TSLexer *lexer)
 {
   while(1) {
-    int c = lexer->lookahead;
+    int32_t c = lexer->lookahead;
     if(!c)
       return;
     if(iswspace(c))
@@ -153,7 +153,7 @@ static void skip_whitespace(TSLexer *lexer)
 static void skip_ws_to_eol(TSLexer * lexer)
 {
   while(1) {
-    int c = lexer->lookahead;
+    int32_t c = lexer->lookahead;
     if(!c)
       return;
     if(iswspace(c)) {
@@ -169,7 +169,7 @@ static void skip_ws_to_eol(TSLexer * lexer)
 
 static void _skip_chars(TSLexer *lexer, int maxlen, const char *allow)
 {
-  int c = lexer->lookahead;
+  int32_t c = lexer->lookahead;
 
   while(maxlen)
     if(!c)
@@ -188,7 +188,7 @@ static void _skip_chars(TSLexer *lexer, int maxlen, const char *allow)
 
 static void skip_braced(TSLexer *lexer)
 {
-  int c = lexer->lookahead;
+  int32_t c = lexer->lookahead;
 
   if(c != '{')
     return;
@@ -200,7 +200,7 @@ static void skip_braced(TSLexer *lexer)
   ADVANCE_C;
 }
 
-static int close_for_open(int c)
+static int close_for_open(int32_t c)
 {
   switch(c) {
     case '(': return ')';
@@ -213,13 +213,14 @@ static int close_for_open(int c)
   }
 }
 
-static bool isidfirst(int c)
+static bool isidfirst(int32_t c)
 {
   // TODO: More Unicode in here
+  DEBUG("isidfirst(%d)\n", c);
   return c == '_' || iswalpha(c);
 }
 
-static bool isidcont(int c)
+static bool isidcont(int32_t c)
 {
   // TODO: More Unicode in here
   return isidfirst(c) || iswdigit(c);
@@ -227,7 +228,7 @@ static bool isidcont(int c)
 
 // in any interpolatable case, we wanna stop parsing on these chars
 // there's a matching rule in the grammar to catch when it doesn't match a rule
-static bool is_interpolation_escape(int c) {
+static bool is_interpolation_escape(int32_t c) {
   return c < 256 && strchr("$@-[{\\", c);
 }
 
@@ -274,7 +275,7 @@ bool tree_sitter_perl_external_scanner_scan(
   bool is_ERROR = valid_symbols[TOKEN_ERROR];
   bool skipped_whitespace = false;
 
-  int c = lexer->lookahead;
+  int32_t c = lexer->lookahead;
 
   if(!is_ERROR && valid_symbols[TOKEN_GOBBLED_CONTENT]) {
     while (!lexer->eof(lexer)) 
@@ -794,10 +795,10 @@ bool tree_sitter_perl_external_scanner_scan(
   }
 
   lexer->mark_end(lexer);
-  int c1 = c;
+  int32_t c1 = c;
   /* let's get the next lookahead */
   ADVANCE_C;
-  int c2 = c;
+  int32_t c2 = c;
   if (lexer->eof(lexer))
     return false;
 #define EQ2(s)  (c1 == s[0] && c2 == s[1])
