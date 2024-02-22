@@ -1,17 +1,19 @@
+1 + 1;
+# ^ operator
 1 or 2;
 # <- number
-# ^ operator
+# ^ keyword.operator
 #    ^ number
 1 and 2;
-# ^ operator
+# ^ keyword.operator
 12 eq 34;
-#  ^ operator
+#  ^ keyword.operator
 12 eq 34 eq 45;
-#        ^ operator
+#        ^ keyword.operator
 12 cmp 34;
-#  ^ operator
+#  ^ keyword.operator
 12 isa 34;
-#  ^ operator
+#  ^ keyword.operator
 $obj isa SomeClass;
 #        ^^^^^^^^^ type
 %hash = (foo => "bar", shift => 'thing', qq => 'thing');
