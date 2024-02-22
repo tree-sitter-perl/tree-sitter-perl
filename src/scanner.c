@@ -1,7 +1,8 @@
 #include <tree_sitter/parser.h>
+#include "tsp_unicode.h"
 
 /* Set this to #define instead to enable debug printing */
-#define DEBUGGING
+#undef DEBUGGING
 
 /* for debug */
 #ifdef DEBUGGING
@@ -142,7 +143,7 @@ static void skip_whitespace(TSLexer *lexer)
     int32_t c = lexer->lookahead;
     if(!c)
       return;
-    if(iswspace(c))
+    if(is_tsp_whitespace(c))
       lexer->advance(lexer, true);
       /* continue */
     else
@@ -156,7 +157,7 @@ static void skip_ws_to_eol(TSLexer * lexer)
     int32_t c = lexer->lookahead;
     if(!c)
       return;
-    if(iswspace(c)) {
+    if(is_tsp_whitespace(c)) {
       lexer->advance(lexer, true);
       // return after eating the newline
       if(c == '\n')
@@ -216,14 +217,13 @@ static int close_for_open(int32_t c)
 static bool isidfirst(int32_t c)
 {
   // TODO: More Unicode in here
-  DEBUG("isidfirst(%d)\n", c);
-  return c == '_' || iswalpha(c);
+  return c == '_' || is_tsp_id_start(c);
 }
 
 static bool isidcont(int32_t c)
 {
   // TODO: More Unicode in here
-  return isidfirst(c) || iswdigit(c);
+  return c == '_' || is_tsp_id_continue(c);
 }
 
 // in any interpolatable case, we wanna stop parsing on these chars
@@ -364,7 +364,7 @@ bool tree_sitter_perl_external_scanner_scan(
       }
   }
 
-  if (iswspace(c) && valid_symbols[TOKEN_NO_INTERP_WHITESPACE_ZW]) 
+  if (is_tsp_whitespace(c) && valid_symbols[TOKEN_NO_INTERP_WHITESPACE_ZW]) 
       TOKEN(TOKEN_NO_INTERP_WHITESPACE_ZW);
   skip_ws_to_eol(lexer);
   /* heredocs override everything, so they must be here before */
@@ -406,7 +406,7 @@ bool tree_sitter_perl_external_scanner_scan(
     TOKEN(TOKEN_ATTRIBUTE_VALUE);
   }
 
-  if (iswspace(c)) {
+  if (is_tsp_whitespace(c)) {
     // NOTE - the first whitespace skipping is skip_ws_to_eol over in heredoc handling
     skipped_whitespace = true;
     skip_whitespace(lexer);
@@ -663,7 +663,7 @@ bool tree_sitter_perl_external_scanner_scan(
     // accept the token explicitly after we've read our heart's content
     int esc_c = c;
     // if we escaped a whitespace, the space comes through, it just hides the \ char
-    if(!iswspace(c))
+    if(!is_tsp_whitespace(c))
       ADVANCE_C;
 
     if(valid_symbols[TOKEN_ESCAPED_DELIMITER]) {
