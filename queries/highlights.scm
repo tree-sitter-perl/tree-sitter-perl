@@ -28,12 +28,12 @@
   "undef"
 ] @keyword
 
-(_ operator: _ @operator)
-"\\" @operator
-
 (yadayada) @exception
 
 (phaser_statement phase: _ @keyword.phaser)
+
+(_ operator: _ @operator)
+"\\" @operator
 
 [
   "or" "and"
@@ -94,6 +94,8 @@
 
 (relational_expression operator: "isa" right: (bareword) @type)
 
+(function) @function
+
 (function_call_expression (function) @function.call)
 (method_call_expression (method) @method.call)
 (method_call_expression invocant: (bareword) @type)
@@ -106,20 +108,7 @@
    "^(accept|atan2|bind|binmode|bless|crypt|chmod|chown|connect|die|dbmopen|exec|fcntl|flock|getpriority|getprotobynumber|gethostbyaddr|getnetbyaddr|getservbyname|getservbyport|getsockopt|glob|index|ioctl|join|kill|link|listen|mkdir|msgctl|msgget|msgrcv|msgsend|opendir|print|printf|push|pack|pipe|return|rename|rindex|read|recv|reverse|say|select|seek|semctl|semget|semop|send|setpgrp|setpriority|seekdir|setsockopt|shmctl|shmread|shmwrite|shutdown|socket|socketpair|split|sprintf|splice|substr|system|symlink|syscall|sysopen|sysseek|sysread|syswrite|tie|truncate|unlink|unpack|utime|unshift|vec|warn|waitpid|formline|open|sort)$"
 ))
 
-(function) @function
-
 (ERROR) @error
-
-(_
-  "{" @punctuation.special
-  (varname)
-  "}" @punctuation.special)
-
-(varname 
-  (block
-    "{" @punctuation.special 
-    "}" @punctuation.special))
-
 
 (
   [(varname) (filehandle)] @variable.builtin
@@ -147,5 +136,16 @@
 
 (
   [ "[" "]" "{" "}" "(" ")" ] @punctuation.bracket
-  ; priority hack so nvim + ts-cli behave the same
-  (#set! "priority" 90))
+)
+
+(_
+  "{" @punctuation.special
+  (varname)
+  "}" @punctuation.special)
+
+(varname 
+  (block
+    "{" @punctuation.special 
+    "}" @punctuation.special))
+
+
