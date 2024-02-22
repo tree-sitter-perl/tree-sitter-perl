@@ -17,10 +17,11 @@
     "eslint-plugin-import": "^2.26.0",
     "eslint-plugin-n": "^15.2.4",
     "eslint-plugin-promise": "^6.0.0",
-    "tree-sitter-cli": "^0.20.8"
+    "tree-sitter-cli": "^0.21.0"
   },
   "tree-sitter": [
     {
+      "highlights": "queries/highlights.scm",
       "scope": "source.pm",
       "file-types": [
         "pm",
