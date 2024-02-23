@@ -26,6 +26,9 @@ enum TokenType {
   PERLY_SEMICOLON,
   PERLY_HEREDOC,
   TOKEN_CTRL_Z,
+  /* unicode identifiers */
+  TOKEN_UIDENT_FIRST,
+  TOKEN_UIDENT_CONTINUE,
   /* immediates */
   TOKEN_QUOTELIKE_BEGIN,
   TOKEN_QUOTELIKE_MIDDLE_CLOSE,
@@ -216,13 +219,11 @@ static int close_for_open(int32_t c)
 
 static bool isidfirst(int32_t c)
 {
-  // TODO: More Unicode in here
   return c == '_' || is_tsp_id_start(c);
 }
 
 static bool isidcont(int32_t c)
 {
-  // TODO: More Unicode in here
   return c == '_' || is_tsp_id_continue(c);
 }
 
@@ -362,6 +363,21 @@ bool tree_sitter_perl_external_scanner_scan(
       if(saw_chars)
         TOKEN(TOKEN_HEREDOC_MIDDLE);
       }
+  }
+
+  // this is whitespace sensitive, so it's here b4 we skip any
+  if(c > 127) {
+    if(valid_symbols[TOKEN_UIDENT_FIRST] && isidfirst(c)) {
+      ADVANCE_C;
+      TOKEN(TOKEN_UIDENT_FIRST);
+    }
+
+    if(valid_symbols[TOKEN_UIDENT_CONTINUE] && isidcont(c)) {
+      ADVANCE_C;
+      while(isidcont(c))
+        ADVANCE_C;
+      TOKEN(TOKEN_UIDENT_CONTINUE);
+    }
   }
 
   if (is_tsp_whitespace(c) && valid_symbols[TOKEN_NO_INTERP_WHITESPACE_ZW]) 
