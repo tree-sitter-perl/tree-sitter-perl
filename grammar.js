@@ -1104,8 +1104,8 @@ module.exports = grammar({
     // prefer identifer to bareword where the grammar allows
     identifier: $ => prec(2, $._identifier),
     _identifier: $ => seq($._idfirst, repeat($._idcont)),
-    _idfirst: $ => choice(/[a-zA-Z_]/, $._uident_first),
-    _idcont: $ => choice(/\w+/, $._uident_continue),
+    _idfirst: $ => choice(token.immediate(/[a-zA-Z_]/), $._uident_first),
+    _idcont: $ => choice(token.immediate(/\w+/), $._uident_continue),
     // this pattern tries to encapsulate the joys of S_scan_ident in toke.c in perl core
     // _dollar_ident_zw takes care of the subtleties that distinguish $$; ( only $$
     // followed by semicolon ) from $$deref
@@ -1113,7 +1113,7 @@ module.exports = grammar({
 
     bareword: $ => prec.dynamic(1, $._bareword),
     // _bareword is at the very end b/c the lexer prefers tokens defined earlier in the grammar
-    _bareword: $ => prec.right(repeat1(choice($._identifier, token.immediate(/::/)))),
+    _bareword: $ => repeat1(choice($._identifier, token.immediate(/::/))),
     ...primitives,
   }
 })
