@@ -2,7 +2,7 @@
 #include "tsp_unicode.h"
 
 /* Set this to #define instead to enable debug printing */
-#undef DEBUGGING
+#define DEBUGGING
 
 /* for debug */
 #ifdef DEBUGGING
@@ -380,8 +380,6 @@ bool tree_sitter_perl_external_scanner_scan(
     }
   }
 
-  if (is_tsp_whitespace(c) && valid_symbols[TOKEN_NO_INTERP_WHITESPACE_ZW]) 
-      TOKEN(TOKEN_NO_INTERP_WHITESPACE_ZW);
   skip_ws_to_eol(lexer);
   /* heredocs override everything, so they must be here before */
   if(valid_symbols[TOKEN_HEREDOC_START]) {

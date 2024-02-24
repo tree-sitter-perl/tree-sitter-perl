@@ -162,6 +162,8 @@ module.exports = grammar({
     [$.loop_statement],
     [$.cstyle_for_statement],
     [$.for_statement],
+    [$.bareword, $.function, $.autoquoted_bareword],
+    [$.bareword, $.autoquoted_bareword],
   ],
   rules: {
     source_file: $ => seq(repeat($._fullstmt), optional($.__DATA__)),
@@ -1113,7 +1115,7 @@ module.exports = grammar({
 
     bareword: $ => prec.dynamic(1, $._bareword),
     // _bareword is at the very end b/c the lexer prefers tokens defined earlier in the grammar
-    _bareword: $ => repeat1(choice($._identifier, token.immediate(/::/))),
+    _bareword: $ => prec.right(repeat1(choice($._identifier, token.immediate(/::/)))),
     ...primitives,
   }
 })
