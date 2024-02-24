@@ -277,8 +277,8 @@ ${^Foo};
       (varname)))
   (expression_statement
     (scalar
-      (varname)))
-)
+      (varname))))
+
 ================================================================================
 Double dollar edge cases
 ================================================================================
@@ -288,19 +288,25 @@ $$:;
 $$';
 $[;
 --------------------------------------------------------------------------------
+
 (source_file
   (expression_statement
-    (scalar (varname)))
+    (scalar
+      (varname)))
   (comment)
   (expression_statement
-    (scalar (varname)))
+    (scalar
+      (varname)))
   (ERROR)
   (expression_statement
-    (scalar (varname)))
-  (ERROR (UNEXPECTED '''))
+    (scalar
+      (varname)))
+  (ERROR
+    (UNEXPECTED '''))
   (expression_statement
-    (scalar (varname)))
-)
+    (scalar
+      (varname))))
+
 ================================================================================
 crazy vars
 ================================================================================
@@ -332,3 +338,18 @@ random_function %hash;
       (function)
       (hash
         (varname)))))
+
+================================================================================
+unicode vars!
+================================================================================
+$שלום;
+%こんにちは;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (scalar
+      (varname)))
+  (expression_statement
+    (hash
+      (varname))))

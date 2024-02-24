@@ -157,3 +157,17 @@ EOF
     (heredoc_token))
   (heredoc_content
     (heredoc_end)))
+
+================================================================================
+utf8 heredoc delims
+================================================================================
+<<עד_כאן;
+this is just plain old דברים!
+עד_כאן
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (heredoc_token))
+  (heredoc_content
+    (heredoc_end)))
