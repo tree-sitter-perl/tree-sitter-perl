@@ -140,7 +140,7 @@ module.exports = grammar({
     $._ERROR
   ],
   extras: $ => [
-    /\s|\\\r?\n/,
+    /\p{White_Space}|\\\r?\n/,
     $.comment,
     $.pod,
     $.heredoc_content,

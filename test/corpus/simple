@@ -139,3 +139,13 @@ yadayada operator
 (source_file
   (expression_statement
     (yadayada)))
+
+================================================================================
+unicode whitespace
+================================================================================
+'several hair spaces'   ;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (string_literal)))
