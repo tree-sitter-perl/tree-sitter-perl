@@ -2,7 +2,7 @@
 #include "tsp_unicode.h"
 
 /* Set this to #define instead to enable debug printing */
-#define DEBUGGING
+#undef DEBUGGING
 
 /* for debug */
 #ifdef DEBUGGING
@@ -26,9 +26,6 @@ enum TokenType {
   PERLY_SEMICOLON,
   PERLY_HEREDOC,
   TOKEN_CTRL_Z,
-  /* unicode identifiers */
-  TOKEN_UIDENT_FIRST,
-  TOKEN_UIDENT_CONTINUE,
   /* immediates */
   TOKEN_QUOTELIKE_BEGIN,
   TOKEN_QUOTELIKE_MIDDLE_CLOSE,
@@ -365,21 +362,8 @@ bool tree_sitter_perl_external_scanner_scan(
       }
   }
 
-  // this is whitespace sensitive, so it's here b4 we skip any
-  if(c > 127) {
-    if(valid_symbols[TOKEN_UIDENT_FIRST] && isidfirst(c)) {
-      ADVANCE_C;
-      TOKEN(TOKEN_UIDENT_FIRST);
-    }
-
-    if(valid_symbols[TOKEN_UIDENT_CONTINUE] && isidcont(c)) {
-      ADVANCE_C;
-      while(isidcont(c))
-        ADVANCE_C;
-      TOKEN(TOKEN_UIDENT_CONTINUE);
-    }
-  }
-
+  if (iswspace(c) && valid_symbols[TOKEN_NO_INTERP_WHITESPACE_ZW]) 
+      TOKEN(TOKEN_NO_INTERP_WHITESPACE_ZW);
   skip_ws_to_eol(lexer);
   /* heredocs override everything, so they must be here before */
   if(valid_symbols[TOKEN_HEREDOC_START]) {

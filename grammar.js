@@ -79,6 +79,7 @@ module.exports = grammar({
   supertypes: $ => [
     $.primitive
   ],
+  word: $ => $._identifier,
   inline: $ => [
     $._conditionals,
     $._loops,
@@ -107,9 +108,6 @@ module.exports = grammar({
     $._PERLY_SEMICOLON,
     $._PERLY_HEREDOC,
     $._ctrl_z_hack,
-    /* unicode identifiers */
-    $._uident_first,
-    $._uident_continue,
     /* immediates */
     $._quotelike_begin,
     $._quotelike_middle_close,
@@ -162,8 +160,6 @@ module.exports = grammar({
     [$.loop_statement],
     [$.cstyle_for_statement],
     [$.for_statement],
-    [$.bareword, $.function, $.autoquoted_bareword],
-    [$.bareword, $.autoquoted_bareword],
   ],
   rules: {
     source_file: $ => seq(repeat($._fullstmt), optional($.__DATA__)),
@@ -1105,9 +1101,7 @@ module.exports = grammar({
 
     // prefer identifer to bareword where the grammar allows
     identifier: $ => prec(2, $._identifier),
-    _identifier: $ => seq($._idfirst, repeat($._idcont)),
-    _idfirst: $ => choice(token.immediate(/[a-zA-Z_]/), $._uident_first),
-    _idcont: $ => choice(token.immediate(/\w+/), $._uident_continue),
+    _identifier: $ => /(\p{XID_Start}|_)\p{XID_Continue}*/,
     // this pattern tries to encapsulate the joys of S_scan_ident in toke.c in perl core
     // _dollar_ident_zw takes care of the subtleties that distinguish $$; ( only $$
     // followed by semicolon ) from $$deref
@@ -1115,7 +1109,7 @@ module.exports = grammar({
 
     bareword: $ => prec.dynamic(1, $._bareword),
     // _bareword is at the very end b/c the lexer prefers tokens defined earlier in the grammar
-    _bareword: $ => prec.right(repeat1(choice($._identifier, token.immediate(/::/)))),
+    _bareword: $ => choice($._identifier, /((::)|((\p{XID_Start}|_)\p{XID_Continue}*))+/),
     ...primitives,
   }
 })
