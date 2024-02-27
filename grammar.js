@@ -2,6 +2,7 @@
 // @ts-check
 
 const primitives = require('./lib/primitives.js')
+const unicode_ranges = require('./lib/unicode_ranges')
 
 /* perl.y's precedence list */
 const TERMPREC = {
@@ -79,6 +80,7 @@ module.exports = grammar({
   supertypes: $ => [
     $.primitive
   ],
+  word: $ => $._identifier,
   inline: $ => [
     $._conditionals,
     $._loops,
@@ -139,7 +141,7 @@ module.exports = grammar({
     $._ERROR
   ],
   extras: $ => [
-    /\s|\\\r?\n/,
+    /\p{White_Space}|\\\r?\n/,
     $.comment,
     $.pod,
     $.heredoc_content,
@@ -1100,7 +1102,7 @@ module.exports = grammar({
 
     // prefer identifer to bareword where the grammar allows
     identifier: $ => prec(2, $._identifier),
-    _identifier: $ => /[a-zA-Z_]\w*/,
+    _identifier: $ => unicode_ranges.identifier,
     // this pattern tries to encapsulate the joys of S_scan_ident in toke.c in perl core
     // _dollar_ident_zw takes care of the subtleties that distinguish $$; ( only $$
     // followed by semicolon ) from $$deref
@@ -1108,7 +1110,7 @@ module.exports = grammar({
 
     bareword: $ => prec.dynamic(1, $._bareword),
     // _bareword is at the very end b/c the lexer prefers tokens defined earlier in the grammar
-    _bareword: $ => choice($._identifier, /((::)|([a-zA-Z_]\w*))+/), // TODO: unicode
+    _bareword: $ => choice($._identifier, unicode_ranges.bareword),
     ...primitives,
   }
 })

@@ -48,6 +48,11 @@ You can see a reference of the grammar's DSL [here](https://tree-sitter.github.i
 For subtle points in the grammar implementation, PLEASE leave comments. The extra bytes
 spent on the comments in dev will go a long way in the big picture.
 
+### Supporting Scripts
+
+We have a perl script which generates the correct ranges for both the C + JS sides of the
+parser. The dependencies are in the `cpanfile` in the root directory. Not necessary unless
+you are working on unicode identifiers.
 
 ## Using these bindings
 
