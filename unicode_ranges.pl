@@ -48,20 +48,47 @@ static int tsprange_contains (const void * a, const void * b) {
   return 0;
 }
 
-static struct TSPRange tsp_id_start[] = ${\render_array @idstart};
+static const struct TSPRange tsp_id_start[] = ${\render_array @idstart};
 
-bool is_tsp_id_start (int codepoint) {
+bool is_tsp_id_start (int32_t codepoint) {
   return bsearch(&codepoint, tsp_id_start, sizeof(tsp_id_start) / sizeof(struct TSPRange), sizeof(struct TSPRange), tsprange_contains);
 }
 
-static struct TSPRange tsp_id_continue[] = ${\render_array @idcont};
+static const struct TSPRange tsp_id_continue[] = ${\render_array @idcont};
 
-bool is_tsp_id_continue (int codepoint) {
+bool is_tsp_id_continue (int32_t codepoint) {
   return bsearch(&codepoint, tsp_id_continue, sizeof(tsp_id_continue) / sizeof(struct TSPRange), sizeof(struct TSPRange), tsprange_contains);
 }
 
-static struct TSPRange tsp_whitespace[] = ${\render_array @whitespace};
-bool is_tsp_whitespace (int codepoint) {
+static const struct TSPRange tsp_whitespace[] = ${\render_array @whitespace};
+bool is_tsp_whitespace (int32_t codepoint) {
   return bsearch(&codepoint, tsp_whitespace, sizeof(tsp_whitespace) / sizeof(struct TSPRange), sizeof(struct TSPRange), tsprange_contains);
 }
 C
+
+# now we build the JS regexes
+use Unicode::UCD qw/charprops_all/;
+my @found;
+for (1 .. 0x10FFFF) {
+  next unless chr =~ /\p{XID_Continue}/ and chr !~ /\p{Word}/;
+  push @found, $_;
+}
+use Range::Merge 'merge_discrete';
+my $ranges = merge_discrete \@found;
+
+sub render_js_range ($range) {
+  if ($range->[0] == $range->[1]) {
+    return sprintf '\u{%x}', $range->[0];
+  } else {
+    return sprintf '\u{%x}-\u{%x}', $range->[0], $range->[1] - 1;
+  }
+}
+my $nonwords = join '', '[', (map { render_js_range $_ } $ranges->@*), ']';
+path('./lib/unicode_ranges.js')->spew(<<JS);
+module.exports = {
+  // these patterns are simply XID_Start followed by XID_Continue, minus things which don't match perl's \\p{Word}
+  identifier: /[[_\\p{XID_Start}]--$nonwords][[\\p{XID_Continue}]--$nonwords]*/v,
+  // this adds in any amount of :: in between identifiers
+  bareword:   /((::)|([[_\\p{XID_Start}]--$nonwords][[\\p{XID_Continue}]--$nonwords]*))+/v,
+}
+JS
