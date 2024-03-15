@@ -1,5 +1,6 @@
 (comment)+ @fold
 (pod) @fold
+(heredoc_content) @fold
 
 ; fold the block-typed package statements only
 (package_statement (block)) @fold
