@@ -14,3 +14,8 @@ src/*
 tree-sitter-perl.wasm
 binding.gyp
 log.html
+/bindings/c/
+/bindings/go/
+/bindings/node/index.d.ts
+/bindings/python/
+/bindings/swift/
