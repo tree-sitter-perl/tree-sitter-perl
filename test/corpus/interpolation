@@ -191,3 +191,11 @@ Punctuation vars that do not interpolate
     (interpolated_string_literal))
   (expression_statement
     (interpolated_string_literal)))
+================================================================================
+Punctuation vars that do not interpolate
+================================================================================
+"${herro}[not an index]";
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement
+    (interpolated_string_literal (scalar))
