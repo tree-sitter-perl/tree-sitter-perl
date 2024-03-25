@@ -9,25 +9,23 @@ Fancy indirob interpolation
   (expression_statement
     (interpolated_string_literal
       (scalar
-        (varname
-          (block
-            (expression_statement
-              (refgen_expression
-                (method_call_expression
-                  (scalar
-                    (varname))
-                  (method)))))))))
+        (block
+          (expression_statement
+            (refgen_expression
+              (method_call_expression
+                (scalar
+                  (varname))
+                (method))))))))
   (expression_statement
     (interpolated_string_literal
       (array
-        (varname
-          (block
-            (expression_statement
-              (anonymous_array_expression
-                (list_expression
-                  (number)
-                  (number)
-                  (number))))))))))
+        (block
+          (expression_statement
+            (anonymous_array_expression
+              (list_expression
+                (number)
+                (number)
+                (number)))))))))
 
 ================================================================================
 Array element interpolation
@@ -191,3 +189,20 @@ Punctuation vars that do not interpolate
     (interpolated_string_literal))
   (expression_statement
     (interpolated_string_literal)))
+
+================================================================================
+braced vars do not subscript
+================================================================================
+"${herro}[not an index]";
+"@{herro}[not an index]";
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (interpolated_string_literal
+      (scalar
+        (varname))))
+  (expression_statement
+    (interpolated_string_literal
+      (array
+        (varname)))))
