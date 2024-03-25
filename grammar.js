@@ -732,13 +732,14 @@ module.exports = grammar({
       $._ident_special // TODO - not sure if we wanna make `my $1` error out
     ),
     // not all indirobs are alike; for variables, they have autoquoting behavior
-    _var_indirob: $ => choice(
-      alias($._indirob, $.varname),
-      seq(
+    _var_indirob_autoquote: $ => seq(
         $._PERLY_BRACE_OPEN,
         alias(choice($._bareword, $._autoquotables, $._ident_special, /\^\w+/ ), $.varname),
         $._brace_end_zw, '}'
-      )
+    ),
+    _var_indirob: $ => choice(
+      alias($._indirob, $.varname),
+      $._var_indirob_autoquote
     ),
 
     attrlist: $ => prec.left(0, seq(
@@ -847,6 +848,13 @@ module.exports = grammar({
       alias($._array_element_interpolation, $.array_element_expression),
       alias($._hash_element_interpolation, $.hash_element_expression),
     ),
+    // we make any braced variable force to be this rule so it can't get subscripted (good ol' NONASSOC)
+    _braced_scalar: $ => seq(
+      '$', choice($.block, $._var_indirob_autoquote), $._NONASSOC
+    ),
+    _braced_array: $ => seq(
+      '@', choice($.block, $._var_indirob_autoquote), $._NONASSOC
+    ),
     _array_element_interpolation: $ => choice(
       seq(field('array', alias($.scalar, $.container_variable)), token.immediate('['), field('index', $._expr), ']'),
       prec.left(TERMPREC.ARROW, seq($.scalar, token.immediate('->['), field('index', $._expr), ']')),
@@ -868,6 +876,8 @@ module.exports = grammar({
     _interpolations: $ => choice(
       $.array,
       $.scalar,
+      alias($._braced_scalar, $.scalar),
+      alias($._braced_array, $.array),
       $._subscripted_interpolations,
       alias($._slice_expression_interpolation, $.slice_expression),
     ),
