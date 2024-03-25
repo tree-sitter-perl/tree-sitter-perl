@@ -5138,6 +5138,49 @@
         }
       ]
     },
+    "_var_indirob_autoquote": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "_PERLY_BRACE_OPEN"
+        },
+        {
+          "type": "ALIAS",
+          "content": {
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "SYMBOL",
+                "name": "_bareword"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "_autoquotables"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "_ident_special"
+              },
+              {
+                "type": "PATTERN",
+                "value": "\\^\\w+"
+              }
+            ]
+          },
+          "named": true,
+          "value": "varname"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_brace_end_zw"
+        },
+        {
+          "type": "STRING",
+          "value": "}"
+        }
+      ]
+    },
     "_var_indirob": {
       "type": "CHOICE",
       "members": [
@@ -5151,47 +5194,8 @@
           "value": "varname"
         },
         {
-          "type": "SEQ",
-          "members": [
-            {
-              "type": "SYMBOL",
-              "name": "_PERLY_BRACE_OPEN"
-            },
-            {
-              "type": "ALIAS",
-              "content": {
-                "type": "CHOICE",
-                "members": [
-                  {
-                    "type": "SYMBOL",
-                    "name": "_bareword"
-                  },
-                  {
-                    "type": "SYMBOL",
-                    "name": "_autoquotables"
-                  },
-                  {
-                    "type": "SYMBOL",
-                    "name": "_ident_special"
-                  },
-                  {
-                    "type": "PATTERN",
-                    "value": "\\^\\w+"
-                  }
-                ]
-              },
-              "named": true,
-              "value": "varname"
-            },
-            {
-              "type": "SYMBOL",
-              "name": "_brace_end_zw"
-            },
-            {
-              "type": "STRING",
-              "value": "}"
-            }
-          ]
+          "type": "SYMBOL",
+          "name": "_var_indirob_autoquote"
         }
       ]
     },
@@ -5960,6 +5964,58 @@
         }
       ]
     },
+    "_braced_scalar": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "$"
+        },
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "block"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "_var_indirob_autoquote"
+            }
+          ]
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_NONASSOC"
+        }
+      ]
+    },
+    "_braced_array": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "@"
+        },
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "block"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "_var_indirob_autoquote"
+            }
+          ]
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_NONASSOC"
+        }
+      ]
+    },
     "_array_element_interpolation": {
       "type": "CHOICE",
       "members": [
@@ -6309,6 +6365,24 @@
         {
           "type": "SYMBOL",
           "name": "scalar"
+        },
+        {
+          "type": "ALIAS",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_braced_scalar"
+          },
+          "named": true,
+          "value": "scalar"
+        },
+        {
+          "type": "ALIAS",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_braced_array"
+          },
+          "named": true,
+          "value": "array"
         },
         {
           "type": "SYMBOL",

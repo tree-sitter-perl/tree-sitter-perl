@@ -1685,6 +1685,10 @@
       "required": true,
       "types": [
         {
+          "type": "block",
+          "named": true
+        },
+        {
           "type": "varname",
           "named": true
         }
@@ -18057,6 +18061,10 @@
       "multiple": false,
       "required": true,
       "types": [
+        {
+          "type": "block",
+          "named": true
+        },
         {
           "type": "varname",
           "named": true
