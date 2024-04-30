@@ -145,11 +145,6 @@ static void lexerstate_push_quote (struct LexerState* state, int32_t opener)
   state->quotes.count = 0;
 }
 
-static bool lexerstate_is_quote_char (struct LexerState* state, int32_t check)
-{
-  return check == state->quotes.open || check == state->quotes.close;
-}
-
 static bool lexerstate_is_quote_opener (struct LexerState* state, int32_t check)
 {
   return state->quotes.open && check == state->quotes.open;
@@ -697,7 +692,6 @@ bool tree_sitter_perl_external_scanner_scan(
   }
 
   if(c == '\\' &&
-    // TODO - 98 - we're ova here in the conversion delim_close
       // If we're inside a quotelike that is using the `\` as a delimiter then
       // this doesn't count
       !(valid_symbols[TOKEN_QUOTELIKE_END] && lexerstate_is_quote_closer(state, '\\'))) {
@@ -712,7 +706,7 @@ bool tree_sitter_perl_external_scanner_scan(
       ADVANCE_C;
 
     if(valid_symbols[TOKEN_ESCAPED_DELIMITER]) {
-      if(lexerstate_is_quote_char(state, esc_c)) {
+      if(lexerstate_is_quote_opener(state, esc_c) || lexerstate_is_quote_closer(state, esc_c)) {
         lexer->mark_end(lexer);
         TOKEN(TOKEN_ESCAPED_DELIMITER);
       }
