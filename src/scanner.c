@@ -173,6 +173,11 @@ static bool lexerstate_is_quote_closed (struct LexerState* state, int32_t check)
   return check == state->quotes.close && !state->quotes.count;
 }
 
+static void lexerstate_pop_quote (struct LexerState* state)
+{
+    /* do nothing until we have a stack */
+}
+
 
 static bool lexerstate_is_paired_delimiter (struct LexerState* state)
 {
@@ -795,6 +800,7 @@ bool tree_sitter_perl_external_scanner_scan(
         TOKEN(TOKEN_QUOTELIKE_END_ZW);
 
       ADVANCE_C;
+      lexerstate_pop_quote(state);
       TOKEN(TOKEN_QUOTELIKE_END);
     }
   }
