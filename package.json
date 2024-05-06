@@ -5,6 +5,7 @@
   "main": "bindings/node",
   "types": "bindings/node",
   "scripts": {
+    "dev-install": "npm install --no-save tree-sitter-cli",
     "test": "tree-sitter generate && tree-sitter test",
     "install": "node-gyp-build",
     "prebuildify": "prebuildify --napi --strip"
@@ -33,7 +34,7 @@
     "eslint-plugin-n": "^15.2.4",
     "eslint-plugin-promise": "^6.0.0",
     "prebuildify": "^6.0.0",
-    "tree-sitter-cli": "^0.22.5"
+    "tree-sitter-cli": "^0.22.6"
   },
   "tree-sitter": [
     {
