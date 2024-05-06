@@ -74,7 +74,7 @@ static void tspstring_push(struct TSPString *s, int32_t c)
 
 static bool tspstring_eq(struct TSPString *s1, struct TSPString *s2)
 {
-  if(s1->length != s2->length) 
+  if(s1->length != s2->length)
     return false;
   int max_len = s1->length < MAX_TSPSTRING_LEN ? s1->length : MAX_TSPSTRING_LEN;
   for(int i = 0; i < max_len; i++) {
@@ -240,8 +240,6 @@ void tree_sitter_perl_external_scanner_destroy(void *payload)
   free(payload);
 }
 
-void tree_sitter_perl_external_scanner_reset(void *payload) {}
-
 unsigned int tree_sitter_perl_external_scanner_serialize(void *payload, char *buffer)
 {
   struct LexerState *state = payload;
@@ -276,7 +274,7 @@ bool tree_sitter_perl_external_scanner_scan(
   int32_t c = lexer->lookahead;
 
   if(!is_ERROR && valid_symbols[TOKEN_GOBBLED_CONTENT]) {
-    while (!lexer->eof(lexer)) 
+    while (!lexer->eof(lexer))
       ADVANCE_C;
 
     TOKEN(TOKEN_GOBBLED_CONTENT);
@@ -291,7 +289,7 @@ bool tree_sitter_perl_external_scanner_scan(
     DEBUG("Beginning heredoc contents\n", 0);
     if (state->heredoc_state != HEREDOC_CONTINUE) {
       struct TSPString line;
-      // read as many lines as we can 
+      // read as many lines as we can
       while(!lexer->eof(lexer)) {
         tspstring_reset(&line);
         // interpolating heredocs may need to stop in the middle of the line; indented
@@ -362,7 +360,7 @@ bool tree_sitter_perl_external_scanner_scan(
       }
   }
 
-  if (iswspace(c) && valid_symbols[TOKEN_NO_INTERP_WHITESPACE_ZW]) 
+  if (iswspace(c) && valid_symbols[TOKEN_NO_INTERP_WHITESPACE_ZW])
       TOKEN(TOKEN_NO_INTERP_WHITESPACE_ZW);
   skip_ws_to_eol(lexer);
   /* heredocs override everything, so they must be here before */
@@ -454,7 +452,7 @@ bool tree_sitter_perl_external_scanner_scan(
     state->delim_close = '/';
     state->delim_count = 0;
 
-    if (c != '/') 
+    if (c != '/')
       TOKEN(TOKEN_SEARCH_SLASH);
     /* if we didn't get a search-slash, we fall back to the main parser */
     return false;
@@ -559,7 +557,7 @@ bool tree_sitter_perl_external_scanner_scan(
       if(c == '~') {
         ADVANCE_C;
         should_indent = true;
-      } 
+      }
       if(c == '\\') {
         ADVANCE_C;
         should_interpolate = false;
