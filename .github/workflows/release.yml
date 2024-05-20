@@ -1,7 +1,7 @@
 name: Release Flow
 on:
   push:
-    branches: 
+    branches:
       - master
 
 concurrency:
@@ -16,10 +16,10 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 20
-      - run: npm install
+      - run: npm run dev-install
       - run: npm test
       - run: mkdir release
-      - run: cp -r LICENSE src binding.gyp queries release
+      - run: cp -r LICENSE src binding.gyp queries bindings release
       - name: Deploy 🚀
         uses: peaceiris/actions-gh-pages@v3
         with:

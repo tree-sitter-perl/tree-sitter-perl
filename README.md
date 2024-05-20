@@ -7,10 +7,12 @@ This is Yet Another perl tree-sitter module.
 To get started, install the dependencies for this repo
 
 ```bash
-npm i
+npm run dev-install
 ```
 
-That should get you set up with tree-sitter's cli locally.
+That should get you set up with tree-sitter's cli locally. (npm install won't work b/c it
+needs the library to be generated to build the bindings so we can use this repo for node
+bindings)
 
 ### Generating the Bindings
 
@@ -18,7 +20,7 @@ In this project, the generated C source code (stored in the `src` directory) is
 .gitignored. In order to generate it, run
 
 ```bash
-npx tree-sitter generate 
+npx tree-sitter generate
 ```
 
 You'll need to do this after any changes to the grammar.
@@ -28,7 +30,7 @@ You'll need to do this after any changes to the grammar.
 Tests are stored in the `/test/corpus` directory, as txt files. A little reference on the
 syntax can be found [here](https://tree-sitter.github.io/tree-sitter/creating-parsers#command-test).
 
-You can run the tests with 
+You can run the tests with
 
 ```bash
 npx tree-sitter test
@@ -81,15 +83,15 @@ current `runtimepath`.
 
 ### Emacs
 
-As of [Emacs](https://www.gnu.org/software/emacs/) version 29.1, if you have 
-the tree-sitter library installed, the configure script will automatically 
+As of [Emacs](https://www.gnu.org/software/emacs/) version 29.1, if you have
+the tree-sitter library installed, the configure script will automatically
 include it in the build.
 
-Once this is done, you can install the Perl bindings 
+Once this is done, you can install the Perl bindings
 by executing two Emacs lisp forms:
 
 ```Emacs Lisp
-(setq treesit-language-source-alist 
+(setq treesit-language-source-alist
   '((perl . ("https://github.com/tree-sitter-perl/tree-sitter-perl" "release"))))
 (treesit-install-language-grammar 'perl)
 ```
