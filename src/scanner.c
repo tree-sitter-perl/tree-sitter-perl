@@ -311,8 +311,6 @@ void tree_sitter_perl_external_scanner_destroy(void *payload)
   free(payload);
 }
 
-void tree_sitter_perl_external_scanner_reset(void *payload) {}
-
 unsigned int tree_sitter_perl_external_scanner_serialize(void *payload, char *buffer)
 {
   struct LexerState *state = payload;
