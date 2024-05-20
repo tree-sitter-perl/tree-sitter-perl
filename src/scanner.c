@@ -1,4 +1,5 @@
-#include <tree_sitter/parser.h>
+#include "tree_sitter/parser.h"
+#include "tree_sitter/array.h"
 #include "tsp_unicode.h"
 
 /* Set this to #define instead to enable debug printing */
@@ -89,16 +90,99 @@ static void tspstring_reset(struct TSPString *s)
   s->length = 0;
 }
 
+static int32_t close_for_open(int32_t c)
+{
+  switch(c) {
+    case '(': return ')';
+    case '[': return ']';
+    case '{': return '}';
+    case '<': return '>';
+    /* TODO: Add aaaaalll the Unicode ones */
+    default:
+      return 0;
+  }
+}
+
+struct TSPQuote {
+  int32_t open, close, count;
+};
+
+// TODO - we need a struct that handles the quotes properly; quotes need to mark the
+// optional opener + the closer, and a count so we can keep going along in case we have
+// an open/close pair
+// then we need methods for the LexerState that handles pushing a quote and also updating
+// the counts
+// note that for escapes, we escape THE WHOLE LIST OF DELIMS - see TOKEN_ESCAPED_DELIMITER
+//   it's important to note that we can't actually replicate perl's behavior: observe
+//   qq( hello ( ${\("world")}  ) -- this happens to be a syntax error, but the \( counts
+//   as escaping one of the delimiters; we'd need to actually sublex to handle that
+//   [ a syntactically valid one is qq( ${\( \1 \)}), or qq( ${\\('hi')} )  ]. basically
+//   we remove backslashes syntactically IFF it's escaping the delim
+//   - the truth is that we actually could sublex, by doing a scan ahead, and making the
+//     scanner always look if it's about to hit the closing and then returns the closing
+//     token or something?
+// let's begin by refactoring what we have now to use methods to check for what we needa
+// check rather than doing so directly.
+//   - let's start by ignoring sublexing for now, b/c we can't go halfsies on it
+
 enum HeredocState { HEREDOC_NONE, HEREDOC_START, HEREDOC_UNKNOWN, HEREDOC_CONTINUE, HEREDOC_END };
 struct LexerState {
-  int delim_open, delim_close;  /* codepoints */
-  int delim_count;
+  struct TSPQuote quotes;
   /* heredoc - we need to track if we should start the heredoc, if it's interpolating,
    * how many chars the delimiter is and what the delimiter is */
   bool heredoc_interpolates, heredoc_indents;
   enum HeredocState heredoc_state;
   struct TSPString heredoc_delim;
 };
+
+
+static void lexerstate_push_quote (struct LexerState* state, int32_t opener)
+{
+  // if it's not a paired delim, we get a 0 here
+  int32_t closer = close_for_open(opener);
+  state->quotes.close = closer ? closer : opener;
+  state->quotes.open = closer ? opener : 0;
+  state->quotes.count = 0;
+}
+
+static bool lexerstate_is_quote_opener (struct LexerState* state, int32_t check)
+{
+  return state->quotes.open && check == state->quotes.open;
+}
+
+static void lexerstate_saw_opener (struct LexerState* state)
+{
+  state->quotes.count++;
+    DEBUG("Got a opener, we are at %d \n", state->quotes.count);
+}
+
+static bool lexerstate_is_quote_closer (struct LexerState* state, int32_t check)
+{
+  return check == state->quotes.close;
+}
+
+static void lexerstate_saw_closer (struct LexerState* state)
+{
+    if (state->quotes.count) {
+        state->quotes.count--;
+    }
+    DEBUG("Got a closer, we are at %d \n", state->quotes.count);
+}
+static bool lexerstate_is_quote_closed (struct LexerState* state, int32_t check)
+{
+  return check == state->quotes.close && !state->quotes.count;
+}
+
+static void lexerstate_pop_quote (struct LexerState* state)
+{
+    /* do nothing until we have a stack */
+}
+
+
+static bool lexerstate_is_paired_delimiter (struct LexerState* state)
+{
+  return !!state->quotes.open;
+}
 
 static void lexerstate_add_heredoc(struct LexerState *state, struct TSPString *delim, bool interp, bool indent)
 {
@@ -201,19 +285,6 @@ static void skip_braced(TSLexer *lexer)
   ADVANCE_C;
 }
 
-static int close_for_open(int32_t c)
-{
-  switch(c) {
-    case '(': return ')';
-    case '[': return ']';
-    case '{': return '}';
-    case '<': return '>';
-    /* TODO: Add aaaaalll the Unicode ones */
-    default:
-      return 0;
-  }
-}
-
 static bool isidfirst(int32_t c)
 {
   return c == '_' || is_tsp_id_start(c);
@@ -255,11 +326,6 @@ void tree_sitter_perl_external_scanner_deserialize(void *payload, const char *bu
 
   memcpy(state, buffer, n);
 }
-
-/* Longest identifier name we ever care to look specifically for (excluding
- * terminating NUL)
- */
-#define MAX_IDENT_LEN 2
 
 bool tree_sitter_perl_external_scanner_scan(
   void *payload,
@@ -448,37 +514,27 @@ bool tree_sitter_perl_external_scanner_scan(
   if(valid_symbols[TOKEN_SEARCH_SLASH] && c == '/') {
     ADVANCE_C;
     lexer->mark_end(lexer);
-    state->delim_open = 0;
-    state->delim_close = '/';
-    state->delim_count = 0;
 
-    if (c != '/')
+    if (c != '/') {
+      lexerstate_push_quote(state, '/');
       TOKEN(TOKEN_SEARCH_SLASH);
+    }
     /* if we didn't get a search-slash, we fall back to the main parser */
     return false;
   }
   if(valid_symbols[TOKEN_APOSTROPHE] && c == '\'') {
     ADVANCE_C;
-    state->delim_open = 0;
-    state->delim_close = '\'';
-    state->delim_count = 0;
-
+    lexerstate_push_quote(state, '\'');
     TOKEN(TOKEN_APOSTROPHE);
   }
   if(valid_symbols[TOKEN_DOUBLE_QUOTE] && c == '"') {
     ADVANCE_C;
-    state->delim_open = 0;
-    state->delim_close = '"';
-    state->delim_count = 0;
-
+    lexerstate_push_quote(state, '"');
     TOKEN(TOKEN_DOUBLE_QUOTE);
   }
   if(valid_symbols[TOKEN_BACKTICK] && c == '`') {
     ADVANCE_C;
-    state->delim_open = 0;
-    state->delim_close = '`';
-    state->delim_count = 0;
-
+    lexerstate_push_quote(state, '`');
     TOKEN(TOKEN_BACKTICK);
   }
 
@@ -487,7 +543,7 @@ bool tree_sitter_perl_external_scanner_scan(
     ADVANCE_C;
 
     /* Accept this literal dollar if it's followed by closing delimiter */
-    if(c == state->delim_close)
+    if(lexerstate_is_quote_closer(state, c))
       TOKEN(TOKEN_DOLLAR_IN_REGEXP);
 
     /* Several other situations are interpreted literally */
@@ -610,7 +666,7 @@ bool tree_sitter_perl_external_scanner_scan(
 
   // the idea here is in a 3 part quotelike, we return a skip instead of a begin
   if(valid_symbols[TOKEN_QUOTELIKE_MIDDLE_SKIP]) {
-    if(!state->delim_open)
+    if(!lexerstate_is_paired_delimiter(state))
       TOKEN(TOKEN_QUOTELIKE_MIDDLE_SKIP);
   }
 
@@ -626,32 +682,22 @@ bool tree_sitter_perl_external_scanner_scan(
     if (valid_symbols[TOKEN_FAT_COMMA_ZW] && delim == '=' && c == '>')
       TOKEN(TOKEN_FAT_COMMA_ZW);
 
+    // gotta safely handle $hash{q}
     if(valid_symbols[TOKEN_BRACE_END_ZW] && delim == '}') {
-      DEBUG("wag1\n", 0);
       TOKEN(TOKEN_BRACE_END_ZW);
     }
     lexer->mark_end(lexer);
 
-    int delim_close = close_for_open(delim);
-    if(delim_close) {
-      state->delim_open  = delim;
-      state->delim_close = delim_close;
-    }
-    else {
-      state->delim_open  = 0;
-      state->delim_close = delim;
-    }
-    state->delim_count = 0;
-
-
-    DEBUG("Generic QSTRING open='%c' close='%c'\n", state->delim_open, state->delim_close);
+    lexerstate_push_quote(state, delim);
+    // TODO - fill in this debug print here?
+    // DEBUG("Generic QSTRING open='%c' close='%c'\n", state->delim_open, state->delim_close);
     TOKEN(TOKEN_QUOTELIKE_BEGIN);
   }
 
   if(c == '\\' &&
       // If we're inside a quotelike that is using the `\` as a delimiter then
       // this doesn't count
-      !(valid_symbols[TOKEN_QUOTELIKE_END] && state->delim_close == '\\')) {
+      !(valid_symbols[TOKEN_QUOTELIKE_END] && lexerstate_is_quote_closer(state, '\\'))) {
     // eat the reverse-solidus
     ADVANCE_C;
     // let's see what that reverse-solidus was hiding!
@@ -663,7 +709,7 @@ bool tree_sitter_perl_external_scanner_scan(
       ADVANCE_C;
 
     if(valid_symbols[TOKEN_ESCAPED_DELIMITER]) {
-      if(esc_c == state->delim_open || esc_c == state->delim_close) {
+      if(lexerstate_is_quote_opener(state, esc_c) || lexerstate_is_quote_closer(state, esc_c)) {
         lexer->mark_end(lexer);
         TOKEN(TOKEN_ESCAPED_DELIMITER);
       }
@@ -716,13 +762,13 @@ bool tree_sitter_perl_external_scanner_scan(
     while(c) {
       if(c == '\\')
         break;
-      if(state->delim_open && c == state->delim_open)
-        state->delim_count++;
-      else if(c == state->delim_close) {
-        if(state->delim_count)
-          state->delim_count--;
-        else
+      if(lexerstate_is_quote_opener(state, c))
+          lexerstate_saw_opener(state);
+      else if(lexerstate_is_quote_closer(state, c)) {
+        if(lexerstate_is_quote_closed(state, c)) {
           break;
+        }
+        lexerstate_saw_closer(state);
       }
       else if(is_qq && is_interpolation_escape(c))
         break;
@@ -740,18 +786,19 @@ bool tree_sitter_perl_external_scanner_scan(
   }
 
   if(valid_symbols[TOKEN_QUOTELIKE_MIDDLE_CLOSE]) {
-    if(c == state->delim_close && !state->delim_count) {
+    if(lexerstate_is_quote_closed(state, c)) {
       ADVANCE_C;
       TOKEN(TOKEN_QUOTELIKE_MIDDLE_CLOSE);
     }
   }
 
   if(valid_symbols[TOKEN_QUOTELIKE_END]) {
-    if(c == state->delim_close && !state->delim_count) {
+    if(lexerstate_is_quote_closed(state, c)) {
       if(valid_symbols[TOKEN_QUOTELIKE_END_ZW])
         TOKEN(TOKEN_QUOTELIKE_END_ZW);
 
       ADVANCE_C;
+      lexerstate_pop_quote(state);
       TOKEN(TOKEN_QUOTELIKE_END);
     }
   }
