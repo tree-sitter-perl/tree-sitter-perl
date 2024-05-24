@@ -206,3 +206,44 @@ braced vars do not subscript
     (interpolated_string_literal
       (array
         (varname)))))
+
+================================================================================
+Nested quotes! (#98)
+================================================================================
+qq(things ${\q(and $shtuff)} and $shtuff);
+s[things ${\q{hello}} ][ ${\q[hi again]}];
+print "$test{'value'}";
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (interpolated_string_literal
+      (scalar
+        (block
+          (expression_statement
+            (refgen_expression
+              (string_literal)))))
+      (scalar
+        (varname))))
+  (expression_statement
+    (substitution_regexp
+      (regexp_content
+        (scalar
+          (block
+            (expression_statement
+              (refgen_expression
+                (string_literal))))))
+      (replacement
+        (scalar
+          (block
+            (expression_statement
+              (refgen_expression
+                (string_literal))))))))
+  (expression_statement
+    (ambiguous_function_call_expression
+      (function)
+      (interpolated_string_literal
+        (hash_element_expression
+          (container_variable
+            (varname))
+          (string_literal))))))
