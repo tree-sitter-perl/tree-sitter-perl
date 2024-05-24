@@ -178,21 +178,18 @@ static bool lexerstate_is_paired_delimiter(LexerState *state) {
   return !!q->open;
 }
 
-// TODO - we need a struct that handles the quotes properly; quotes need to mark
-// the optional opener + the closer, and a count so we can keep going along in
-// case we have an open/close pair then we need methods for the LexerState that
-// handles pushing a quote and also updating the counts note that for escapes,
-// we escape THE WHOLE LIST OF DELIMS - see TOKEN_ESCAPED_DELIMITER
-//   it's important to note that we can't actually replicate perl's behavior:
-//   observe qq( hello ( ${\("world")}  ) -- this happens to be a syntax error,
-//   but the \( counts as escaping one of the delimiters; we'd need to actually
-//   sublex to handle that [ a syntactically valid one is qq( ${\( \1 \)}), or
-//   qq( ${\\('hi')} )  ]. basically we remove backslashes syntactically IFF
-//   it's escaping the delim
-//   - the truth is that we actually could sublex, by doing a scan ahead, and
-//   making the
-//     scanner always look if it's about to hit the closing and then returns the
-//     closing token or something?
+//   in order to emulate a sublex, we basically need to have a new escape type character
+//   that can pop up anywhere so long as there's an active string, to escape the string
+//   char
+//   with nested strings of the same type, it escapes them top down, observe:
+//       s/things ${\q\/hello\/} / ${\q[hi again]} /;
+//   the outer string gets a single escape, which is then invisible to the inner string
+//
+//   here's another relevant example:
+//        qq( ${\\('hi')} );
+//   the backslash needs to be escaped so it doesn't escape the quote_char from being counted for
+//   pairs
+//
 //   ooh, a better solution to the backslash issue is that we should just add it to the
 //   lexer, which will let us check if there's some quote_{opener,closer} in front of it
 //   (which only happens inside of a string)
