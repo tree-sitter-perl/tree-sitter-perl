@@ -62,17 +62,17 @@ enum TokenType {
 #define MAX_TSPSTRING_LEN 8
 /* this is a arbitrary string where we only care about the first
  * MAX_TSPSTRING_LEN chars */
-struct TSPString {
+typedef struct {
   int length;
   int32_t contents[MAX_TSPSTRING_LEN];
-};
+} TSPString;
 
 /* we record the length, b/c that's still relevant for our cheapo comparison */
-static void tspstring_push(struct TSPString *s, int32_t c) {
+static void tspstring_push(TSPString *s, int32_t c) {
   if (s->length++ < MAX_TSPSTRING_LEN) s->contents[s->length - 1] = c;
 }
 
-static bool tspstring_eq(struct TSPString *s1, struct TSPString *s2) {
+static bool tspstring_eq(TSPString *s1, TSPString *s2) {
   if (s1->length != s2->length) return false;
   int max_len = s1->length < MAX_TSPSTRING_LEN ? s1->length : MAX_TSPSTRING_LEN;
   for (int i = 0; i < max_len; i++) {
@@ -81,7 +81,7 @@ static bool tspstring_eq(struct TSPString *s1, struct TSPString *s2) {
   return true;
 }
 
-static void tspstring_reset(struct TSPString *s) { s->length = 0; }
+static void tspstring_reset(TSPString *s) { s->length = 0; }
 
 static int32_t close_for_open(int32_t c) {
   switch (c) {
@@ -112,7 +112,7 @@ typedef struct {
    * interpolating, how many chars the delimiter is and what the delimiter is */
   bool heredoc_interpolates, heredoc_indents;
   enum HeredocState heredoc_state;
-  struct TSPString heredoc_delim;
+  TSPString heredoc_delim;
 } LexerState;
 
 static void lexerstate_push_quote(LexerState *state, int32_t opener) {
@@ -131,7 +131,7 @@ static int32_t lexerstate_is_quote_opener(LexerState *state, int32_t check) {
   // this will loop over all of the TSPQuotes in the state's quote and check if
   // it has an opener (like '{'). we return i + 1 b/c 0 is a valid index + we need that
   // for falsy
-  for (int i = state->quotes.size; i >= 0; i--) {
+  for (int i = state->quotes.size - 1; i >= 0; i--) {
     TSPQuote *q = array_get(&state->quotes, i);
     if (q->open && check == q->open) return i + 1;
   }
@@ -148,7 +148,7 @@ static void lexerstate_saw_opener(LexerState *state, int32_t idx) {
 
 static int32_t lexerstate_is_quote_closer(LexerState *state, int32_t c) {
   // same as above, just for the closer
-  for (int i = state->quotes.size; i >= 0; i--) {
+  for (int i = state->quotes.size - 1; i >= 0; i--) {
     TSPQuote *q = array_get(&state->quotes, i);
     if (q->close && c == q->close) return i + 1;
   }
@@ -199,8 +199,7 @@ static bool lexerstate_is_paired_delimiter(LexerState *state) {
 
 // we can match perl's behavior if we are intentionally destructive here and find our match
 
-static void lexerstate_add_heredoc(LexerState *state, struct TSPString *delim, bool interp,
-                                   bool indent) {
+static void lexerstate_add_heredoc(LexerState *state, TSPString *delim, bool interp, bool indent) {
   state->heredoc_delim = *delim;
   state->heredoc_interpolates = interp;
   state->heredoc_indents = indent;
@@ -290,23 +289,55 @@ static bool isidcont(int32_t c) { return c == '_' || is_tsp_id_continue(c); }
 // there's a matching rule in the grammar to catch when it doesn't match a rule
 static bool is_interpolation_escape(int32_t c) { return c < 256 && strchr("$@-[{\\", c); }
 
-void *tree_sitter_perl_external_scanner_create() { return malloc(sizeof(LexerState)); }
-
-void tree_sitter_perl_external_scanner_destroy(void *payload) { free(payload); }
-
 unsigned int tree_sitter_perl_external_scanner_serialize(void *payload, char *buffer) {
   LexerState *state = payload;
+  size_t size = 0;
 
-  unsigned int n = sizeof(LexerState);
-  memcpy(buffer, state, n);
-  return n;
+  // Serialize the quotes array
+  size_t quote_count = state->quotes.size;
+  if (quote_count > UINT8_MAX) {
+    quote_count = UINT8_MAX;
+  }
+  buffer[size++] = (char)quote_count;
+
+  if (quote_count > 0) {
+    memcpy(&buffer[size], state->quotes.contents, quote_count * sizeof(TSPQuote));
+  }
+  size += quote_count * sizeof(TSPQuote);
+
+  // Serialize the heredoc state and delimiter
+  buffer[size++] = (char)state->heredoc_interpolates;
+  buffer[size++] = (char)state->heredoc_indents;
+  buffer[size++] = (char)state->heredoc_state;
+  memcpy(&buffer[size], &state->heredoc_delim, sizeof(TSPString));
+  size += sizeof(TSPString);
+
+  return size;
 }
 
 void tree_sitter_perl_external_scanner_deserialize(void *payload, const char *buffer,
-                                                   unsigned int n) {
+                                                   unsigned int length) {
   LexerState *state = payload;
+  size_t size = 0;
+  array_delete(&state->quotes);
+  if (length > 0) {
+    // Deserialize the quotes array
+    size_t quote_count = (uint8_t)buffer[size++];
+    if (quote_count > 0) {
+      array_reserve(&state->quotes, quote_count);
+      state->quotes.size = quote_count;
+      memcpy(state->quotes.contents, &buffer[size], quote_count * sizeof(TSPQuote));
+      size += quote_count * sizeof(TSPQuote);
+    }
 
-  memcpy(state, buffer, n);
+    // Deserialize the heredoc state and delimiter
+    state->heredoc_interpolates = (bool)buffer[size++];
+    state->heredoc_indents = (bool)buffer[size++];
+    state->heredoc_state = (enum HeredocState)buffer[size++];
+
+    memcpy(&state->heredoc_delim, &buffer[size], sizeof(TSPString));
+    size += sizeof(TSPString);
+  }
 }
 
 bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
@@ -333,7 +364,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   if (valid_symbols[TOKEN_HEREDOC_MIDDLE] && !is_ERROR) {
     DEBUG("Beginning heredoc contents\n", 0);
     if (state->heredoc_state != HEREDOC_CONTINUE) {
-      struct TSPString line;
+      TSPString line;
       // read as many lines as we can
       while (!lexer->eof(lexer)) {
         tspstring_reset(&line);
@@ -580,7 +611,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     bool should_indent = false;
     bool should_interpolate = true;
 
-    struct TSPString delim;
+    TSPString delim;
     tspstring_reset(&delim);
     if (!skipped_whitespace) {
       if (c == '~') {
@@ -760,7 +791,8 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   }
 
   if (valid_symbols[TOKEN_QUOTELIKE_MIDDLE_CLOSE]) {
-    if (lexerstate_is_quote_closed(state, c)) {
+    int32_t quote_index = lexerstate_is_quote_closer(state, c);
+    if (quote_index && lexerstate_is_quote_closed(state, quote_index)) {
       ADVANCE_C;
       TOKEN(TOKEN_QUOTELIKE_MIDDLE_CLOSE);
     }
@@ -846,4 +878,17 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   }
 
   return false;
+}
+
+void *tree_sitter_perl_external_scanner_create() {
+  LexerState *state = calloc(1, sizeof(LexerState));
+  array_init(&state->quotes);
+  tree_sitter_perl_external_scanner_deserialize(state, NULL, 0);
+  return state;
+}
+
+void tree_sitter_perl_external_scanner_destroy(void *payload) {
+  LexerState *state = payload;
+  array_delete(&state->quotes);
+  free(state);
 }
