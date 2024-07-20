@@ -4251,6 +4251,10 @@
               {
                 "type": "SYMBOL",
                 "name": "command_string"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "_fat_comma_autoquoted_bareword"
               }
             ]
           },

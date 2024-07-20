@@ -57,13 +57,13 @@ binop.nonassoc = ($, op, term) =>
     )
   )
 
-regexpContent = ($, node) => 
+regexpContent = ($, node) =>
   field('content', alias(node, $.regexp_content))
 
-replacement = ($, node) => 
+replacement = ($, node) =>
   alias(node, $.replacement)
 
-trContent = ($, node) => 
+trContent = ($, node) =>
   field('content', alias(node, $.transliteration_content))
 
 /**
@@ -206,7 +206,7 @@ module.exports = grammar({
     class_statement: $ => choice(
       seq('class',
         field('name', $.package),
-        optional(field('version', $._version)), 
+        optional(field('version', $._version)),
         optseq(':', optional(field('attributes', $.attrlist))),
         $._semicolon),
       seq('class',
@@ -623,7 +623,7 @@ module.exports = grammar({
     // we use the precedence here to ensure that we turn map { q'thingy" => $_ } into a hashref
     // it just needs to be arbitrarily higher than the _literal rule
     _tricky_hashref: $ => prec(1, seq(
-      $._PERLY_BRACE_OPEN, choice($.string_literal, $.interpolated_string_literal, $.command_string), $._PERLY_COMMA, $._expr, '}'
+      $._PERLY_BRACE_OPEN, choice($.string_literal, $.interpolated_string_literal, $.command_string, $._fat_comma_autoquoted_bareword), $._PERLY_COMMA, $._expr, '}'
     )),
 
     map_grep_expression: $ => prec.left(TERMPREC.LSTOP, choice(
@@ -1099,7 +1099,7 @@ module.exports = grammar({
         token.immediate(prec(1, /[rwxoRWXOezsfdlpSbctugkTBMAC]((::)|([a-zA-Z_]\w*))+/))
       ))),
     ),
-    _fat_comma_autoquoted_bareword: $ => prec.dynamic(2, 
+    _fat_comma_autoquoted_bareword: $ => prec.dynamic(2,
       // NOTE - these have zw lookaheads so they override just being read as barewords
       // NOTE - we have this as a hidden node + alias the actual target b/c we don't need
       // the whitespace b4 the zw assetion to be part of our node
