@@ -3537,7 +3537,7 @@
           },
           {
             "type": "SYMBOL",
-            "name": "_expr"
+            "name": "_term_rightward"
           }
         ]
       }

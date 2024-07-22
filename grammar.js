@@ -547,7 +547,7 @@ module.exports = grammar({
     // we use the precedence here to ensure that we turn map { q'thingy" => $_ } into a hashref
     // it just needs to be arbitrarily higher than the _literal rule.
     _tricky_list: $ => prec(1, seq(
-      choice($.string_literal, $.interpolated_string_literal, $.command_string, $._fat_comma_autoquoted_bareword, $.number), $._PERLY_COMMA, $._expr,
+      choice($.string_literal, $.interpolated_string_literal, $.command_string, $._fat_comma_autoquoted_bareword, $.number), $._PERLY_COMMA, $._term_rightward
     )),
     anonymous_hash_expression: $ => choice(
       seq($._PERLY_BRACE_OPEN, $._expr, '}'),
