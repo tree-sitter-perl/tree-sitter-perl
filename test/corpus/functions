@@ -279,7 +279,7 @@ print $sner and die;
 ambiguous funcs - tricky block vs hashref
 ================================================================================
 takes_a_hash { 1, 2, 3, 4 };
-its_a_block { 1, 2, 3, 4; 9 };
+first { $_ > 19 } @numbas;
 for_sure_a_hash { hi => 'there' }, 9001;
 --------------------------------------------------------------------------------
 
@@ -297,14 +297,14 @@ for_sure_a_hash { hi => 'there' }, 9001;
     (ambiguous_function_call_expression
       (function)
       (indirect_object
-        (expression_statement
-          (list_expression
-            (number)
-            (number)
-            (number)
-            (number)))
-        (expression_statement
-          (number)))))
+        (block
+          (expression_statement
+            (relational_expression
+              (scalar
+                (varname))
+              (number)))))
+      (array
+        (varname))))
   (expression_statement
     (ambiguous_function_call_expression
       (function)
