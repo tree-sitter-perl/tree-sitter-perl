@@ -7765,13 +7765,8 @@
       ]
     },
     "primitive": {
-      "type": "CHOICE",
-      "members": [
-        {
-          "type": "SYMBOL",
-          "name": "number"
-        }
-      ]
+      "type": "SYMBOL",
+      "name": "number"
     },
     "number": {
       "type": "TOKEN",
