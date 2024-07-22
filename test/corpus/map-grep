@@ -67,6 +67,7 @@ map - EXPR form
 map +( lc($_) => 1 ), @array;      # this is EXPR and works!
 map +{ lc($_) => 1 }, @array;      # EXPR, so needs comma at end
 map { "\L$_"   => 1 }, @array;     # perl guesses EXPR; SURPRISE!
+map { even_this   => $_ }, @array;     # perl guesses EXPR; slightly more SURPRISE!
 # thanks perldoc, for all the examples!
 --------------------------------------------------------------------------------
 
@@ -97,11 +98,22 @@ map { "\L$_"   => 1 }, @array;     # perl guesses EXPR; SURPRISE!
   (expression_statement
     (map_grep_expression
       (anonymous_hash_expression
-        (interpolated_string_literal
-          (escape_sequence)
+        (list_expression
+          (interpolated_string_literal
+            (escape_sequence)
+            (scalar
+              (varname)))
+          (number)))
+      (array
+        (varname))))
+  (comment)
+  (expression_statement
+    (map_grep_expression
+      (anonymous_hash_expression
+        (list_expression
+          (autoquoted_bareword)
           (scalar
-            (varname)))
-        (number))
+            (varname))))
       (array
         (varname))))
   (comment)

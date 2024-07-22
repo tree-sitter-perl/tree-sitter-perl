@@ -57,13 +57,13 @@ binop.nonassoc = ($, op, term) =>
     )
   )
 
-regexpContent = ($, node) => 
+regexpContent = ($, node) =>
   field('content', alias(node, $.regexp_content))
 
-replacement = ($, node) => 
+replacement = ($, node) =>
   alias(node, $.replacement)
 
-trContent = ($, node) => 
+trContent = ($, node) =>
   field('content', alias(node, $.transliteration_content))
 
 /**
@@ -169,8 +169,7 @@ module.exports = grammar({
      ****/
     // NOTE - the plain token MUST come first, b/c TS will otherwise decide that the plain
     // old '{' is a non-usable token. Related to the issue from https://github.com/tree-sitter-perl/tree-sitter-perl/pull/110
-    _HASHBRACK: $ => '{',
-    _PERLY_BRACE_OPEN: $ => alias(token(prec(2, '{')), '{'),
+    _PERLY_BRACE_OPEN: $ => '{',
 
     block: $ => seq($._PERLY_BRACE_OPEN, repeat($._fullstmt), '}'),
 
@@ -206,7 +205,7 @@ module.exports = grammar({
     class_statement: $ => choice(
       seq('class',
         field('name', $.package),
-        optional(field('version', $._version)), 
+        optional(field('version', $._version)),
         optseq(':', optional(field('attributes', $.attrlist))),
         $._semicolon),
       seq('class',
@@ -545,8 +544,17 @@ module.exports = grammar({
       '[', optional($._expr), ']'
     ),
 
-    anonymous_hash_expression: $ => seq(
-      $._HASHBRACK, optional($._expr), '}'
+    // we use the precedence here to ensure that we turn map { q'thingy" => $_ } into a hashref
+    // it just needs to be arbitrarily higher than the _literal rule.
+    _tricky_list: $ => prec(1, seq(
+      choice($.string_literal, $.interpolated_string_literal, $.command_string, $._fat_comma_autoquoted_bareword, $.number), $._PERLY_COMMA, $._term_rightward
+    )),
+    anonymous_hash_expression: $ => choice(
+      seq($._PERLY_BRACE_OPEN, $._expr, '}'),
+      // an empty top-level block is a hashref
+      prec(1, seq($._PERLY_BRACE_OPEN, '}')),
+      // and if the hash starts w/ most quoted strings it's a hashref
+      seq($._PERLY_BRACE_OPEN, alias($._tricky_list, $.list_expression), '}'),
     ),
 
     anonymous_subroutine_expression: $ => seq(
@@ -620,20 +628,14 @@ module.exports = grammar({
       )),
 
     _map_grep: $ => choice('map', 'grep'),
-    // we use the precedence here to ensure that we turn map { q'thingy" => $_ } into a hashref
-    // it just needs to be arbitrarily higher than the _literal rule
-    _tricky_hashref: $ => prec(1, seq(
-      $._PERLY_BRACE_OPEN, choice($.string_literal, $.interpolated_string_literal, $.command_string), $._PERLY_COMMA, $._expr, '}'
-    )),
-
     map_grep_expression: $ => prec.left(TERMPREC.LSTOP, choice(
       seq($._map_grep, field('callback', $.block), field('list', $._term_rightward)),
-      seq($._map_grep, field('callback', choice($._term, alias($._tricky_hashref, $.anonymous_hash_expression))), $._PERLY_COMMA, field('list', $._term_rightward)),
-      seq($._map_grep, '(', $._NONASSOC, field('callback', choice($._term, alias($._tricky_hashref, $.anonymous_hash_expression))), $._PERLY_COMMA, field('list', $._term_rightward), ')'),
+      seq($._map_grep, field('callback', $._term), $._PERLY_COMMA, field('list', $._term_rightward)),
+      seq($._map_grep, '(', $._NONASSOC, field('callback', $._term), $._PERLY_COMMA, field('list', $._term_rightward), ')'),
       seq($._map_grep, '(', $._NONASSOC, field('callback', $.block), field('list', $._term_rightward), ')'),
     )),
 
-    // even though technically you need the _tricky_hashref handling here, we punt on that,
+    // NOTE - even though technically you need the _tricky_hashref handling here, we punt on that,
     // b/c it's quite unlikely that someone is sorting a hashref w/ the default string
     // sort
     // sigh, here we go SUBNAME (bareword vers)! we'll cover this with indirobs
@@ -1099,7 +1101,7 @@ module.exports = grammar({
         token.immediate(prec(1, /[rwxoRWXOezsfdlpSbctugkTBMAC]((::)|([a-zA-Z_]\w*))+/))
       ))),
     ),
-    _fat_comma_autoquoted_bareword: $ => prec.dynamic(2, 
+    _fat_comma_autoquoted_bareword: $ => prec.dynamic(2,
       // NOTE - these have zw lookaheads so they override just being read as barewords
       // NOTE - we have this as a hidden node + alias the actual target b/c we don't need
       // the whitespace b4 the zw assetion to be part of our node

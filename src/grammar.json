@@ -26,24 +26,8 @@
         }
       ]
     },
-    "_HASHBRACK": {
-      "type": "STRING",
-      "value": "{"
-    },
     "_PERLY_BRACE_OPEN": {
-      "type": "ALIAS",
-      "content": {
-        "type": "TOKEN",
-        "content": {
-          "type": "PREC",
-          "value": 2,
-          "content": {
-            "type": "STRING",
-            "value": "{"
-          }
-        }
-      },
-      "named": false,
+      "type": "STRING",
       "value": "{"
     },
     "block": {
@@ -3516,28 +3500,106 @@
         }
       ]
     },
+    "_tricky_list": {
+      "type": "PREC",
+      "value": 1,
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "SYMBOL",
+                "name": "string_literal"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "interpolated_string_literal"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "command_string"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "_fat_comma_autoquoted_bareword"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "number"
+              }
+            ]
+          },
+          {
+            "type": "SYMBOL",
+            "name": "_PERLY_COMMA"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "_term_rightward"
+          }
+        ]
+      }
+    },
     "anonymous_hash_expression": {
-      "type": "SEQ",
+      "type": "CHOICE",
       "members": [
         {
-          "type": "SYMBOL",
-          "name": "_HASHBRACK"
-        },
-        {
-          "type": "CHOICE",
+          "type": "SEQ",
           "members": [
+            {
+              "type": "SYMBOL",
+              "name": "_PERLY_BRACE_OPEN"
+            },
             {
               "type": "SYMBOL",
               "name": "_expr"
             },
             {
-              "type": "BLANK"
+              "type": "STRING",
+              "value": "}"
             }
           ]
         },
         {
-          "type": "STRING",
-          "value": "}"
+          "type": "PREC",
+          "value": 1,
+          "content": {
+            "type": "SEQ",
+            "members": [
+              {
+                "type": "SYMBOL",
+                "name": "_PERLY_BRACE_OPEN"
+              },
+              {
+                "type": "STRING",
+                "value": "}"
+              }
+            ]
+          }
+        },
+        {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "_PERLY_BRACE_OPEN"
+            },
+            {
+              "type": "ALIAS",
+              "content": {
+                "type": "SYMBOL",
+                "name": "_tricky_list"
+              },
+              "named": true,
+              "value": "list_expression"
+            },
+            {
+              "type": "STRING",
+              "value": "}"
+            }
+          ]
         }
       ]
     },
@@ -4227,48 +4289,6 @@
         }
       ]
     },
-    "_tricky_hashref": {
-      "type": "PREC",
-      "value": 1,
-      "content": {
-        "type": "SEQ",
-        "members": [
-          {
-            "type": "SYMBOL",
-            "name": "_PERLY_BRACE_OPEN"
-          },
-          {
-            "type": "CHOICE",
-            "members": [
-              {
-                "type": "SYMBOL",
-                "name": "string_literal"
-              },
-              {
-                "type": "SYMBOL",
-                "name": "interpolated_string_literal"
-              },
-              {
-                "type": "SYMBOL",
-                "name": "command_string"
-              }
-            ]
-          },
-          {
-            "type": "SYMBOL",
-            "name": "_PERLY_COMMA"
-          },
-          {
-            "type": "SYMBOL",
-            "name": "_expr"
-          },
-          {
-            "type": "STRING",
-            "value": "}"
-          }
-        ]
-      }
-    },
     "map_grep_expression": {
       "type": "PREC_LEFT",
       "value": 4,
@@ -4311,22 +4331,8 @@
                 "type": "FIELD",
                 "name": "callback",
                 "content": {
-                  "type": "CHOICE",
-                  "members": [
-                    {
-                      "type": "SYMBOL",
-                      "name": "_term"
-                    },
-                    {
-                      "type": "ALIAS",
-                      "content": {
-                        "type": "SYMBOL",
-                        "name": "_tricky_hashref"
-                      },
-                      "named": true,
-                      "value": "anonymous_hash_expression"
-                    }
-                  ]
+                  "type": "SYMBOL",
+                  "name": "_term"
                 }
               },
               {
@@ -4362,22 +4368,8 @@
                 "type": "FIELD",
                 "name": "callback",
                 "content": {
-                  "type": "CHOICE",
-                  "members": [
-                    {
-                      "type": "SYMBOL",
-                      "name": "_term"
-                    },
-                    {
-                      "type": "ALIAS",
-                      "content": {
-                        "type": "SYMBOL",
-                        "name": "_tricky_hashref"
-                      },
-                      "named": true,
-                      "value": "anonymous_hash_expression"
-                    }
-                  ]
+                  "type": "SYMBOL",
+                  "name": "_term"
                 }
               },
               {
