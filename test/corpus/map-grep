@@ -98,20 +98,22 @@ map { even_this   => $_ }, @array;     # perl guesses EXPR; slightly more SURPRI
   (expression_statement
     (map_grep_expression
       (anonymous_hash_expression
-        (interpolated_string_literal
-          (escape_sequence)
-          (scalar
-            (varname)))
-        (number))
+        (list_expression
+          (interpolated_string_literal
+            (escape_sequence)
+            (scalar
+              (varname)))
+          (number)))
       (array
         (varname))))
   (comment)
   (expression_statement
     (map_grep_expression
       (anonymous_hash_expression
-        (autoquoted_bareword)
-        (scalar
-          (varname)))
+        (list_expression
+          (autoquoted_bareword)
+          (scalar
+            (varname))))
       (array
         (varname))))
   (comment)
