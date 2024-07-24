@@ -130,8 +130,8 @@ module.exports = grammar({
     $._heredoc_start,
     $._heredoc_middle,
     $.heredoc_end,
+    $._fat_comma_autoquoted,
     /* zero-width lookahead tokens */
-    $._fat_comma_zw,
     $._brace_end_zw,
     $._dollar_ident_zw,
     $._no_interp_whitespace_zw,
@@ -150,8 +150,6 @@ module.exports = grammar({
     [$.preinc_expression, $.postinc_expression],
     // all of the following go GLR b/c they need extra tokens to allow postfixy autoquotes
     [$.return_expression],
-    [$.conditional_statement],
-    [$.elsif],
     [$._listexpr, $.list_expression, $._term_rightward],
     [$._term_rightward],
     [$.function, $.bareword],
@@ -167,8 +165,6 @@ module.exports = grammar({
     /****
      * Main grammar rules taken from perly.y.
      ****/
-    // NOTE - the plain token MUST come first, b/c TS will otherwise decide that the plain
-    // old '{' is a non-usable token. Related to the issue from https://github.com/tree-sitter-perl/tree-sitter-perl/pull/110
     _PERLY_BRACE_OPEN: $ => '{',
 
     block: $ => seq($._PERLY_BRACE_OPEN, repeat($._fullstmt), '}'),
@@ -317,8 +313,8 @@ module.exports = grammar({
 
     _expr: $ => choice($.lowprec_logical_expression, $._listexpr),
     lowprec_logical_expression: $ => choice(
-      prec.left(2, binop('and', $._expr)),
-      prec.left(1, binop('or', $._expr)),
+      prec.left(TERMPREC.ANDOP, binop('and', $._expr)),
+      prec.left(TERMPREC.OROP, binop('or', $._expr)),
     ),
 
     _listexpr: $ => choice(
@@ -452,7 +448,6 @@ module.exports = grammar({
       /* PMFUNC */
       $.bareword,
       $.autoquoted_bareword,
-      $._fat_comma_autoquoted_bareword,
       $._listop,
 
       /* perly.y doesn't know about `my` because that is handled weirdly in
@@ -547,7 +542,7 @@ module.exports = grammar({
     // we use the precedence here to ensure that we turn map { q'thingy" => $_ } into a hashref
     // it just needs to be arbitrarily higher than the _literal rule.
     _tricky_list: $ => prec(1, seq(
-      choice($.string_literal, $.interpolated_string_literal, $.command_string, $._fat_comma_autoquoted_bareword, $.number), $._PERLY_COMMA, $._term_rightward
+      choice($.string_literal, $.interpolated_string_literal, $.command_string, alias($._fat_comma_autoquoted, $.autoquoted_bareword), $.number), $._PERLY_COMMA, $._term_rightward
     )),
     anonymous_hash_expression: $ => choice(
       seq($._PERLY_BRACE_OPEN, $._expr, '}'),
@@ -1091,7 +1086,8 @@ module.exports = grammar({
     _quotelikes: $ => choice('q', 'qq', 'qw', 'qx', 's', 'tr', 'y'),
     _autoquotables: $ => choice($._func0op, $._func1op, $._keywords, $._quotelikes),
     // we need dynamic precedence here so we can resolve things like `print -next`
-    autoquoted_bareword: $ => prec.dynamic(20,
+    autoquoted_bareword: $ => choice(
+      prec.dynamic(20,
       // give this autoquote the highest precedence we gots
       prec(TERMPREC.PAREN, seq('-', choice(
         $._bareword,
@@ -1100,13 +1096,10 @@ module.exports = grammar({
         // followed by a bareword (see gh#145)
         token.immediate(prec(1, /[rwxoRWXOezsfdlpSbctugkTBMAC]((::)|([a-zA-Z_]\w*))+/))
       ))),
+      ),
+      $._fat_comma_autoquoted
     ),
-    _fat_comma_autoquoted_bareword: $ => prec.dynamic(2,
-      // NOTE - these have zw lookaheads so they override just being read as barewords
-      // NOTE - we have this as a hidden node + alias the actual target b/c we don't need
-      // the whitespace b4 the zw assetion to be part of our node
-      seq(alias(choice($._identifier, $._autoquotables), $.autoquoted_bareword), $._fat_comma_zw),
-    ),
+    // NOTE - these have zw lookaheads so they override just being read as barewords
     _brace_autoquoted: $ => seq(
       alias(choice($._bareword, $._autoquotables), $.autoquoted_bareword),
       $._brace_end_zw

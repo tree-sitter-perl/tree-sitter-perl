@@ -48,8 +48,8 @@ enum TokenType {
   TOKEN_HEREDOC_START,
   TOKEN_HEREDOC_MIDDLE,
   TOKEN_HEREDOC_END,
+  TOKEN_FAT_COMMA_AUTOQUOTED,
   /* zero-width lookahead tokens */
-  TOKEN_FAT_COMMA_ZW,
   TOKEN_BRACE_END_ZW,
   TOKEN_DOLLAR_IDENT_ZW,
   TOKEN_NO_INTERP_WHITESPACE_ZW,
@@ -677,9 +677,6 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     // quote char
     lexer->mark_end(lexer);
     ADVANCE_C;
-    // we return a fat_comma zw in the event that we see it, b/c that has higher
-    // precedence than the quoting op
-    if (valid_symbols[TOKEN_FAT_COMMA_ZW] && delim == '=' && c == '>') TOKEN(TOKEN_FAT_COMMA_ZW);
 
     // gotta safely handle $hash{q}
     if (valid_symbols[TOKEN_BRACE_END_ZW] && delim == '}') {
@@ -839,39 +836,61 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     TOKEN(TOKEN_PROTOTYPE_OR_SIGNATURE);
   }
 
+  /* At this point, we begin our zero-width lookaheads */
   lexer->mark_end(lexer);
   int32_t c1 = c;
-  /* let's get the next lookahead */
-  ADVANCE_C;
-  int32_t c2 = c;
-  if (lexer->eof(lexer)) return false;
-#define EQ2(s) (c1 == s[0] && c2 == s[1])
-
-  /* NOTE - we need this to NOT be valid_symbol guarded, b/c we need this to
-   * crash errant GLR branches, see gh#92 */
-  if (EQ2("<<")) {
-    DEBUG("checking if << is indeed a heredoc\n", 0);
+  if (isidfirst(c) && valid_symbols[TOKEN_FAT_COMMA_AUTOQUOTED]) {
+    // we zip until the end of the identifier
     ADVANCE_C;
+    while (c && isidcont(c)) ADVANCE_C;
     lexer->mark_end(lexer);
-    if (c == '\\' || c == '~' || isidfirst(c)) {
-      TOKEN(PERLY_HEREDOC);
-    }
+    // we'll accept whatever identifier we just read in the event that we have the
+    // lookahead
+    // skip whitespace in case there is any
     skip_whitespace(lexer);
     c = lexer->lookahead;
-    if (c == '\'' || c == '"' || c == '`') {
-      TOKEN(PERLY_HEREDOC);
+    // TODO - carefully check if we got a 2 char quote such that we need to guard against
+    // the comment char here - the quoting is space-sensitive so we'll have to track that
+    // also
+    // now we need to skip comments - we get in a funny way if we have a quotelike
+    // operator followed by a comment as the quote char
+    if (c == '#') {
+      while (lexer->get_column(lexer)) ADVANCE_C;
     }
-    return false;
-  }
+    skip_whitespace(lexer);
+    c1 = lexer->lookahead;
+    ADVANCE_C;
+    if (c1 == '=' && c == '>') {
+      TOKEN(TOKEN_FAT_COMMA_AUTOQUOTED);
+    }
+  } else {
+    /* let's get the next lookahead */
+    ADVANCE_C;
+    int32_t c2 = c;
+    if (lexer->eof(lexer)) return false;
+#define EQ2(s) (c1 == s[0] && c2 == s[1])
 
-  if (valid_symbols[TOKEN_FAT_COMMA_ZW]) {
-    DEBUG("ZW-lookahead for => autoquoting\n", 0);
-    if (EQ2("=>")) TOKEN(TOKEN_FAT_COMMA_ZW);
-  }
+    /* NOTE - we need this to NOT be valid_symbol guarded, b/c we need this to
+     * crash errant GLR branches, see gh#92 */
+    if (EQ2("<<")) {
+      DEBUG("checking if << is indeed a heredoc\n", 0);
+      ADVANCE_C;
+      lexer->mark_end(lexer);
+      if (c == '\\' || c == '~' || isidfirst(c)) {
+        TOKEN(PERLY_HEREDOC);
+      }
+      skip_whitespace(lexer);
+      c = lexer->lookahead;
+      if (c == '\'' || c == '"' || c == '`') {
+        TOKEN(PERLY_HEREDOC);
+      }
+      return false;
+    }
 
-  if (valid_symbols[TOKEN_BRACE_END_ZW]) {
-    DEBUG("ZW-lookahead for brace-end in autoquote\n", 0);
-    if (c1 == '}') TOKEN(TOKEN_BRACE_END_ZW);
+    if (valid_symbols[TOKEN_BRACE_END_ZW]) {
+      DEBUG("ZW-lookahead for brace-end in autoquote\n", 0);
+      if (c1 == '}') TOKEN(TOKEN_BRACE_END_ZW);
+    }
   }
 
   return false;
