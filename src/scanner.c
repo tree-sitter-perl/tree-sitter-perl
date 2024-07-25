@@ -841,8 +841,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   int32_t c1 = c;
   if (isidfirst(c) && valid_symbols[TOKEN_FAT_COMMA_AUTOQUOTED]) {
     // we zip until the end of the identifier
-    ADVANCE_C;
-    while (c && isidcont(c)) ADVANCE_C;
+    do { ADVANCE_C; } while (c && isidcont(c));
     DEBUG("marking the end of the identifier\n", 0);
     lexer->mark_end(lexer);
     // we'll accept whatever identifier we just read in the event that we have the
