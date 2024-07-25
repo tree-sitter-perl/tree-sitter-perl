@@ -836,13 +836,14 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     TOKEN(TOKEN_PROTOTYPE_OR_SIGNATURE);
   }
 
-  /* At this point, we begin our zero-width lookaheads */
-  lexer->mark_end(lexer);
+  // we hold on to the current char in case we need to do some fancy stuff w/ it in 2 char
+  // lookaheads below
   int32_t c1 = c;
   if (isidfirst(c) && valid_symbols[TOKEN_FAT_COMMA_AUTOQUOTED]) {
     // we zip until the end of the identifier
     ADVANCE_C;
     while (c && isidcont(c)) ADVANCE_C;
+    DEBUG("marking the end of the identifier\n", 0);
     lexer->mark_end(lexer);
     // we'll accept whatever identifier we just read in the event that we have the
     // lookahead
@@ -855,7 +856,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     // now we need to skip comments - we get in a funny way if we have a quotelike
     // operator followed by a comment as the quote char
     if (c == '#') {
-      while (lexer->get_column(lexer)) ADVANCE_C;
+      while (lexer->get_column(lexer)) lexer->advance(lexer, true);
     }
     skip_whitespace(lexer);
     c1 = lexer->lookahead;
@@ -864,6 +865,8 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
       TOKEN(TOKEN_FAT_COMMA_AUTOQUOTED);
     }
   } else {
+    /* it's ZW time! */
+    lexer->mark_end(lexer);
     /* let's get the next lookahead */
     ADVANCE_C;
     int32_t c2 = c;
