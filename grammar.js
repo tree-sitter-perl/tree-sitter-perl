@@ -1076,6 +1076,7 @@ module.exports = grammar({
     // we have to up the lexical prec here to prevent v5 from being read as a bareword
     version: $ => token(prec(1, /v[0-9]+(?:\.[0-9]+)*/)),
 
+    // TODO - ELIMINATE THESE TOKENZ by moving autoquoting into the scanner
     // NOTE - we MUST do it this way, b/c if we don't include every literal token, then TS
     // will not even consider the consuming rules. Lexical precedence...
     // also, all of these rules are inlined up top
@@ -1088,14 +1089,14 @@ module.exports = grammar({
     // we need dynamic precedence here so we can resolve things like `print -next`
     autoquoted_bareword: $ => choice(
       prec.dynamic(20,
-      // give this autoquote the highest precedence we gots
-      prec(TERMPREC.PAREN, seq('-', choice(
-        $._bareword,
-        $._autoquotables,
-        // b/c we needed to bump up prec for filetests, we had to also inline a filetest
-        // followed by a bareword (see gh#145)
-        token.immediate(prec(1, /[rwxoRWXOezsfdlpSbctugkTBMAC]((::)|([a-zA-Z_]\w*))+/))
-      ))),
+        // give this autoquote the highest precedence we gots
+        prec(TERMPREC.PAREN, seq('-', choice(
+          $._bareword,
+          $._autoquotables,
+          // b/c we needed to bump up prec for filetests, we had to also inline a filetest
+          // followed by a bareword (see gh#145)
+          token.immediate(prec(1, /[rwxoRWXOezsfdlpSbctugkTBMAC]((::)|([a-zA-Z_]\w*))+/))
+        ))),
       ),
       $._fat_comma_autoquoted
     ),

@@ -227,6 +227,12 @@ static void lexerstate_finish_heredoc(LexerState *state) {
     return true;                 \
   } while (0)
 
+#define MARK_END                        \
+  do {                                  \
+    lexer->mark_end(lexer);             \
+    DEBUG("marking end of token\n", 0); \
+  } while (0)
+
 static void skip_whitespace(TSLexer *lexer) {
   while (1) {
     int32_t c = lexer->lookahead;
@@ -377,7 +383,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
           c = lexer->lookahead;
         }
         // we may be doing lookahead now
-        lexer->mark_end(lexer);
+        MARK_END;
         // read the whole line, b/c we want it
         while (c != '\n' && !lexer->eof(lexer)) {
           // we need special handling for windows line ending, b/c we can't
@@ -398,7 +404,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
             state->heredoc_state = HEREDOC_END;
             TOKEN(TOKEN_HEREDOC_MIDDLE);
           }
-          lexer->mark_end(lexer);
+          MARK_END;
           lexerstate_finish_heredoc(state);
           TOKEN(TOKEN_HEREDOC_END);
         }
@@ -417,11 +423,11 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
       bool saw_chars = false;
       while (1) {
         if (is_interpolation_escape(c)) {
-          lexer->mark_end(lexer);
+          MARK_END;
           break;
         }
         if (c == '\n') {
-          lexer->mark_end(lexer);
+          MARK_END;
           state->heredoc_state = HEREDOC_UNKNOWN;
           TOKEN(TOKEN_HEREDOC_MIDDLE);
         }
@@ -503,7 +509,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
       if (c == ':') {
         // NOTE - it's a syntax error to do $$:, so that's why we return
         // dollar_ident_zw in that case
-        lexer->mark_end(lexer);
+        MARK_END;
         ADVANCE_C;
         if (c == ':') {
           // we can safely bail out here b/c we know that $:: is handled in the
@@ -518,7 +524,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
 
   if (valid_symbols[TOKEN_SEARCH_SLASH] && c == '/') {
     ADVANCE_C;
-    lexer->mark_end(lexer);
+    MARK_END;
 
     if (c != '/') {
       lexerstate_push_quote(state, '/');
@@ -675,14 +681,14 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     if (skipped_whitespace && c == '#') return false;
     // we must do a two char lookahead to avoid turning the "=" in => into a
     // quote char
-    lexer->mark_end(lexer);
+    MARK_END;
     ADVANCE_C;
 
     // gotta safely handle $hash{q}
     if (valid_symbols[TOKEN_BRACE_END_ZW] && delim == '}') {
       TOKEN(TOKEN_BRACE_END_ZW);
     }
-    lexer->mark_end(lexer);
+    MARK_END;
 
     lexerstate_push_quote(state, delim);
     // TODO - fill in this debug print here?
@@ -707,14 +713,14 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
 
     if (valid_symbols[TOKEN_ESCAPED_DELIMITER]) {
       if (lexerstate_is_quote_opener(state, esc_c) || lexerstate_is_quote_closer(state, esc_c)) {
-        lexer->mark_end(lexer);
+        MARK_END;
         TOKEN(TOKEN_ESCAPED_DELIMITER);
       }
     }
 
     if (valid_symbols[TOKEN_ESCAPE_SEQUENCE]) {
       // Inside any kind of string, \\ is always an escape sequence
-      lexer->mark_end(lexer);
+      MARK_END;
       if (esc_c == '\\') TOKEN(TOKEN_ESCAPE_SEQUENCE);
 
       if (valid_symbols[TOKEN_Q_STRING_CONTENT]) {
@@ -840,24 +846,25 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   // lookaheads below
   int32_t c1 = c;
   if (isidfirst(c) && valid_symbols[TOKEN_FAT_COMMA_AUTOQUOTED]) {
-    // we zip until the end of the identifier
-    do { ADVANCE_C; } while (c && isidcont(c));
-    DEBUG("marking the end of the identifier\n", 0);
-    lexer->mark_end(lexer);
-    // we'll accept whatever identifier we just read in the event that we have the
-    // lookahead
-    // skip whitespace in case there is any
-    skip_whitespace(lexer);
-    c = lexer->lookahead;
+    // we zip until the end of the identifier; then we do a lookeahed to see if it's autoquoted
+    do {
+      ADVANCE_C;
+    } while (c && isidcont(c));
+    MARK_END;
     // TODO - carefully check if we got a 2 char quote such that we need to guard against
     // the comment char here - the quoting is space-sensitive so we'll have to track that
     // also
-    // now we need to skip comments - we get in a funny way if we have a quotelike
-    // operator followed by a comment as the quote char
-    if (c == '#') {
-      while (lexer->get_column(lexer)) lexer->advance(lexer, true);
+
+    // NOTE - there seems to be a bug in TS with skipping chars after you've hit done
+    // mark_end, so we have to do the regular advance so our token actually shows up
+    while (is_tsp_whitespace(c) || c == '#') {
+        while (is_tsp_whitespace(c)) ADVANCE_C;
+        // now we need to skip comments - we get in a funny way if we have a quotelike
+        // operator followed by a comment as the quote char
+        if (c == '#') {
+          while (lexer->get_column(lexer)) ADVANCE_C;
+        }
     }
-    skip_whitespace(lexer);
     c1 = lexer->lookahead;
     ADVANCE_C;
     if (c1 == '=' && c == '>') {
@@ -865,7 +872,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     }
   } else {
     /* it's ZW time! */
-    lexer->mark_end(lexer);
+    MARK_END;
     /* let's get the next lookahead */
     ADVANCE_C;
     int32_t c2 = c;
@@ -877,7 +884,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     if (EQ2("<<")) {
       DEBUG("checking if << is indeed a heredoc\n", 0);
       ADVANCE_C;
-      lexer->mark_end(lexer);
+      MARK_END;
       if (c == '\\' || c == '~' || isidfirst(c)) {
         TOKEN(PERLY_HEREDOC);
       }
