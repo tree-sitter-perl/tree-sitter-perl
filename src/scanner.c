@@ -49,6 +49,7 @@ enum TokenType {
   TOKEN_HEREDOC_MIDDLE,
   TOKEN_HEREDOC_END,
   TOKEN_FAT_COMMA_AUTOQUOTED,
+  TOKEN_FILETEST,
   /* zero-width lookahead tokens */
   TOKEN_BRACE_END_ZW,
   TOKEN_DOLLAR_IDENT_ZW,
@@ -845,6 +846,15 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   // we hold on to the current char in case we need to do some fancy stuff w/ it in 2 char
   // lookaheads below
   int32_t c1 = c;
+  if (c == '-' && valid_symbols[TOKEN_FILETEST]) {
+    ADVANCE_C;
+    if (strchr("rwxoRWXOezsfdlpSbctugkTBMAC", c)) {
+      ADVANCE_C;
+      if (!isidcont(c)) TOKEN(TOKEN_FILETEST);
+    }
+    // TODO - consider here; fat comma includes the minus, so we probably wanna forge ahead then
+    return false;
+  }
   if (isidfirst(c) && valid_symbols[TOKEN_FAT_COMMA_AUTOQUOTED]) {
     // we zip until the end of the identifier; then we do a lookeahed to see if it's autoquoted
     do {
@@ -858,12 +868,12 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     // NOTE - there seems to be a bug in TS with skipping chars after you've hit done
     // mark_end, so we have to do the regular advance so our token actually shows up
     while (is_tsp_whitespace(c) || c == '#') {
-        while (is_tsp_whitespace(c)) ADVANCE_C;
-        // now we need to skip comments - we get in a funny way if we have a quotelike
-        // operator followed by a comment as the quote char
-        if (c == '#') {
-          while (lexer->get_column(lexer)) ADVANCE_C;
-        }
+      while (is_tsp_whitespace(c)) ADVANCE_C;
+      // now we need to skip comments - we get in a funny way if we have a quotelike
+      // operator followed by a comment as the quote char
+      if (c == '#') {
+        while (lexer->get_column(lexer)) ADVANCE_C;
+      }
     }
     c1 = lexer->lookahead;
     ADVANCE_C;

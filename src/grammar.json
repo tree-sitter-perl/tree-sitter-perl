@@ -5717,24 +5717,13 @@
           "value": "write"
         },
         {
-          "type": "SEQ",
-          "members": [
-            {
-              "type": "STRING",
-              "value": "-"
-            },
-            {
-              "type": "IMMEDIATE_TOKEN",
-              "content": {
-                "type": "PREC",
-                "value": 1,
-                "content": {
-                  "type": "PATTERN",
-                  "value": "[rwxoRWXOezsfdlpSbctugkTBMAC]"
-                }
-              }
-            }
-          ]
+          "type": "ALIAS",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_filetest"
+          },
+          "named": false,
+          "value": "-x"
         }
       ]
     },
@@ -7631,21 +7620,6 @@
                     {
                       "type": "SYMBOL",
                       "name": "_bareword"
-                    },
-                    {
-                      "type": "SYMBOL",
-                      "name": "_autoquotables"
-                    },
-                    {
-                      "type": "IMMEDIATE_TOKEN",
-                      "content": {
-                        "type": "PREC",
-                        "value": 1,
-                        "content": {
-                          "type": "PATTERN",
-                          "value": "[rwxoRWXOezsfdlpSbctugkTBMAC]((::)|([a-zA-Z_]\\w*))+"
-                        }
-                      }
                     }
                   ]
                 }
@@ -8269,6 +8243,10 @@
     {
       "type": "SYMBOL",
       "name": "_fat_comma_autoquoted"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_filetest"
     },
     {
       "type": "SYMBOL",

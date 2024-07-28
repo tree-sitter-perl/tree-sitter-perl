@@ -131,6 +131,7 @@ module.exports = grammar({
     $._heredoc_middle,
     $.heredoc_end,
     $._fat_comma_autoquoted,
+    $._filetest,
     /* zero-width lookahead tokens */
     $._brace_end_zw,
     $._dollar_ident_zw,
@@ -784,8 +785,8 @@ module.exports = grammar({
       'scalar', 'shift', 'sin', 'sleep', 'sqrt', 'srand', 'stat', 'study',
       'tell', 'telldir', 'tied', 'uc', 'ucfirst', 'untie', 'umask',
       'values', 'write',
-      // filetest operators
-      seq('-', token.immediate(prec(1, /[rwxoRWXOezsfdlpSbctugkTBMAC]/)))
+      // filetest operators - we alias b/c otherwise the highlight query won't work
+      alias($._filetest, '-x')
       /* TODO: all the set*ent */
     ),
 
@@ -1086,17 +1087,12 @@ module.exports = grammar({
     _keywords: $ => choice($._postfixables, 'else', 'elsif', 'do', 'eval', 'our', 'state', 'my', 'local', 'require', 'return', 'eq', 'ne', 'lt', 'le', 'ge', 'gt', 'cmp', 'isa', $._KW_USE, $._LOOPEX, $._PHASE_NAME, '__DATA__', '__END__', 'sub', $._map_grep, 'sort', 'try', 'class', 'field', 'method', 'continue'),
     _quotelikes: $ => choice('q', 'qq', 'qw', 'qx', 's', 'tr', 'y'),
     _autoquotables: $ => choice($._func0op, $._func1op, $._keywords, $._quotelikes),
-    // we need dynamic precedence here so we can resolve things like `print -next`
     autoquoted_bareword: $ => choice(
+      // we need the dynamic prec to allow `say -thing` to not parse as a subtraction
       prec.dynamic(20,
-        // give this autoquote the highest precedence we gots
-        prec(TERMPREC.PAREN, seq('-', choice(
-          $._bareword,
-          $._autoquotables,
-          // b/c we needed to bump up prec for filetests, we had to also inline a filetest
-          // followed by a bareword (see gh#145)
-          token.immediate(prec(1, /[rwxoRWXOezsfdlpSbctugkTBMAC]((::)|([a-zA-Z_]\w*))+/))
-        ))),
+        // give this autoquote the highest precedence we gots; NOTE that builtins override
+        // minus autoquoting
+        prec(TERMPREC.PAREN, seq('-', choice($._bareword))),
       ),
       $._fat_comma_autoquoted
     ),

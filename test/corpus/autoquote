@@ -248,10 +248,10 @@ if (1) { ... } elsif =>;
 ================================================================================
 unary minus autoquoting
 ================================================================================
--next;
--next and 1;
-say -say;
-print -next and 1;
+-nexus;
+-nexus and 1;
+say -pray;
+print -nexus and 1;
 --------------------------------------------------------------------------------
 
 (source_file
@@ -271,3 +271,12 @@ print -next and 1;
         (function)
         (autoquoted_bareword))
       (number))))
+================================================================================
+unary minus autoquoting does not override builtins
+================================================================================
+-time;
+--------------------------------------------------------------------------------
+(source_file
+(expression_statement
+  (unary_expression
+    operand: (func0op_call_expression))))
