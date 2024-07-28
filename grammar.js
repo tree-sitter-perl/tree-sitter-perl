@@ -156,7 +156,9 @@ module.exports = grammar({
     [$.function, $.bareword],
     [$._term, $.indirect_object],
     [$.expression_statement, $._tricky_indirob_hashref],
+    [$.autoquoted_bareword],
     // these are all dynamic handling for continue BLOCK vs autoquoted
+    // TODO - we should be able to clip these once we eliminate _autoquotables
     [$.loop_statement],
     [$.cstyle_for_statement],
     [$.for_statement],
@@ -543,7 +545,7 @@ module.exports = grammar({
     // we use the precedence here to ensure that we turn map { q'thingy" => $_ } into a hashref
     // it just needs to be arbitrarily higher than the _literal rule.
     _tricky_list: $ => prec(1, seq(
-      choice($.string_literal, $.interpolated_string_literal, $.command_string, alias($._fat_comma_autoquoted, $.autoquoted_bareword), $.number), $._PERLY_COMMA, $._term_rightward
+      choice($.string_literal, $.interpolated_string_literal, $.command_string, $.autoquoted_bareword, $.number), $._PERLY_COMMA, $._term_rightward
     )),
     anonymous_hash_expression: $ => choice(
       seq($._PERLY_BRACE_OPEN, $._expr, '}'),
@@ -1092,9 +1094,9 @@ module.exports = grammar({
       prec.dynamic(20,
         // give this autoquote the highest precedence we gots; NOTE that builtins override
         // minus autoquoting
-        prec(TERMPREC.PAREN, seq('-', choice($._bareword))),
+        prec(TERMPREC.PAREN, seq('-', $._bareword)),
       ),
-      $._fat_comma_autoquoted
+      seq(optional('-'), $._fat_comma_autoquoted)
     ),
     // NOTE - these have zw lookaheads so they override just being read as barewords
     _brace_autoquoted: $ => seq(

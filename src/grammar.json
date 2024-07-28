@@ -3518,13 +3518,8 @@
                 "name": "command_string"
               },
               {
-                "type": "ALIAS",
-                "content": {
-                  "type": "SYMBOL",
-                  "name": "_fat_comma_autoquoted"
-                },
-                "named": true,
-                "value": "autoquoted_bareword"
+                "type": "SYMBOL",
+                "name": "autoquoted_bareword"
               },
               {
                 "type": "SYMBOL",
@@ -7615,21 +7610,33 @@
                   "value": "-"
                 },
                 {
-                  "type": "CHOICE",
-                  "members": [
-                    {
-                      "type": "SYMBOL",
-                      "name": "_bareword"
-                    }
-                  ]
+                  "type": "SYMBOL",
+                  "name": "_bareword"
                 }
               ]
             }
           }
         },
         {
-          "type": "SYMBOL",
-          "name": "_fat_comma_autoquoted"
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "STRING",
+                  "value": "-"
+                },
+                {
+                  "type": "BLANK"
+                }
+              ]
+            },
+            {
+              "type": "SYMBOL",
+              "name": "_fat_comma_autoquoted"
+            }
+          ]
         }
       ]
     },
@@ -8119,6 +8126,9 @@
     [
       "expression_statement",
       "_tricky_indirob_hashref"
+    ],
+    [
+      "autoquoted_bareword"
     ],
     [
       "loop_statement"

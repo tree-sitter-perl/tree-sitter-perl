@@ -852,7 +852,6 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
       ADVANCE_C;
       if (!isidcont(c)) TOKEN(TOKEN_FILETEST);
     }
-    // TODO - consider here; fat comma includes the minus, so we probably wanna forge ahead then
     return false;
   }
   if (isidfirst(c) && valid_symbols[TOKEN_FAT_COMMA_AUTOQUOTED]) {
