@@ -50,6 +50,7 @@ enum TokenType {
   TOKEN_HEREDOC_END,
   TOKEN_FAT_COMMA_AUTOQUOTED,
   TOKEN_FILETEST,
+  TOKEN_BRACE_AUTOQUOTED,
   /* zero-width lookahead tokens */
   TOKEN_BRACE_END_ZW,
   TOKEN_DOLLAR_IDENT_ZW,
@@ -854,7 +855,8 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     }
     return false;
   }
-  if (isidfirst(c) && valid_symbols[TOKEN_FAT_COMMA_AUTOQUOTED]) {
+  if (isidfirst(c) &&
+      (valid_symbols[TOKEN_FAT_COMMA_AUTOQUOTED] || valid_symbols[TOKEN_BRACE_AUTOQUOTED])) {
     // we zip until the end of the identifier; then we do a lookeahed to see if it's autoquoted
     do {
       ADVANCE_C;
@@ -873,11 +875,15 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
       if (c == '#') {
         while (lexer->get_column(lexer)) ADVANCE_C;
       }
+      // TODO - in theory there could be POD here that we needa skip over (EYES ROLL)
     }
     c1 = lexer->lookahead;
     ADVANCE_C;
-    if (c1 == '=' && c == '>') {
-      TOKEN(TOKEN_FAT_COMMA_AUTOQUOTED);
+    if (valid_symbols[TOKEN_FAT_COMMA_AUTOQUOTED]) {
+      if (c1 == '=' && c == '>') TOKEN(TOKEN_FAT_COMMA_AUTOQUOTED);
+    }
+    if (valid_symbols[TOKEN_BRACE_AUTOQUOTED]) {
+      if (c1 == '}') TOKEN(TOKEN_BRACE_AUTOQUOTED);
     }
   } else {
     /* it's ZW time! */

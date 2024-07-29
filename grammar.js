@@ -82,15 +82,9 @@ module.exports = grammar({
   ],
   word: $ => $._identifier,
   inline: $ => [
-    $._conditionals,
-    $._loops,
-    $._postfixables,
-    $._keywords,
-    $._quotelikes,
     $._func0op,
     $._func1op,
     $._map_grep,
-    $._autoquotables,
     $._PERLY_COMMA,
     $._KW_USE,
     $._KW_FOR,
@@ -132,6 +126,7 @@ module.exports = grammar({
     $.heredoc_end,
     $._fat_comma_autoquoted,
     $._filetest,
+    $._brace_autoquoted_token,
     /* zero-width lookahead tokens */
     $._brace_end_zw,
     $._dollar_ident_zw,
@@ -157,8 +152,7 @@ module.exports = grammar({
     [$._term, $.indirect_object],
     [$.expression_statement, $._tricky_indirob_hashref],
     [$.autoquoted_bareword],
-    // these are all dynamic handling for continue BLOCK vs autoquoted
-    // TODO - we should be able to clip these once we eliminate _autoquotables
+    // these are all dynamic handling for continue BLOCK vs func0 b/c we don't get lookahead
     [$.loop_statement],
     [$.cstyle_for_statement],
     [$.for_statement],
@@ -734,7 +728,7 @@ module.exports = grammar({
     // not all indirobs are alike; for variables, they have autoquoting behavior
     _var_indirob_autoquote: $ => seq(
         $._PERLY_BRACE_OPEN,
-        alias(choice($._bareword, $._autoquotables, $._ident_special, /\^\w+/ ), $.varname),
+        alias(choice($._brace_autoquoted_token, $._bareword, $._ident_special, /\^\w+/ ), $.varname),
         $._brace_end_zw, '}'
     ),
     _var_indirob: $ => choice(
@@ -1079,16 +1073,8 @@ module.exports = grammar({
     // we have to up the lexical prec here to prevent v5 from being read as a bareword
     version: $ => token(prec(1, /v[0-9]+(?:\.[0-9]+)*/)),
 
-    // TODO - ELIMINATE THESE TOKENZ by moving autoquoting into the scanner
-    // NOTE - we MUST do it this way, b/c if we don't include every literal token, then TS
-    // will not even consider the consuming rules. Lexical precedence...
-    // also, all of these rules are inlined up top
     _conditionals: $ => choice('if', 'unless'),
     _loops: $ => choice('while', 'until'),
-    _postfixables: $ => choice($._conditionals, $._loops, $._KW_FOR, 'and', 'or'),
-    _keywords: $ => choice($._postfixables, 'else', 'elsif', 'do', 'eval', 'our', 'state', 'my', 'local', 'require', 'return', 'eq', 'ne', 'lt', 'le', 'ge', 'gt', 'cmp', 'isa', $._KW_USE, $._LOOPEX, $._PHASE_NAME, '__DATA__', '__END__', 'sub', $._map_grep, 'sort', 'try', 'class', 'field', 'method', 'continue'),
-    _quotelikes: $ => choice('q', 'qq', 'qw', 'qx', 's', 'tr', 'y'),
-    _autoquotables: $ => choice($._func0op, $._func1op, $._keywords, $._quotelikes),
     autoquoted_bareword: $ => choice(
       // we need the dynamic prec to allow `say -thing` to not parse as a subtraction
       prec.dynamic(20,
@@ -1099,10 +1085,7 @@ module.exports = grammar({
       seq(optional('-'), $._fat_comma_autoquoted)
     ),
     // NOTE - these have zw lookaheads so they override just being read as barewords
-    _brace_autoquoted: $ => seq(
-      alias(choice($._bareword, $._autoquotables), $.autoquoted_bareword),
-      $._brace_end_zw
-    ),
+    _brace_autoquoted: $ => alias($._brace_autoquoted_token, $.autoquoted_bareword),
 
     // prefer identifer to bareword where the grammar allows
     identifier: $ => prec(2, $._identifier),
