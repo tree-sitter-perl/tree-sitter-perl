@@ -1398,23 +1398,6 @@
                 }
               ]
             }
-          },
-          {
-            "type": "CHOICE",
-            "members": [
-              {
-                "type": "SEQ",
-                "members": [
-                  {
-                    "type": "SYMBOL",
-                    "name": "_PERLY_COMMA"
-                  }
-                ]
-              },
-              {
-                "type": "BLANK"
-              }
-            ]
           }
         ]
       }
@@ -7839,9 +7822,6 @@
     [
       "_listexpr",
       "list_expression",
-      "_term_rightward"
-    ],
-    [
       "_term_rightward"
     ],
     [

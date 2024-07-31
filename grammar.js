@@ -147,7 +147,6 @@ module.exports = grammar({
     // all of the following go GLR b/c they need extra tokens to allow postfixy autoquotes
     [$.return_expression],
     [$._listexpr, $.list_expression, $._term_rightward],
-    [$._term_rightward],
     [$.function, $.bareword],
     [$._term, $.indirect_object],
     [$.expression_statement, $._tricky_indirob_hashref],
@@ -315,11 +314,7 @@ module.exports = grammar({
     /* ensure that an entire list expression's contents appear in one big flat
     * list, while permitting multiple internal commas and an optional trailing one */
     _term_rightward: $ => prec.right(seq(
-      $._term,
-      repeat(seq($._PERLY_COMMA, optional($._term))),
-      // NOTE - we need this here to create a conflict in order to go GLR to handle
-      // `die 1, or => die` correctly
-      optional(seq($._PERLY_COMMA))
+      $._term, repeat(seq($._PERLY_COMMA, optional($._term))),
     )),
     // NOTE - we gave this negative precedence b/c it's kinda just a fallback
     list_expression: $ => prec(-1, choice($._term, $._term_rightward)),
