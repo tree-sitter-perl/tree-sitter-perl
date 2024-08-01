@@ -5,7 +5,7 @@
 
 [ "if" "elsif" "unless" "else" ] @conditional
 
-(conditional_expression [ "?" ":" ] @conditional.ternary) 
+(conditional_expression [ "?" ":" ] @conditional.ternary)
 
 [ "while" "until" "for" "foreach" ] @repeat
 ("continue" @repeat (block))
@@ -52,10 +52,10 @@
 ] @number
 
 [
-  (string_literal) 
-  (interpolated_string_literal) 
-  (quoted_word_list) 
-  (command_string) 
+  (string_literal)
+  (interpolated_string_literal)
+  (quoted_word_list)
+  (command_string)
   (heredoc_content)
   (replacement)
   (transliteration_content)
@@ -70,7 +70,7 @@
 [(escape_sequence) (escaped_delimiter)] @string.escape
 
 (_ modifiers: _ @character.special)
-[  
+[
  (quoted_regexp)
  (match_regexp)
  (regexp_content)
@@ -143,9 +143,9 @@
   (varname)
   "}" @punctuation.special)
 
-(varname 
+(varname
   (block
-    "{" @punctuation.special 
+    "{" @punctuation.special
     "}" @punctuation.special))
 
 

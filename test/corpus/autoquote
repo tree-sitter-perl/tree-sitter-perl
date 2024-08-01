@@ -248,10 +248,10 @@ if (1) { ... } elsif =>;
 ================================================================================
 unary minus autoquoting
 ================================================================================
--next;
--next and 1;
-say -say;
-print -next and 1;
+-nexus;
+-nexus and 1;
+say -pray;
+print -nexus and 1;
 --------------------------------------------------------------------------------
 
 (source_file
@@ -271,3 +271,48 @@ print -next and 1;
         (function)
         (autoquoted_bareword))
       (number))))
+
+================================================================================
+unary minus autoquoting does not override builtins
+================================================================================
+-time;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (unary_expression
+      operand: (func0op_call_expression))))
+
+================================================================================
+autoquote edge cases
+================================================================================
+-next =>;                 # fat comma includes the minus + overrides builtins
+-sner();                  # parens beat out minus auotquote
+- r;                      # minus autoquote + space beats filetest
+-Package::Quoted;         # minus includes `::` in the string
+$thing ? -hi:-there;      # but single colon is not included in the quote
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (list_expression
+      (autoquoted_bareword)))
+  (comment)
+  (expression_statement
+    (unary_expression
+      (function_call_expression
+        (function))))
+  (comment)
+  (expression_statement
+    (autoquoted_bareword))
+  (comment)
+  (expression_statement
+    (autoquoted_bareword))
+  (comment)
+  (expression_statement
+    (conditional_expression
+      (scalar
+        (varname))
+      (autoquoted_bareword)
+      (autoquoted_bareword)))
+  (comment))

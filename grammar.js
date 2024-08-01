@@ -82,15 +82,9 @@ module.exports = grammar({
   ],
   word: $ => $._identifier,
   inline: $ => [
-    $._conditionals,
-    $._loops,
-    $._postfixables,
-    $._keywords,
-    $._quotelikes,
     $._func0op,
     $._func1op,
     $._map_grep,
-    $._autoquotables,
     $._PERLY_COMMA,
     $._KW_USE,
     $._KW_FOR,
@@ -130,8 +124,10 @@ module.exports = grammar({
     $._heredoc_start,
     $._heredoc_middle,
     $.heredoc_end,
+    $._fat_comma_autoquoted,
+    $._filetest,
+    $._brace_autoquoted_token,
     /* zero-width lookahead tokens */
-    $._fat_comma_zw,
     $._brace_end_zw,
     $._dollar_ident_zw,
     $._no_interp_whitespace_zw,
@@ -150,25 +146,19 @@ module.exports = grammar({
     [$.preinc_expression, $.postinc_expression],
     // all of the following go GLR b/c they need extra tokens to allow postfixy autoquotes
     [$.return_expression],
-    [$.conditional_statement],
-    [$.elsif],
     [$._listexpr, $.list_expression, $._term_rightward],
-    [$._term_rightward],
     [$.function, $.bareword],
     [$._term, $.indirect_object],
     [$.expression_statement, $._tricky_indirob_hashref],
-    // these are all dynamic handling for continue BLOCK vs autoquoted
-    [$.loop_statement],
-    [$.cstyle_for_statement],
-    [$.for_statement],
+    [$.autoquoted_bareword],
+    // these are all dynamic handling for continue BLOCK vs func0 b/c we don't get lookahead
+    [$._loop_body]
   ],
   rules: {
     source_file: $ => seq(repeat($._fullstmt), optional($.__DATA__)),
     /****
      * Main grammar rules taken from perly.y.
      ****/
-    // NOTE - the plain token MUST come first, b/c TS will otherwise decide that the plain
-    // old '{' is a non-usable token. Related to the issue from https://github.com/tree-sitter-perl/tree-sitter-perl/pull/110
     _PERLY_BRACE_OPEN: $ => '{',
 
     block: $ => seq($._PERLY_BRACE_OPEN, repeat($._fullstmt), '}'),
@@ -249,11 +239,8 @@ module.exports = grammar({
         field('block', $.block),
         optional($._else)
       ),
-    loop_statement: $ =>
-      seq($._loops, '(', field('condition', $._expr), ')',
-        field('block', $.block),
-        optseq('continue', field('continue', $.block))
-      ),
+    _loop_body: $ => seq(field('block', $.block), optseq('continue', field('continue', $.block))),
+    loop_statement: $ => seq($._loops, '(', field('condition', $._expr), ')', $._loop_body),
     cstyle_for_statement: $ =>
       seq($._KW_FOR,
         '(',
@@ -261,18 +248,17 @@ module.exports = grammar({
         field('condition', optional($._expr)), ';',
         field('iterator', optional($._expr)),
         ')',
-        $.block,
-        optseq('continue', field('continue', $.block))
+        $._loop_body
       ),
-    for_statement: $ =>
-      seq($._KW_FOR,
-        optional(choice(
+    _for_initializer: $ => choice(
           seq(optional(choice('my', 'state', 'our')), field('variable', $.scalar)),
           seq('my', field('variables', paren_list_of($.scalar))),
-        )),
+        ),
+    for_statement: $ =>
+      seq($._KW_FOR,
+        optional($._for_initializer),
         '(', field('list', $._expr), ')',
-        field('block', $.block),
-        optseq('continue', field('continue', $.block))
+        $._loop_body
       ),
 
     try_statement: $ => seq(
@@ -317,8 +303,8 @@ module.exports = grammar({
 
     _expr: $ => choice($.lowprec_logical_expression, $._listexpr),
     lowprec_logical_expression: $ => choice(
-      prec.left(2, binop('and', $._expr)),
-      prec.left(1, binop('or', $._expr)),
+      prec.left(TERMPREC.ANDOP, binop('and', $._expr)),
+      prec.left(TERMPREC.OROP, binop('or', $._expr)),
     ),
 
     _listexpr: $ => choice(
@@ -328,11 +314,7 @@ module.exports = grammar({
     /* ensure that an entire list expression's contents appear in one big flat
     * list, while permitting multiple internal commas and an optional trailing one */
     _term_rightward: $ => prec.right(seq(
-      $._term,
-      repeat(seq($._PERLY_COMMA, optional($._term))),
-      // NOTE - we need this here to create a conflict in order to go GLR to handle
-      // `die 1, or => die` correctly
-      optional(seq($._PERLY_COMMA))
+      $._term, repeat(seq($._PERLY_COMMA, optional($._term))),
     )),
     // NOTE - we gave this negative precedence b/c it's kinda just a fallback
     list_expression: $ => prec(-1, choice($._term, $._term_rightward)),
@@ -452,7 +434,6 @@ module.exports = grammar({
       /* PMFUNC */
       $.bareword,
       $.autoquoted_bareword,
-      $._fat_comma_autoquoted_bareword,
       $._listop,
 
       /* perly.y doesn't know about `my` because that is handled weirdly in
@@ -547,7 +528,7 @@ module.exports = grammar({
     // we use the precedence here to ensure that we turn map { q'thingy" => $_ } into a hashref
     // it just needs to be arbitrarily higher than the _literal rule.
     _tricky_list: $ => prec(1, seq(
-      choice($.string_literal, $.interpolated_string_literal, $.command_string, $._fat_comma_autoquoted_bareword, $.number), $._PERLY_COMMA, $._term_rightward
+      choice($.string_literal, $.interpolated_string_literal, $.command_string, $.autoquoted_bareword, $.number), $._PERLY_COMMA, $._term_rightward
     )),
     anonymous_hash_expression: $ => choice(
       seq($._PERLY_BRACE_OPEN, $._expr, '}'),
@@ -736,7 +717,7 @@ module.exports = grammar({
     // not all indirobs are alike; for variables, they have autoquoting behavior
     _var_indirob_autoquote: $ => seq(
         $._PERLY_BRACE_OPEN,
-        alias(choice($._bareword, $._autoquotables, $._ident_special, /\^\w+/ ), $.varname),
+        alias(choice($._brace_autoquoted_token, $._bareword, $._ident_special, /\^\w+/ ), $.varname),
         $._brace_end_zw, '}'
     ),
     _var_indirob: $ => choice(
@@ -789,8 +770,8 @@ module.exports = grammar({
       'scalar', 'shift', 'sin', 'sleep', 'sqrt', 'srand', 'stat', 'study',
       'tell', 'telldir', 'tied', 'uc', 'ucfirst', 'untie', 'umask',
       'values', 'write',
-      // filetest operators
-      seq('-', token.immediate(prec(1, /[rwxoRWXOezsfdlpSbctugkTBMAC]/)))
+      // filetest operators - we alias b/c otherwise the highlight query won't work
+      alias($._filetest, '-x')
       /* TODO: all the set*ent */
     ),
 
@@ -1081,36 +1062,19 @@ module.exports = grammar({
     // we have to up the lexical prec here to prevent v5 from being read as a bareword
     version: $ => token(prec(1, /v[0-9]+(?:\.[0-9]+)*/)),
 
-    // NOTE - we MUST do it this way, b/c if we don't include every literal token, then TS
-    // will not even consider the consuming rules. Lexical precedence...
-    // also, all of these rules are inlined up top
     _conditionals: $ => choice('if', 'unless'),
     _loops: $ => choice('while', 'until'),
-    _postfixables: $ => choice($._conditionals, $._loops, $._KW_FOR, 'and', 'or'),
-    _keywords: $ => choice($._postfixables, 'else', 'elsif', 'do', 'eval', 'our', 'state', 'my', 'local', 'require', 'return', 'eq', 'ne', 'lt', 'le', 'ge', 'gt', 'cmp', 'isa', $._KW_USE, $._LOOPEX, $._PHASE_NAME, '__DATA__', '__END__', 'sub', $._map_grep, 'sort', 'try', 'class', 'field', 'method', 'continue'),
-    _quotelikes: $ => choice('q', 'qq', 'qw', 'qx', 's', 'tr', 'y'),
-    _autoquotables: $ => choice($._func0op, $._func1op, $._keywords, $._quotelikes),
-    // we need dynamic precedence here so we can resolve things like `print -next`
-    autoquoted_bareword: $ => prec.dynamic(20,
-      // give this autoquote the highest precedence we gots
-      prec(TERMPREC.PAREN, seq('-', choice(
-        $._bareword,
-        $._autoquotables,
-        // b/c we needed to bump up prec for filetests, we had to also inline a filetest
-        // followed by a bareword (see gh#145)
-        token.immediate(prec(1, /[rwxoRWXOezsfdlpSbctugkTBMAC]((::)|([a-zA-Z_]\w*))+/))
-      ))),
+    autoquoted_bareword: $ => choice(
+      // we need the dynamic prec to allow `say -thing` to not parse as a subtraction
+      prec.dynamic(20,
+        // give this autoquote the highest precedence we gots; NOTE that builtins override
+        // minus autoquoting
+        prec(TERMPREC.PAREN, seq('-', $._bareword)),
+      ),
+      seq(optional('-'), $._fat_comma_autoquoted)
     ),
-    _fat_comma_autoquoted_bareword: $ => prec.dynamic(2,
-      // NOTE - these have zw lookaheads so they override just being read as barewords
-      // NOTE - we have this as a hidden node + alias the actual target b/c we don't need
-      // the whitespace b4 the zw assetion to be part of our node
-      seq(alias(choice($._identifier, $._autoquotables), $.autoquoted_bareword), $._fat_comma_zw),
-    ),
-    _brace_autoquoted: $ => seq(
-      alias(choice($._bareword, $._autoquotables), $.autoquoted_bareword),
-      $._brace_end_zw
-    ),
+    // NOTE - these have zw lookaheads so they override just being read as barewords
+    _brace_autoquoted: $ => alias($._brace_autoquoted_token, $.autoquoted_bareword),
 
     // prefer identifer to bareword where the grammar allows
     identifier: $ => prec(2, $._identifier),

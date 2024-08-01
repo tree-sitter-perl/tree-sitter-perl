@@ -390,7 +390,7 @@ for (my $i = 0; $i < 10; $i++) { 123; }
     iterator: (postinc_expression
       operand: (scalar
         (varname)))
-    (block
+    block: (block
       (expression_statement
         (number)))))
 
