@@ -5658,6 +5658,16 @@
     "type": "cstyle_for_statement",
     "named": true,
     "fields": {
+      "block": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "block",
+            "named": true
+          }
+        ]
+      },
       "condition": {
         "multiple": true,
         "required": false,
@@ -6454,16 +6464,6 @@
           }
         ]
       }
-    },
-    "children": {
-      "multiple": false,
-      "required": true,
-      "types": [
-        {
-          "type": "block",
-          "named": true
-        }
-      ]
     }
   },
   {
@@ -8315,7 +8315,7 @@
         "required": true,
         "types": [
           {
-            "type": "-",
+            "type": "-x",
             "named": false
           },
           {
@@ -21162,6 +21162,10 @@
     "named": false
   },
   {
+    "type": "-x",
+    "named": false
+  },
+  {
     "type": ".",
     "named": false
   },
@@ -21299,14 +21303,6 @@
   },
   {
     "type": "^=",
-    "named": false
-  },
-  {
-    "type": "__DATA__",
-    "named": false
-  },
-  {
-    "type": "__END__",
     "named": false
   },
   {
