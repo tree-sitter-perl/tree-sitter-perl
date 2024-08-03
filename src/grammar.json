@@ -7389,7 +7389,7 @@
     },
     "_identifier": {
       "type": "PATTERN",
-      "value": "[[_\\p{XID_Start}]--[\\u{b7}\\u{387}\\u{1369}-\\u{1370}\\u{19da}\\u{2118}\\u{212e}]][[\\p{XID_Continue}]--[\\u{b7}\\u{387}\\u{1369}-\\u{1370}\\u{19da}\\u{2118}\\u{212e}]]*",
+      "value": "[_\\p{XID_Start}][\\p{XID_Continue}]*",
       "flags": "v"
     },
     "_ident_special": {
@@ -7431,8 +7431,7 @@
         },
         {
           "type": "PATTERN",
-          "value": "((::)|([[_\\p{XID_Start}]--[\\u{b7}\\u{387}\\u{1369}-\\u{1370}\\u{19da}\\u{2118}\\u{212e}]][[\\p{XID_Continue}]--[\\u{b7}\\u{387}\\u{1369}-\\u{1370}\\u{19da}\\u{2118}\\u{212e}]]*))+",
-          "flags": "v"
+          "value": "((::)|([a-zA-Z_]\\w*))+"
         }
       ]
     },
