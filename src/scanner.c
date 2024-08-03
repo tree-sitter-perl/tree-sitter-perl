@@ -2,6 +2,17 @@
 #include "tree_sitter/parser.h"
 #include "tsp_unicode.h"
 
+// grumble grumble no stdlib
+static char* tsp_strchr (register const char *s, int c)
+{
+  do {
+    if (*s == c)
+      {
+	return (char*)s;
+      }
+  } while (*s++);
+  return (0);
+}
 /* Set this to #define instead to enable debug printing */
 #undef DEBUGGING
 
@@ -13,10 +24,10 @@
 #define DEBUG(fmt, ...)
 #endif
 
-#include <string.h>
 #define streq(a, b) (strcmp(a, b) == 0)
 
 #include <wctype.h>
+
 
 enum TokenType {
   /* non-ident tokens */
@@ -265,7 +276,7 @@ static void _skip_chars(TSLexer *lexer, int maxlen, const char *allow) {
   while (maxlen)
     if (!c)
       return;
-    else if (strchr(allow, c)) {
+    else if (tsp_strchr(allow, c)) {
       ADVANCE_C;
       if (maxlen > 0) maxlen--;
     } else
@@ -292,7 +303,7 @@ static bool isidcont(int32_t c) { return c == '_' || is_tsp_id_continue(c); }
 
 // in any interpolatable case, we wanna stop parsing on these chars
 // there's a matching rule in the grammar to catch when it doesn't match a rule
-static bool is_interpolation_escape(int32_t c) { return c < 256 && strchr("$@-[{\\", c); }
+static bool is_interpolation_escape(int32_t c) { return c < 256 && tsp_strchr("$@-[{\\", c); }
 
 unsigned int tree_sitter_perl_external_scanner_serialize(void *payload, char *buffer) {
   LexerState *state = payload;
@@ -507,7 +518,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
 
   if (valid_symbols[TOKEN_DOLLAR_IDENT_ZW]) {
     // false on word chars, another dollar or {
-    if (!isidcont(c) && !strchr("${", c)) {
+    if (!isidcont(c) && !tsp_strchr("${", c)) {
       if (c == ':') {
         // NOTE - it's a syntax error to do $$:, so that's why we return
         // dollar_ident_zw in that case
@@ -849,7 +860,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   int32_t c1 = c;
   if (c == '-' && valid_symbols[TOKEN_FILETEST]) {
     ADVANCE_C;
-    if (strchr("rwxoRWXOezsfdlpSbctugkTBMAC", c)) {
+    if (tsp_strchr("rwxoRWXOezsfdlpSbctugkTBMAC", c)) {
       ADVANCE_C;
       if (!isidcont(c)) TOKEN(TOKEN_FILETEST);
     }
