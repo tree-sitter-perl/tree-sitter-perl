@@ -18,8 +18,7 @@ jobs:
           node-version: 20
       - run: npm run dev-install
       - run: npm test
-      - run: mkdir release
-      - run: cp -r LICENSE src binding.gyp queries bindings release
+      - run: ./copy-to-release
       - name: Deploy 🚀
         uses: peaceiris/actions-gh-pages@v3
         with:
