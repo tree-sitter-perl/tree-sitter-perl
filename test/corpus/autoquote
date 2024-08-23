@@ -5,6 +5,9 @@ hello  # tree-sitter is magical!
   => 'world';
 shift => 'up';
 plain::bareword => 'here';
+things
+# this does not make all the tings explode
+  =>;
 --------------------------------------------------------------------------------
 
 (source_file
@@ -20,7 +23,11 @@ plain::bareword => 'here';
   (expression_statement
     (list_expression
       (bareword)
-      (string_literal))))
+      (string_literal)))
+  (expression_statement
+    (list_expression
+      (autoquoted_bareword)
+      (comment))))
 
 ================================================================================
 quotelike followed by =>
