@@ -3,13 +3,11 @@
 #include "tsp_unicode.h"
 
 // grumble grumble no stdlib
-static char* tsp_strchr (register const char *s, int c)
-{
+static char *tsp_strchr(register const char *s, int c) {
   do {
-    if (*s == c)
-      {
-	return (char*)s;
-      }
+    if (*s == c) {
+      return (char *)s;
+    }
   } while (*s++);
   return (0);
 }
@@ -27,7 +25,6 @@ static char* tsp_strchr (register const char *s, int c)
 #define streq(a, b) (strcmp(a, b) == 0)
 
 #include <wctype.h>
-
 
 enum TokenType {
   /* non-ident tokens */
@@ -877,15 +874,17 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     // the comment char here - the quoting is space-sensitive so we'll have to track that
     // also
 
-    // NOTE - there seems to be a bug in TS with skipping chars after you've hit done
+    // NOTE - TS is annoying about skipping chars after you've hit done
     // mark_end, so we have to do the regular advance so our token actually shows up
     while (is_tsp_whitespace(c) || c == '#') {
       while (is_tsp_whitespace(c)) ADVANCE_C;
       // now we need to skip comments - we get in a funny way if we have a quotelike
       // operator followed by a comment as the quote char
       if (c == '#') {
+        ADVANCE_C;
         while (lexer->get_column(lexer)) ADVANCE_C;
       }
+      if (lexer->eof(lexer)) return false;
       // TODO - in theory there could be POD here that we needa skip over (EYES ROLL)
     }
     c1 = lexer->lookahead;
