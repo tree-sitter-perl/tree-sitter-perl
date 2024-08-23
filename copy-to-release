@@ -1,4 +1,4 @@
 #! /bin/bash
 
 mkdir release
-cp -r LICENSE src binding.gyp package.json Cargo.toml Package.swift pyproject.toml setup.py queries bindings release tree-sitter-perl.pc
+cp -r LICENSE src binding.gyp package.json Cargo.toml Package.swift pyproject.toml setup.py queries bindings tree-sitter-perl.pc release
