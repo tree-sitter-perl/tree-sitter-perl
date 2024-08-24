@@ -36,7 +36,7 @@
 "\\" @operator
 
 [
-  "or" "and"
+  "or" "xor" "and"
   "eq" "ne" "cmp" "lt" "le" "ge" "gt"
   "isa"
 ] @keyword.operator
