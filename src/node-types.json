@@ -3496,6 +3496,10 @@
             "named": false
           },
           {
+            "type": "^^",
+            "named": false
+          },
+          {
             "type": "x",
             "named": false
           },
@@ -12876,6 +12880,10 @@
           {
             "type": "or",
             "named": false
+          },
+          {
+            "type": "xor",
+            "named": false
           }
         ]
       },
@@ -19665,6 +19673,16 @@
           }
         ]
       },
+      "lexical": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "my",
+            "named": false
+          }
+        ]
+      },
       "name": {
         "multiple": false,
         "required": true,
@@ -21306,6 +21324,10 @@
     "named": false
   },
   {
+    "type": "^^",
+    "named": false
+  },
+  {
     "type": "__FILE__",
     "named": false
   },
@@ -21927,6 +21949,10 @@
   },
   {
     "type": "x=",
+    "named": false
+  },
+  {
+    "type": "xor",
     "named": false
   },
   {

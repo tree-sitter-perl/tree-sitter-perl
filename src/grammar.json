@@ -491,6 +491,22 @@
       "type": "SEQ",
       "members": [
         {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "FIELD",
+              "name": "lexical",
+              "content": {
+                "type": "STRING",
+                "value": "my"
+              }
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
+        },
+        {
           "type": "STRING",
           "value": "sub"
         },
@@ -1335,8 +1351,17 @@
                 "type": "FIELD",
                 "name": "operator",
                 "content": {
-                  "type": "STRING",
-                  "value": "or"
+                  "type": "CHOICE",
+                  "members": [
+                    {
+                      "type": "STRING",
+                      "value": "or"
+                    },
+                    {
+                      "type": "STRING",
+                      "value": "xor"
+                    }
+                  ]
                 }
               },
               {
@@ -2614,6 +2639,10 @@
                     {
                       "type": "STRING",
                       "value": "//"
+                    },
+                    {
+                      "type": "STRING",
+                      "value": "^^"
                     }
                   ]
                 }
