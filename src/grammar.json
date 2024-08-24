@@ -1351,8 +1351,17 @@
                 "type": "FIELD",
                 "name": "operator",
                 "content": {
-                  "type": "STRING",
-                  "value": "or"
+                  "type": "CHOICE",
+                  "members": [
+                    {
+                      "type": "STRING",
+                      "value": "or"
+                    },
+                    {
+                      "type": "STRING",
+                      "value": "xor"
+                    }
+                  ]
                 }
               },
               {
@@ -2630,6 +2639,10 @@
                     {
                       "type": "STRING",
                       "value": "//"
+                    },
+                    {
+                      "type": "STRING",
+                      "value": "^^"
                     }
                   ]
                 }
