@@ -214,6 +214,7 @@ module.exports = grammar({
     ),
 
     subroutine_declaration_statement: $ => seq(
+      optional(field('lexical', 'my')),
       'sub',
       field('name', $.bareword),
       optseq(':', optional(field('attributes', $.attrlist))),
@@ -304,7 +305,7 @@ module.exports = grammar({
     _expr: $ => choice($.lowprec_logical_expression, $._listexpr),
     lowprec_logical_expression: $ => choice(
       prec.left(TERMPREC.ANDOP, binop('and', $._expr)),
-      prec.left(TERMPREC.OROP, binop('or', $._expr)),
+      prec.left(TERMPREC.OROP, binop(choice('or', 'xor'), $._expr)),
     ),
 
     _listexpr: $ => choice(
@@ -470,7 +471,7 @@ module.exports = grammar({
       const table = [
         [prec.right, binop.nonassoc, choice('..', '...'), TERMPREC.DOTDOT], // _DOTDOT
         [prec.right, binop, '**', TERMPREC.POWOP], // _POWOP
-        [prec.left, binop, choice('||', '//'), TERMPREC.OROR], // _OROR_DORDOR
+        [prec.left, binop, choice('||', '//', '^^'), TERMPREC.OROR], // _OROR_DORDOR
         [prec.left, binop, '&&', TERMPREC.ANDAND], // _ANDAND
         [prec.left, binop, '|', TERMPREC.BITOROP], // _BITORDOP
         [prec.left, binop, '&', TERMPREC.BITANDOP], // _BITANDOP
