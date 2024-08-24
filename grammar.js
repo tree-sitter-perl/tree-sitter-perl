@@ -214,6 +214,7 @@ module.exports = grammar({
     ),
 
     subroutine_declaration_statement: $ => seq(
+      optional(field('lexical', 'my')),
       'sub',
       field('name', $.bareword),
       optseq(':', optional(field('attributes', $.attrlist))),
