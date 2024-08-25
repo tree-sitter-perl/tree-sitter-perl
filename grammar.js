@@ -216,32 +216,36 @@ module.exports = grammar({
       $._semicolon
     ),
 
-    _declared_vars: $ => choice(
-      alias($._declare_scalar, $.scalar),
-      alias($._declare_array, $.array),
-      alias($._declare_hash, $.hash),
-    ),
-
+    mandatory_parameter: $ => alias(choice('$', $._signature_scalar), $.scalar),
     optional_parameter: $ => choice(
       seq(
-        alias($._declare_scalar, $.scalar),
+        alias($._signature_scalar, $.scalar),
         choice('=', '||=', '//='),
         field('default', $._term),
       ),
       seq(
-        alias('$', $.nameless),
+        alias('$', $.scalar),
         choice('=', '||=', '//='),
         field('default', optional($._term))
       )
     ),
-    _declared_vars_with_defaults: $ => choice($._declared_vars, $.optional_parameter),
+    slurpy: $ => choice(
+      alias(choice('@', $._signature_array), $.array),
+      alias(choice($._HASH_PERCENT, $._signature_hash), $.hash)
+    ),
+    _signature_vars: $ => choice(
+      $.mandatory_parameter,
+      $.optional_parameter,
+      $.slurpy
+    ),
+
 
     signature: $ => seq(
       alias($._signature_start, '('),
       // we don't bother being strict about the order b/c too much work
       repeat(seq(
-        $._declared_vars_with_defaults,
-        optseq(',', optional($._declared_vars_with_defaults)))
+        $._signature_vars,
+        optseq(',', optional($._signature_vars)))
       ),
       ')'
     ),
@@ -592,6 +596,12 @@ module.exports = grammar({
 
     eval_expression: $ => prec(TERMPREC.UNOP, seq('eval', choice($.block, $._term))),
 
+    _declared_vars: $ => choice(
+      alias($._declare_scalar, $.scalar),
+      alias($._declare_array, $.array),
+      alias($._declare_hash, $.hash),
+    ),
+
     variable_declaration: $ => prec.left(TERMPREC.QUESTION_MARK + 1,
       seq(
         choice('my', 'state', 'our', 'field'),
@@ -719,13 +729,17 @@ module.exports = grammar({
     )),
     method: $ => choice($._bareword, $.scalar),
 
+    _signature_varname: $ => alias($._identifier, $.varname),
     scalar:   $ => seq('$',  $._var_indirob),
     _declare_scalar:   $ => seq('$',  $.varname),
+    _signature_scalar: $ => seq('$', $._signature_varname),
     array:    $ => seq('@',  $._var_indirob),
     _declare_array:    $ => seq('@',  $.varname),
+    _signature_array: $ => seq('@', $._signature_varname),
     _HASH_PERCENT: $ => alias(token(prec(2, '%')), '%'), // self-aliasing b/c token
     hash:     $ => seq($._HASH_PERCENT, $._var_indirob),
     _declare_hash:    $ => seq($._HASH_PERCENT,  $.varname),
+    _signature_hash: $ => seq($._HASH_PERCENT, $._signature_varname),
 
     arraylen: $ => seq('$#', $._var_indirob),
     // perly.y calls this `star`

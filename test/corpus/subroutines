@@ -174,8 +174,9 @@ sub barN ($x, $y, @z) { }
   (subroutine_declaration_statement
     (bareword)
     (signature
-      (scalar
-        (varname)))
+      (mandatory_parameter
+        (scalar
+          (varname))))
     (block))
   (subroutine_declaration_statement
     (bareword)
@@ -200,12 +201,15 @@ sub barN ($x, $y, @z) { }
   (subroutine_declaration_statement
     (bareword)
     (signature
-      (scalar
-        (varname))
-      (scalar
-        (varname))
-      (array
-        (varname)))
+      (mandatory_parameter
+        (scalar
+          (varname)))
+      (mandatory_parameter
+        (scalar
+          (varname)))
+      (slurpy
+        (array
+          (varname))))
     (block)))
 
 ================================================================================
@@ -221,8 +225,9 @@ sub f :attr ($sig) {}
       (attribute
         (attribute_name)))
     (signature
-      (scalar
-        (varname)))
+      (mandatory_parameter
+        (scalar
+          (varname))))
     (block)))
 
 ================================================================================

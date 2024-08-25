@@ -487,37 +487,23 @@
         }
       ]
     },
-    "_declared_vars": {
-      "type": "CHOICE",
-      "members": [
-        {
-          "type": "ALIAS",
-          "content": {
-            "type": "SYMBOL",
-            "name": "_declare_scalar"
+    "mandatory_parameter": {
+      "type": "ALIAS",
+      "content": {
+        "type": "CHOICE",
+        "members": [
+          {
+            "type": "STRING",
+            "value": "$"
           },
-          "named": true,
-          "value": "scalar"
-        },
-        {
-          "type": "ALIAS",
-          "content": {
+          {
             "type": "SYMBOL",
-            "name": "_declare_array"
-          },
-          "named": true,
-          "value": "array"
-        },
-        {
-          "type": "ALIAS",
-          "content": {
-            "type": "SYMBOL",
-            "name": "_declare_hash"
-          },
-          "named": true,
-          "value": "hash"
-        }
-      ]
+            "name": "_signature_scalar"
+          }
+        ]
+      },
+      "named": true,
+      "value": "scalar"
     },
     "optional_parameter": {
       "type": "CHOICE",
@@ -529,7 +515,7 @@
               "type": "ALIAS",
               "content": {
                 "type": "SYMBOL",
-                "name": "_declare_scalar"
+                "name": "_signature_scalar"
               },
               "named": true,
               "value": "scalar"
@@ -571,7 +557,7 @@
                 "value": "$"
               },
               "named": true,
-              "value": "nameless"
+              "value": "scalar"
             },
             {
               "type": "CHOICE",
@@ -610,16 +596,61 @@
         }
       ]
     },
-    "_declared_vars_with_defaults": {
+    "slurpy": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "ALIAS",
+          "content": {
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "STRING",
+                "value": "@"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "_signature_array"
+              }
+            ]
+          },
+          "named": true,
+          "value": "array"
+        },
+        {
+          "type": "ALIAS",
+          "content": {
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "SYMBOL",
+                "name": "_HASH_PERCENT"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "_signature_hash"
+              }
+            ]
+          },
+          "named": true,
+          "value": "hash"
+        }
+      ]
+    },
+    "_signature_vars": {
       "type": "CHOICE",
       "members": [
         {
           "type": "SYMBOL",
-          "name": "_declared_vars"
+          "name": "mandatory_parameter"
         },
         {
           "type": "SYMBOL",
           "name": "optional_parameter"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "slurpy"
         }
       ]
     },
@@ -642,7 +673,7 @@
             "members": [
               {
                 "type": "SYMBOL",
-                "name": "_declared_vars_with_defaults"
+                "name": "_signature_vars"
               },
               {
                 "type": "CHOICE",
@@ -659,7 +690,7 @@
                         "members": [
                           {
                             "type": "SYMBOL",
-                            "name": "_declared_vars_with_defaults"
+                            "name": "_signature_vars"
                           },
                           {
                             "type": "BLANK"
@@ -3969,6 +4000,38 @@
         ]
       }
     },
+    "_declared_vars": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "ALIAS",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_declare_scalar"
+          },
+          "named": true,
+          "value": "scalar"
+        },
+        {
+          "type": "ALIAS",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_declare_array"
+          },
+          "named": true,
+          "value": "array"
+        },
+        {
+          "type": "ALIAS",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_declare_hash"
+          },
+          "named": true,
+          "value": "hash"
+        }
+      ]
+    },
     "variable_declaration": {
       "type": "PREC_LEFT",
       "value": 8,
@@ -5097,6 +5160,15 @@
         }
       ]
     },
+    "_signature_varname": {
+      "type": "ALIAS",
+      "content": {
+        "type": "SYMBOL",
+        "name": "_identifier"
+      },
+      "named": true,
+      "value": "varname"
+    },
     "scalar": {
       "type": "SEQ",
       "members": [
@@ -5123,6 +5195,19 @@
         }
       ]
     },
+    "_signature_scalar": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "$"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_signature_varname"
+        }
+      ]
+    },
     "array": {
       "type": "SEQ",
       "members": [
@@ -5146,6 +5231,19 @@
         {
           "type": "SYMBOL",
           "name": "varname"
+        }
+      ]
+    },
+    "_signature_array": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "@"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_signature_varname"
         }
       ]
     },
@@ -5188,6 +5286,19 @@
         {
           "type": "SYMBOL",
           "name": "varname"
+        }
+      ]
+    },
+    "_signature_hash": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "_HASH_PERCENT"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_signature_varname"
         }
       ]
     },
