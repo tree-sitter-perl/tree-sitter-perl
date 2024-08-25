@@ -229,14 +229,25 @@ module.exports = grammar({
         field('default', optional($._term))
       )
     ),
-    slurpy: $ => choice(
+    named_parameter: $ => seq(
+      ':',
+      alias($._signature_scalar, $.scalar),
+      optseq(
+        choice('=', '||=', '//='),
+        field('default', $._term),
+      )
+    ),
+
+    slurpy_parameter: $ => choice(
       alias(choice('@', $._signature_array), $.array),
       alias(choice($._HASH_PERCENT, $._signature_hash), $.hash)
     ),
+
     _signature_vars: $ => choice(
       $.mandatory_parameter,
       $.optional_parameter,
-      $.slurpy
+      $.slurpy_parameter,
+      $.named_parameter,
     ),
 
 
