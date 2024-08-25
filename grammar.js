@@ -118,7 +118,8 @@ module.exports = grammar({
     $._gobbled_content,
     $._attribute_value_begin,
     $.attribute_value,
-    $.prototype_or_signature,
+    $.prototype,
+    $._signature_start,
     $._heredoc_delimiter,
     $._command_heredoc_delimiter,
     $._heredoc_start,
@@ -151,6 +152,8 @@ module.exports = grammar({
     [$._term, $.indirect_object],
     [$.expression_statement, $._tricky_indirob_hashref],
     [$.autoquoted_bareword],
+    // nameless params need extra lookahead
+    [$.optional_parameter],
     // these are all dynamic handling for continue BLOCK vs func0 b/c we don't get lookahead
     [$._loop_body]
   ],
@@ -213,12 +216,56 @@ module.exports = grammar({
       $._semicolon
     ),
 
+    mandatory_parameter: $ => alias(choice('$', $._signature_scalar), $.scalar),
+    optional_parameter: $ => choice(
+      seq(
+        alias($._signature_scalar, $.scalar),
+        choice('=', '||=', '//='),
+        field('default', $._term),
+      ),
+      seq(
+        alias('$', $.scalar),
+        choice('=', '||=', '//='),
+        field('default', optional($._term))
+      )
+    ),
+    named_parameter: $ => seq(
+      ':',
+      alias($._signature_scalar, $.scalar),
+      optseq(
+        choice('=', '||=', '//='),
+        field('default', $._term),
+      )
+    ),
+
+    slurpy_parameter: $ => choice(
+      alias(choice('@', $._signature_array), $.array),
+      alias(choice($._HASH_PERCENT, $._signature_hash), $.hash)
+    ),
+
+    _signature_vars: $ => choice(
+      $.mandatory_parameter,
+      $.optional_parameter,
+      $.slurpy_parameter,
+      $.named_parameter,
+    ),
+
+
+    signature: $ => seq(
+      alias($._signature_start, '('),
+      // we don't bother being strict about the order b/c too much work
+      repeat(seq(
+        $._signature_vars,
+        optseq(',', optional($._signature_vars)))
+      ),
+      ')'
+    ),
     subroutine_declaration_statement: $ => seq(
       optional(field('lexical', 'my')),
       'sub',
       field('name', $.bareword),
       optseq(':', optional(field('attributes', $.attrlist))),
-      optional($.prototype_or_signature),
+      optional(choice($.prototype, $.signature)),
       field('body', $.block),
     ),
 
@@ -226,7 +273,7 @@ module.exports = grammar({
       'method',
       field('name', $.bareword),
       optseq(':', optional(field('attributes', $.attrlist))),
-      optional($.prototype_or_signature),
+      optional(choice($.prototype, $.signature)),
       field('body', $.block),
     ),
 
@@ -542,14 +589,14 @@ module.exports = grammar({
     anonymous_subroutine_expression: $ => seq(
       'sub',
       optseq(':', optional(field('attributes', $.attrlist))),
-      optional($.prototype_or_signature),
+      optional(choice($.prototype, $.signature)),
       field('body', $.block),
     ),
 
     anonymous_method_expression: $ => seq(
       'method',
       optseq(':', optional(field('attributes', $.attrlist))),
-      optional($.prototype_or_signature),
+      optional(choice($.prototype, $.signature)),
       field('body', $.block),
     ),
 
@@ -560,13 +607,17 @@ module.exports = grammar({
 
     eval_expression: $ => prec(TERMPREC.UNOP, seq('eval', choice($.block, $._term))),
 
+    _declared_vars: $ => choice(
+      alias($._declare_scalar, $.scalar),
+      alias($._declare_array, $.array),
+      alias($._declare_hash, $.hash),
+    ),
+
     variable_declaration: $ => prec.left(TERMPREC.QUESTION_MARK + 1,
       seq(
         choice('my', 'state', 'our', 'field'),
         choice(
-          field('variable', alias($._declare_scalar, $.scalar)),
-          field('variable', alias($._declare_array, $.array)),
-          field('variable', alias($._declare_hash, $.hash)),
+          field('variable', $._declared_vars),
           field('variables', $._decl_variable_list)),
         optseq(':', optional(field('attributes', $.attrlist))))
     ),
@@ -574,9 +625,7 @@ module.exports = grammar({
     _decl_variable_list: $ => paren_list_of(
       choice(
         $.undef_expression,
-        alias($._declare_scalar, $.scalar),
-        alias($._declare_array, $.array),
-        alias($._declare_hash, $.hash),
+        $._declared_vars
       )
     ),
 
@@ -691,13 +740,17 @@ module.exports = grammar({
     )),
     method: $ => choice($._bareword, $.scalar),
 
+    _signature_varname: $ => alias($._identifier, $.varname),
     scalar:   $ => seq('$',  $._var_indirob),
     _declare_scalar:   $ => seq('$',  $.varname),
+    _signature_scalar: $ => seq('$', $._signature_varname),
     array:    $ => seq('@',  $._var_indirob),
     _declare_array:    $ => seq('@',  $.varname),
+    _signature_array: $ => seq('@', $._signature_varname),
     _HASH_PERCENT: $ => alias(token(prec(2, '%')), '%'), // self-aliasing b/c token
     hash:     $ => seq($._HASH_PERCENT, $._var_indirob),
     _declare_hash:    $ => seq($._HASH_PERCENT,  $.varname),
+    _signature_hash: $ => seq($._HASH_PERCENT, $._signature_varname),
 
     arraylen: $ => seq('$#', $._var_indirob),
     // perly.y calls this `star`
