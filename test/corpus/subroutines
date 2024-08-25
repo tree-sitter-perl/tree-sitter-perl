@@ -207,7 +207,7 @@ sub barN ($x, $y, @z) { }
       (mandatory_parameter
         (scalar
           (varname)))
-      (slurpy
+      (slurpy_parameter
         (array
           (varname))))
     (block)))
