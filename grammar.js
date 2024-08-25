@@ -152,6 +152,8 @@ module.exports = grammar({
     [$._term, $.indirect_object],
     [$.expression_statement, $._tricky_indirob_hashref],
     [$.autoquoted_bareword],
+    // nameless params need extra lookahead
+    [$.optional_parameter],
     // these are all dynamic handling for continue BLOCK vs func0 b/c we don't get lookahead
     [$._loop_body]
   ],
@@ -214,8 +216,34 @@ module.exports = grammar({
       $._semicolon
     ),
 
+    _declared_vars: $ => choice(
+      alias($._declare_scalar, $.scalar),
+      alias($._declare_array, $.array),
+      alias($._declare_hash, $.hash),
+    ),
+
+    optional_parameter: $ => choice(
+      seq(
+        alias($._declare_scalar, $.scalar),
+        choice('=', '||=', '//='),
+        field('default', $._term),
+      ),
+      seq(
+        alias('$', $.nameless),
+        choice('=', '||=', '//='),
+        field('default', optional($._term))
+      )
+    ),
+    _declared_vars_with_defaults: $ => choice($._declared_vars, $.optional_parameter),
+
     signature: $ => seq(
       alias($._signature_start, '('),
+      // we don't bother being strict about the order b/c too much work
+      repeat(seq(
+        $._declared_vars_with_defaults,
+        optseq(',', optional($._declared_vars_with_defaults)))
+      ),
+      ')'
     ),
     subroutine_declaration_statement: $ => seq(
       optional(field('lexical', 'my')),
@@ -568,9 +596,7 @@ module.exports = grammar({
       seq(
         choice('my', 'state', 'our', 'field'),
         choice(
-          field('variable', alias($._declare_scalar, $.scalar)),
-          field('variable', alias($._declare_array, $.array)),
-          field('variable', alias($._declare_hash, $.hash)),
+          field('variable', $._declared_vars),
           field('variables', $._decl_variable_list)),
         optseq(':', optional(field('attributes', $.attrlist))))
     ),
@@ -578,9 +604,7 @@ module.exports = grammar({
     _decl_variable_list: $ => paren_list_of(
       choice(
         $.undef_expression,
-        alias($._declare_scalar, $.scalar),
-        alias($._declare_array, $.array),
-        alias($._declare_hash, $.hash),
+        $._declared_vars
       )
     ),
 
