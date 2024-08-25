@@ -118,7 +118,8 @@ module.exports = grammar({
     $._gobbled_content,
     $._attribute_value_begin,
     $.attribute_value,
-    $.prototype_or_signature,
+    $.prototype,
+    $._signature_start,
     $._heredoc_delimiter,
     $._command_heredoc_delimiter,
     $._heredoc_start,
@@ -213,12 +214,15 @@ module.exports = grammar({
       $._semicolon
     ),
 
+    signature: $ => seq(
+      alias($._signature_start, '('),
+    ),
     subroutine_declaration_statement: $ => seq(
       optional(field('lexical', 'my')),
       'sub',
       field('name', $.bareword),
       optseq(':', optional(field('attributes', $.attrlist))),
-      optional($.prototype_or_signature),
+      optional(choice($.prototype, $.signature)),
       field('body', $.block),
     ),
 
@@ -226,7 +230,7 @@ module.exports = grammar({
       'method',
       field('name', $.bareword),
       optseq(':', optional(field('attributes', $.attrlist))),
-      optional($.prototype_or_signature),
+      optional(choice($.prototype, $.signature)),
       field('body', $.block),
     ),
 
@@ -542,14 +546,14 @@ module.exports = grammar({
     anonymous_subroutine_expression: $ => seq(
       'sub',
       optseq(':', optional(field('attributes', $.attrlist))),
-      optional($.prototype_or_signature),
+      optional(choice($.prototype, $.signature)),
       field('body', $.block),
     ),
 
     anonymous_method_expression: $ => seq(
       'method',
       optseq(':', optional(field('attributes', $.attrlist))),
-      optional($.prototype_or_signature),
+      optional(choice($.prototype, $.signature)),
       field('body', $.block),
     ),
 
