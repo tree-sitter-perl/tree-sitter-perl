@@ -24,3 +24,8 @@ sub ghi :lvalue :const { }
 #
 sub abc :lvalue(1234) { }
 #               ^^^^ string
+sub with_siggy ($thing, $stuff = 1 + $thing, %) {}
+#                ^ variable.scalar
+#                         ^variable.scalar
+#                                  ^ operator
+#                                            ^ variable.hash

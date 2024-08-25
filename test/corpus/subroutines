@@ -236,6 +236,7 @@ Methods
 method m1 { 123; }
 method { "anon" };
 method m2 :lvalue { }
+method m3 ($tings) { }
 --------------------------------------------------------------------------------
 
 (source_file
@@ -254,6 +255,13 @@ method m2 :lvalue { }
     attributes: (attrlist
       (attribute
         name: (attribute_name)))
+    body: (block))
+  (method_declaration_statement
+    name: (bareword)
+    (signature
+      (mandatory_parameter
+        (scalar
+          (varname))))
     body: (block)))
 
 ================================================================================
@@ -265,4 +273,61 @@ my sub abc { }
 (source_file
   (subroutine_declaration_statement
     (bareword)
+    (block)))
+
+================================================================================
+Funkier Signatures
+================================================================================
+sub unnamed ($thing, $, $=, @) {}
+sub named_params (:$red, :$blue) {}
+--------------------------------------------------------------------------------
+
+(source_file
+  (subroutine_declaration_statement
+    (bareword)
+    (signature
+      (mandatory_parameter
+        (scalar
+          (varname)))
+      (mandatory_parameter
+        (scalar))
+      (optional_parameter
+        (scalar))
+      (slurpy_parameter
+        (array)))
+    (block))
+  (subroutine_declaration_statement
+    (bareword)
+    (signature
+      (named_parameter
+        (scalar
+          (varname)))
+      (named_parameter
+        (scalar
+          (varname))))
+    (block)))
+================================================================================
+Recursive Signatures
+================================================================================
+sub but_why ($cb = sub ($arg) { say $arg }) {}
+--------------------------------------------------------------------------------
+
+(source_file
+  (subroutine_declaration_statement
+    (bareword)
+    (signature
+      (optional_parameter
+        (scalar
+          (varname))
+        (anonymous_subroutine_expression
+          (signature
+            (mandatory_parameter
+              (scalar
+                (varname))))
+          (block
+            (expression_statement
+              (ambiguous_function_call_expression
+                (function)
+                (scalar
+                  (varname))))))))
     (block)))
