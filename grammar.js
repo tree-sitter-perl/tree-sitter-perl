@@ -100,6 +100,7 @@ module.exports = grammar({
     $._double_quote,
     $._backtick,
     $._search_slash,
+    $._no_search_slash_plz,
     $._PERLY_SEMICOLON,
     $._PERLY_HEREDOC,
     $._ctrl_z_hack,
@@ -704,21 +705,19 @@ module.exports = grammar({
       $.ambiguous_function_call_expression,
     ),
 
+    indirect_object: $ => seq(
+      // we intentionally don't do bareword filehandles b/c we can't possibly do it right
+      // since we can't know what subs have been defined
+      choice( $.scalar, $.block),
+      // this may be kinda evil, but we use this token as a flag to not accept a search
+      // slash
+      optional($._no_search_slash_plz),
+    ),
     // the usage of NONASSOC here is to make it that any parse of a paren after a func
     // automatically becomes a non-ambiguous function call
     function_call_expression: $ => choice(
       seq(field('function', $.function), '(', $._NONASSOC, optional(field('arguments', $._expr)), ')'),
       seq(field('function', $.function), '(', $._NONASSOC, $.indirect_object, field('arguments', $._expr), ')'),
-    ),
-    // TODO - in the event that we've got a scalar, we need to do a lookahead to verify
-    // that we're not followed by a search slash. this is the only problem b/c that has
-    // higher lexical prec b/c it's done in the scanner rather than here in the grammar.js
-    // we'll have to do a specific lookahead to handle that
-    indirect_object: $ => choice(
-      // we intentionally don't do bareword filehandles b/c we can't possibly do it right
-      // since we can't know what subs have been defined
-      $.scalar,
-      $.block
     ),
     _tricky_indirob_hashref: $ => seq($._PERLY_BRACE_OPEN, $._expr, $._PERLY_SEMICOLON, '}'),
     ambiguous_function_call_expression: $ =>
