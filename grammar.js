@@ -100,6 +100,7 @@ module.exports = grammar({
     $._double_quote,
     $._backtick,
     $._search_slash,
+    $._no_search_slash_plz,
     $._PERLY_SEMICOLON,
     $._PERLY_HEREDOC,
     $._ctrl_z_hack,
@@ -704,17 +705,18 @@ module.exports = grammar({
       $.ambiguous_function_call_expression,
     ),
 
+    indirect_object: $ => choice(
+      // we intentionally don't do bareword filehandles b/c we can't possibly do it right
+      // since we can't know what subs have been defined
+      $.block,
+      // this may be kinda evil, but we use this token as a flag to not accept a search slash
+      seq($.scalar, optional($._no_search_slash_plz)),
+    ),
     // the usage of NONASSOC here is to make it that any parse of a paren after a func
     // automatically becomes a non-ambiguous function call
     function_call_expression: $ => choice(
       seq(field('function', $.function), '(', $._NONASSOC, optional(field('arguments', $._expr)), ')'),
       seq(field('function', $.function), '(', $._NONASSOC, $.indirect_object, field('arguments', $._expr), ')'),
-    ),
-    indirect_object: $ => choice(
-      // we intentionally don't do bareword filehandles b/c we can't possibly do it right
-      // since we can't know what subs have been defined
-      $.scalar,
-      $.block
     ),
     _tricky_indirob_hashref: $ => seq($._PERLY_BRACE_OPEN, $._expr, $._PERLY_SEMICOLON, '}'),
     ambiguous_function_call_expression: $ =>

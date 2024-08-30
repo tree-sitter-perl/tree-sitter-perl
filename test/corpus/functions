@@ -244,6 +244,7 @@ print print 'herro';
 print $sner{bop};
 print $sner, $bler;
 print $sner and die;
+print $sner / 2;
 --------------------------------------------------------------------------------
 
 (source_file
@@ -273,7 +274,14 @@ print $sner and die;
         (function)
         (scalar
           (varname)))
-      (bareword))))
+      (bareword)))
+  (expression_statement
+    (ambiguous_function_call_expression
+      (function)
+      (binary_expression
+        (scalar
+          (varname))
+        (number)))))
 
 ================================================================================
 ambiguous funcs - tricky block vs hashref
