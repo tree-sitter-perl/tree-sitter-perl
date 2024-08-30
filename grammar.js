@@ -710,6 +710,10 @@ module.exports = grammar({
       seq(field('function', $.function), '(', $._NONASSOC, optional(field('arguments', $._expr)), ')'),
       seq(field('function', $.function), '(', $._NONASSOC, $.indirect_object, field('arguments', $._expr), ')'),
     ),
+    // TODO - in the event that we've got a scalar, we need to do a lookahead to verify
+    // that we're not followed by a search slash. this is the only problem b/c that has
+    // higher lexical prec b/c it's done in the scanner rather than here in the grammar.js
+    // we'll have to do a specific lookahead to handle that
     indirect_object: $ => choice(
       // we intentionally don't do bareword filehandles b/c we can't possibly do it right
       // since we can't know what subs have been defined
