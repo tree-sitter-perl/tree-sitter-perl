@@ -244,6 +244,7 @@ print print 'herro';
 print $sner{bop};
 print $sner, $bler;
 print $sner and die;
+print $sner / 2;
 --------------------------------------------------------------------------------
 
 (source_file
