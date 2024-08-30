@@ -32,6 +32,7 @@ enum TokenType {
   TOKEN_DOUBLE_QUOTE,
   TOKEN_BACKTICK,
   TOKEN_SEARCH_SLASH,
+  NO_TOKEN_SEARCH_SLASH_PLZ,
   PERLY_SEMICOLON,
   PERLY_HEREDOC,
   TOKEN_CTRL_Z,
@@ -533,7 +534,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     }
   }
 
-  if (valid_symbols[TOKEN_SEARCH_SLASH] && c == '/') {
+  if ((valid_symbols[TOKEN_SEARCH_SLASH] && c == '/') && !valid_symbols[NO_TOKEN_SEARCH_SLASH_PLZ]) {
     ADVANCE_C;
     MARK_END;
 
