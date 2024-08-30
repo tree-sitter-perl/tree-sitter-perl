@@ -705,13 +705,12 @@ module.exports = grammar({
       $.ambiguous_function_call_expression,
     ),
 
-    indirect_object: $ => seq(
+    indirect_object: $ => choice(
       // we intentionally don't do bareword filehandles b/c we can't possibly do it right
       // since we can't know what subs have been defined
-      choice( $.scalar, $.block),
-      // this may be kinda evil, but we use this token as a flag to not accept a search
-      // slash
-      optional($._no_search_slash_plz),
+      $.block,
+      // this may be kinda evil, but we use this token as a flag to not accept a search slash
+      seq($.scalar, optional($._no_search_slash_plz)),
     ),
     // the usage of NONASSOC here is to make it that any parse of a paren after a func
     // automatically becomes a non-ambiguous function call
