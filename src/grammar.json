@@ -6145,6 +6145,69 @@
         }
       ]
     },
+    "_apostrophe": {
+      "type": "ALIAS",
+      "content": {
+        "type": "SYMBOL",
+        "name": "_single_quote"
+      },
+      "named": false,
+      "value": "'"
+    },
+    "_quotation_mark": {
+      "type": "ALIAS",
+      "content": {
+        "type": "SYMBOL",
+        "name": "_double_quote"
+      },
+      "named": false,
+      "value": "'"
+    },
+    "_backtick": {
+      "type": "ALIAS",
+      "content": {
+        "type": "SYMBOL",
+        "name": "_backtick_quote"
+      },
+      "named": false,
+      "value": "'"
+    },
+    "_search_slash": {
+      "type": "ALIAS",
+      "content": {
+        "type": "SYMBOL",
+        "name": "_search_slash_quote"
+      },
+      "named": false,
+      "value": "'"
+    },
+    "_quotelike_begin": {
+      "type": "ALIAS",
+      "content": {
+        "type": "SYMBOL",
+        "name": "_quotelike_begin_quote"
+      },
+      "named": false,
+      "value": "'"
+    },
+    "_quotelike_middle_close": {
+      "type": "ALIAS",
+      "content": {
+        "type": "SYMBOL",
+        "name": "_quotelike_middle_close_quote"
+      },
+      "named": false,
+      "value": "'"
+    },
+    "_quotelike_end": {
+      "type": "ALIAS",
+      "content": {
+        "type": "SYMBOL",
+        "name": "_quotelike_end_quote"
+      },
+      "named": false,
+      "value": "'"
+    },
     "string_literal": {
       "type": "SEQ",
       "members": [
@@ -6209,7 +6272,7 @@
             },
             {
               "type": "SYMBOL",
-              "name": "_double_quote"
+              "name": "_quotation_mark"
             }
           ]
         },
@@ -8220,7 +8283,7 @@
   "externals": [
     {
       "type": "SYMBOL",
-      "name": "_apostrophe"
+      "name": "_single_quote"
     },
     {
       "type": "SYMBOL",
@@ -8228,11 +8291,11 @@
     },
     {
       "type": "SYMBOL",
-      "name": "_backtick"
+      "name": "_backtick_quote"
     },
     {
       "type": "SYMBOL",
-      "name": "_search_slash"
+      "name": "_search_slash_quote"
     },
     {
       "type": "SYMBOL",
@@ -8252,11 +8315,11 @@
     },
     {
       "type": "SYMBOL",
-      "name": "_quotelike_begin"
+      "name": "_quotelike_begin_quote"
     },
     {
       "type": "SYMBOL",
-      "name": "_quotelike_middle_close"
+      "name": "_quotelike_middle_close_quote"
     },
     {
       "type": "SYMBOL",
@@ -8268,7 +8331,7 @@
     },
     {
       "type": "SYMBOL",
-      "name": "_quotelike_end"
+      "name": "_quotelike_end_quote"
     },
     {
       "type": "SYMBOL",

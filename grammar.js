@@ -96,20 +96,20 @@ module.exports = grammar({
   externals: $ => [
     /* ident-alikes */
     /* non-ident tokens */
-    $._apostrophe,
+    $._single_quote,
     $._double_quote,
-    $._backtick,
-    $._search_slash,
+    $._backtick_quote,
+    $._search_slash_quote,
     $._no_search_slash_plz,
     $._PERLY_SEMICOLON,
     $._PERLY_HEREDOC,
     $._ctrl_z_hack,
     /* immediates */
-    $._quotelike_begin,
-    $._quotelike_middle_close,
+    $._quotelike_begin_quote,
+    $._quotelike_middle_close_quote,
     $._quotelike_middle_skip,
     $._quotelike_end_zw,
-    $._quotelike_end,
+    $._quotelike_end_quote,
     $._q_string_content,
     $._qq_string_content,
     $.escape_sequence,
@@ -865,6 +865,15 @@ module.exports = grammar({
       $.transliteration_expression,
     ),
 
+    // we cast these into imaginary tokens to be quote chars with handedness
+    _apostrophe: $ => alias($._single_quote, "'"),
+    _quotation_mark: $ => alias($._double_quote,"'"),
+    _backtick: $ => alias($._backtick_quote, "'"),
+    _search_slash: $ => alias($._search_slash_quote, "'"),
+    _quotelike_begin: $ => alias($._quotelike_begin_quote, "'"),
+    _quotelike_middle_close: $ => alias($._quotelike_middle_close_quote, "'"),
+    _quotelike_end: $ => alias($._quotelike_end_quote, "'"),
+
     string_literal: $ => seq(
       choice(
         seq('q', $._quotelike_begin),
@@ -876,7 +885,7 @@ module.exports = grammar({
     interpolated_string_literal: $ => seq(
       choice(
         seq('qq', $._quotelike_begin),
-        $._double_quote
+        $._quotation_mark
       ),
       optional($._interpolated_string_content),
       $._quotelike_end
