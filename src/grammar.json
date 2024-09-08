@@ -6152,7 +6152,7 @@
         "name": "_single_quote"
       },
       "named": false,
-      "value": "'"
+      "value": "'{"
     },
     "_quotation_mark": {
       "type": "ALIAS",
@@ -6161,7 +6161,7 @@
         "name": "_double_quote"
       },
       "named": false,
-      "value": "'"
+      "value": "'{"
     },
     "_backtick": {
       "type": "ALIAS",
@@ -6170,7 +6170,7 @@
         "name": "_backtick_quote"
       },
       "named": false,
-      "value": "'"
+      "value": "'{"
     },
     "_search_slash": {
       "type": "ALIAS",
@@ -6179,7 +6179,7 @@
         "name": "_search_slash_quote"
       },
       "named": false,
-      "value": "'"
+      "value": "'{"
     },
     "_quotelike_begin": {
       "type": "ALIAS",
@@ -6188,7 +6188,7 @@
         "name": "_quotelike_begin_quote"
       },
       "named": false,
-      "value": "'"
+      "value": "'{"
     },
     "_quotelike_middle_close": {
       "type": "ALIAS",
@@ -6197,7 +6197,7 @@
         "name": "_quotelike_middle_close_quote"
       },
       "named": false,
-      "value": "'"
+      "value": "}'"
     },
     "_quotelike_end": {
       "type": "ALIAS",
@@ -6206,7 +6206,7 @@
         "name": "_quotelike_end_quote"
       },
       "named": false,
-      "value": "'"
+      "value": "}'"
     },
     "string_literal": {
       "type": "SEQ",

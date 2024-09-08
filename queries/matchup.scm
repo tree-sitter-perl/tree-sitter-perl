@@ -23,6 +23,8 @@
 (return_expression "return" @mid.fun.1)
 
 (_
-  "'" @open.quotelike
-  "'" @close.quotelike
-  ) @scope.quotelike
+  [
+    ("'{" @open.quotelike "}'" @close.quotelike)
+    ("'{" @open.quotelike "}'" @mid.quotelike.1 "'{"? @mid.quotelike.2 "}'" @close.quotelike)
+  ]
+) @scope.quotelike

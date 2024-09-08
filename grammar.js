@@ -866,13 +866,13 @@ module.exports = grammar({
     ),
 
     // we cast these into imaginary tokens to be quote chars with handedness
-    _apostrophe: $ => alias($._single_quote, "'"),
-    _quotation_mark: $ => alias($._double_quote,"'"),
-    _backtick: $ => alias($._backtick_quote, "'"),
-    _search_slash: $ => alias($._search_slash_quote, "'"),
-    _quotelike_begin: $ => alias($._quotelike_begin_quote, "'"),
-    _quotelike_middle_close: $ => alias($._quotelike_middle_close_quote, "'"),
-    _quotelike_end: $ => alias($._quotelike_end_quote, "'"),
+    _apostrophe: $ => alias($._single_quote, "'{"),
+    _quotation_mark: $ => alias($._double_quote,"'{"),
+    _backtick: $ => alias($._backtick_quote, "'{"),
+    _search_slash: $ => alias($._search_slash_quote, "'{"),
+    _quotelike_begin: $ => alias($._quotelike_begin_quote, "'{"),
+    _quotelike_middle_close: $ => alias($._quotelike_middle_close_quote, "}'"),
+    _quotelike_end: $ => alias($._quotelike_end_quote, "}'"),
 
     string_literal: $ => seq(
       choice(
