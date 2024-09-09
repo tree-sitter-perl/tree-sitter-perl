@@ -24,7 +24,6 @@
 
 (_
   [
-    ("'{" @open.quotelike "}'" @close.quotelike)
-    ("'{" @open.quotelike "}'" @mid.quotelike.1 "'{"? @mid.quotelike.2 "}'" @close.quotelike)
+    ("'" @open.quotelike "'" @close.quotelike)
   ]
 ) @scope.quotelike
