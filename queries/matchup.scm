@@ -25,5 +25,6 @@
 (_
   [
     ("'" @open.quotelike "'" @close.quotelike)
+    ("'" @open.quotelike (_) "'"+ @mid.quotelike.1 (replacement) "'" @close.quotelike)
   ]
 ) @scope.quotelike
