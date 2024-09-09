@@ -409,20 +409,20 @@ module.exports = grammar({
     slice_container_variable: $ => seq('@', $._var_indirob),
     slice_expression: $ => choice(
       seq(field('array', $.slice_container_variable), '[', $._expr, ']'),
-      seq(field('hash', $.slice_container_variable), '{', $._expr, '}'),
+      seq(field('hash', $.slice_container_variable), '{', $._hash_key, '}'),
       prec.left(TERMPREC.ARROW,
         seq(field('arrayref', $._term), '->', '@', '[', $._expr, ']')),
       prec.left(TERMPREC.ARROW,
-        seq(field('hashref', $._term), '->', '@', '{', $._expr, '}')),
+        seq(field('hashref', $._term), '->', '@', '{', $._hash_key, '}')),
     ),
     keyval_container_variable: $ => seq($._HASH_PERCENT, $._var_indirob),
     keyval_expression: $ => choice(
       seq(field('array', $.keyval_container_variable), '[', $._expr, ']'),
-      seq(field('hash', $.keyval_container_variable), '{', $._expr, '}'),
+      seq(field('hash', $.keyval_container_variable), '{', $._hash_key, '}'),
       prec.left(TERMPREC.ARROW,
         seq(field('arrayref', $._term), '->', '%', '[', $._expr, ']')),
       prec.left(TERMPREC.ARROW,
-        seq(field('hashref', $._term), '->', '%', '{', $._expr, '}')),
+        seq(field('hashref', $._term), '->', '%', '{', $._hash_key, '}')),
     ),
 
     _term: $ => choice(

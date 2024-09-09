@@ -60,6 +60,8 @@ hash autoquoting
 ================================================================================
 $hash{quoted};
 $hash{shift};
+$hash->%{thing};
+@hash{thing};
 --------------------------------------------------------------------------------
 
 (source_file
@@ -72,7 +74,17 @@ $hash{shift};
     (hash_element_expression
       hash: (container_variable
         (varname))
-      key: (autoquoted_bareword))))
+      key: (autoquoted_bareword)))
+  (expression_statement
+    (keyval_expression
+      hashref: (scalar
+        (varname))
+      (autoquoted_bareword)))
+  (expression_statement
+    (slice_expression
+      hash: (slice_container_variable
+        (varname))
+      (autoquoted_bareword))))
 
 ================================================================================
 hash autoquoting for quotelike
