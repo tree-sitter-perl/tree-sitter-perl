@@ -16,7 +16,8 @@ RAW
       (function)
       (list_expression
         (heredoc_token)
-        (string_literal))))
+        (string_literal
+          (string_content)))))
   (heredoc_content
     (scalar
       (varname))

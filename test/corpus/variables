@@ -237,16 +237,19 @@ $code->('args')(1)("and again")
     (coderef_call_expression
       (scalar
         (varname))
-      (string_literal)))
+      (string_literal
+        (string_content))))
   (expression_statement
     (coderef_call_expression
       (coderef_call_expression
         (coderef_call_expression
           (scalar
             (varname))
-          (string_literal))
+          (string_literal
+            (string_content)))
         (number))
-      (interpolated_string_literal))))
+      (interpolated_string_literal
+        (string_content)))))
 
 ================================================================================
 special vars

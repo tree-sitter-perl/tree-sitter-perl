@@ -57,6 +57,9 @@ binop.nonassoc = ($, op, term) =>
     )
   )
 
+stringContent = ($, node) =>
+  field('content', alias(node, $.string_content))
+
 regexpContent = ($, node) =>
   field('content', alias(node, $.regexp_content))
 
@@ -96,20 +99,20 @@ module.exports = grammar({
   externals: $ => [
     /* ident-alikes */
     /* non-ident tokens */
-    $._apostrophe,
+    $._single_quote,
     $._double_quote,
-    $._backtick,
-    $._search_slash,
+    $._backtick_quote,
+    $._search_slash_quote,
     $._no_search_slash_plz,
     $._PERLY_SEMICOLON,
     $._PERLY_HEREDOC,
     $._ctrl_z_hack,
     /* immediates */
-    $._quotelike_begin,
-    $._quotelike_middle_close,
+    $._quotelike_begin_quote,
+    $._quotelike_middle_close_quote,
     $._quotelike_middle_skip,
     $._quotelike_end_zw,
-    $._quotelike_end,
+    $._quotelike_end_quote,
     $._q_string_content,
     $._qq_string_content,
     $.escape_sequence,
@@ -865,20 +868,35 @@ module.exports = grammar({
       $.transliteration_expression,
     ),
 
+    // we cast these into imaginary tokens to be quote chars with handedness
+    _apostrophe: $ => alias($._single_quote, "'"),
+    _quotation_mark: $ => alias($._double_quote,"'"),
+    _backtick: $ => alias($._backtick_quote, "'"),
+    _search_slash: $ => alias($._search_slash_quote, "'"),
+    _quotelike_begin: $ => alias($._quotelike_begin_quote, "'"),
+    _quotelike_middle_close: $ => alias($._quotelike_middle_close_quote, "'"),
+    _quotelike_end: $ => alias($._quotelike_end_quote, "'"),
+    // NOTE - we may need MOAR specific captures depending on how editors handle the
+    // multi-part quotes
+    _quotelike_middle: $ => seq(
+      $._quotelike_middle_close,
+      choice($._quotelike_middle_skip, $._quotelike_begin),
+    ),
+
     string_literal: $ => seq(
       choice(
         seq('q', $._quotelike_begin),
         $._apostrophe
       ),
-      optional($._noninterpolated_string_content),
+      optional(stringContent($, $._noninterpolated_string_content)),
       $._quotelike_end
     ),
     interpolated_string_literal: $ => seq(
       choice(
         seq('qq', $._quotelike_begin),
-        $._double_quote
+        $._quotation_mark
       ),
-      optional($._interpolated_string_content),
+      optional(stringContent($, $._interpolated_string_content)),
       $._quotelike_end
     ),
     // we make a copy of the relevant rules b/c this must be more constrained (or else TS
@@ -946,10 +964,12 @@ module.exports = grammar({
       )
     ),
 
+    // TODO - consider actually parsing this split on spaces, so textobjects could go from
+    // one word to the next?
     quoted_word_list: $ => seq(
       'qw',
       $._quotelike_begin,
-      optional($._noninterpolated_string_content),
+      optional(stringContent($, $._noninterpolated_string_content)),
       $._quotelike_end
     ),
 
@@ -959,13 +979,13 @@ module.exports = grammar({
           seq('qx', $._quotelike_begin),
           $._backtick
         ),
-        optional($._interpolated_string_content),
+        optional(stringContent($, $._interpolated_string_content)),
         $._quotelike_end
       ),
       seq(
         'qx',
         $._apostrophe,
-        optional($._noninterpolated_string_content),
+        optional(stringContent($,$._noninterpolated_string_content)),
         $._quotelike_end
       )
     ),
@@ -1009,10 +1029,6 @@ module.exports = grammar({
         '//' // empty pattern is handled specially so we can manage shift // 'default'
       ),
       optional(field('modifiers', $.match_regexp_modifiers))
-    ),
-    _quotelike_middle: $ => seq(
-      $._quotelike_middle_close,
-      choice($._quotelike_middle_skip, $._quotelike_begin),
     ),
 
     substitution_regexp: $ => seq(

@@ -15,15 +15,18 @@ things
     (list_expression
       (autoquoted_bareword)
       (comment)
-      (string_literal)))
+      (string_literal
+        (string_content))))
   (expression_statement
     (list_expression
       (autoquoted_bareword)
-      (string_literal)))
+      (string_literal
+        (string_content))))
   (expression_statement
     (list_expression
       (bareword)
-      (string_literal)))
+      (string_literal
+        (string_content))))
   (expression_statement
     (list_expression
       (autoquoted_bareword)
@@ -39,15 +42,18 @@ q=>'still two';
 
 (source_file
   (expression_statement
-    (string_literal))
+    (string_literal
+      (string_content)))
   (expression_statement
     (list_expression
       (autoquoted_bareword)
-      (string_literal)))
+      (string_literal
+        (string_content))))
   (expression_statement
     (list_expression
       (autoquoted_bareword)
-      (string_literal))))
+      (string_literal
+        (string_content)))))
 
 ================================================================================
 hash autoquoting
@@ -80,7 +86,8 @@ $hash{q};
     (hash_element_expression
       hash: (container_variable
         (varname))
-      key: (string_literal)))
+      key: (string_literal
+        content: (string_content))))
   (expression_statement
     (hash_element_expression
       hash: (container_variable
