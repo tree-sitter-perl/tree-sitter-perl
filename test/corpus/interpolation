@@ -8,24 +8,26 @@ Fancy indirob interpolation
 (source_file
   (expression_statement
     (interpolated_string_literal
-      (scalar
-        (block
-          (expression_statement
-            (refgen_expression
-              (method_call_expression
-                (scalar
-                  (varname))
-                (method))))))))
+      (string_content
+        (scalar
+          (block
+            (expression_statement
+              (refgen_expression
+                (method_call_expression
+                  (scalar
+                    (varname))
+                  (method)))))))))
   (expression_statement
     (interpolated_string_literal
-      (array
-        (block
-          (expression_statement
-            (anonymous_array_expression
-              (list_expression
-                (number)
-                (number)
-                (number)))))))))
+      (string_content
+        (array
+          (block
+            (expression_statement
+              (anonymous_array_expression
+                (list_expression
+                  (number)
+                  (number)
+                  (number))))))))))
 
 ================================================================================
 Array element interpolation
@@ -38,24 +40,27 @@ Array element interpolation
 (source_file
   (expression_statement
     (interpolated_string_literal
-      (array_element_expression
-        (container_variable
-          (varname))
-        (number))))
+      (string_content
+        (array_element_expression
+          (container_variable
+            (varname))
+          (number)))))
   (expression_statement
     (interpolated_string_literal
-      (array_element_expression
-        (scalar
-          (varname))
-        (number))))
-  (expression_statement
-    (interpolated_string_literal
-      (array_element_expression
+      (string_content
         (array_element_expression
           (scalar
             (varname))
-          (number))
-        (number)))))
+          (number)))))
+  (expression_statement
+    (interpolated_string_literal
+      (string_content
+        (array_element_expression
+          (array_element_expression
+            (scalar
+              (varname))
+            (number))
+          (number))))))
 
 ================================================================================
 Hash element interpolation
@@ -68,24 +73,27 @@ Hash element interpolation
 (source_file
   (expression_statement
     (interpolated_string_literal
-      (hash_element_expression
-        (container_variable
-          (varname))
-        (autoquoted_bareword))))
+      (string_content
+        (hash_element_expression
+          (container_variable
+            (varname))
+          (autoquoted_bareword)))))
   (expression_statement
     (interpolated_string_literal
-      (hash_element_expression
-        (scalar
-          (varname))
-        (autoquoted_bareword))))
-  (expression_statement
-    (interpolated_string_literal
-      (hash_element_expression
+      (string_content
         (hash_element_expression
           (scalar
             (varname))
-          (autoquoted_bareword))
-        (autoquoted_bareword)))))
+          (autoquoted_bareword)))))
+  (expression_statement
+    (interpolated_string_literal
+      (string_content
+        (hash_element_expression
+          (hash_element_expression
+            (scalar
+              (varname))
+            (autoquoted_bareword))
+          (autoquoted_bareword))))))
 
 ================================================================================
 Space skips interpolation
@@ -98,16 +106,19 @@ Space skips interpolation
 (source_file
   (expression_statement
     (interpolated_string_literal
-      (scalar
-        (varname))))
+      (string_content
+        (scalar
+          (varname)))))
   (expression_statement
     (interpolated_string_literal
-      (scalar
-        (varname))))
+      (string_content
+        (scalar
+          (varname)))))
   (expression_statement
     (interpolated_string_literal
-      (scalar
-        (varname)))))
+      (string_content
+        (scalar
+          (varname))))))
 
 ================================================================================
 Slice interpolation
@@ -120,27 +131,30 @@ Slice interpolation
 (source_file
   (expression_statement
     (interpolated_string_literal
-      (slice_expression
-        array: (slice_container_variable
-          (varname))
-        (list_expression
-          (number)
-          (number)))))
+      content: (string_content
+        (slice_expression
+          array: (slice_container_variable
+            (varname))
+          (list_expression
+            (number)
+            (number))))))
   (expression_statement
     (interpolated_string_literal
-      (slice_expression
-        hash: (slice_container_variable
-          (varname))
-        (bareword))))
+      content: (string_content
+        (slice_expression
+          hash: (slice_container_variable
+            (varname))
+          (bareword)))))
   (expression_statement
     (interpolated_string_literal
-      (slice_expression
-        arrayref: (scalar
-          (varname))
-        (list_expression
-          (number)
-          (number)
-          (number))))))
+      content: (string_content
+        (slice_expression
+          arrayref: (scalar
+            (varname))
+          (list_expression
+            (number)
+            (number)
+            (number)))))))
 
 ================================================================================
 Punctuation vars that interpolate
@@ -155,24 +169,29 @@ Punctuation vars that interpolate
 (source_file
   (expression_statement
     (interpolated_string_literal
-      (scalar
-        (varname))))
+      (string_content
+        (scalar
+          (varname)))))
   (expression_statement
     (interpolated_string_literal
-      (scalar
-        (varname))))
+      (string_content
+        (scalar
+          (varname)))))
   (expression_statement
     (interpolated_string_literal
-      (scalar
-        (varname))))
+      (string_content
+        (scalar
+          (varname)))))
   (expression_statement
     (interpolated_string_literal
-      (array
-        (varname))))
+      (string_content
+        (array
+          (varname)))))
   (expression_statement
     (interpolated_string_literal
-      (array
-        (varname)))))
+      (string_content
+        (array
+          (varname))))))
 
 ================================================================================
 Punctuation vars that do not interpolate
@@ -184,11 +203,14 @@ Punctuation vars that do not interpolate
 
 (source_file
   (expression_statement
-    (interpolated_string_literal))
+    (interpolated_string_literal
+      (string_content)))
   (expression_statement
-    (interpolated_string_literal))
+    (interpolated_string_literal
+      (string_content)))
   (expression_statement
-    (interpolated_string_literal)))
+    (interpolated_string_literal
+      (string_content))))
 
 ================================================================================
 braced vars do not subscript
@@ -200,12 +222,14 @@ braced vars do not subscript
 (source_file
   (expression_statement
     (interpolated_string_literal
-      (scalar
-        (varname))))
+      (string_content
+        (scalar
+          (varname)))))
   (expression_statement
     (interpolated_string_literal
-      (array
-        (varname)))))
+      (string_content
+        (array
+          (varname))))))
 
 ================================================================================
 Nested quotes! (#98)
@@ -218,13 +242,15 @@ print "$test{'value'}";
 (source_file
   (expression_statement
     (interpolated_string_literal
-      (scalar
-        (block
-          (expression_statement
-            (refgen_expression
-              (string_literal)))))
-      (scalar
-        (varname))))
+      (string_content
+        (scalar
+          (block
+            (expression_statement
+              (refgen_expression
+                (string_literal
+                  (string_content))))))
+        (scalar
+          (varname)))))
   (expression_statement
     (substitution_regexp
       (regexp_content
@@ -232,18 +258,22 @@ print "$test{'value'}";
           (block
             (expression_statement
               (refgen_expression
-                (string_literal))))))
+                (string_literal
+                  (string_content)))))))
       (replacement
         (scalar
           (block
             (expression_statement
               (refgen_expression
-                (string_literal))))))))
+                (string_literal
+                  (string_content)))))))))
   (expression_statement
     (ambiguous_function_call_expression
       (function)
       (interpolated_string_literal
-        (hash_element_expression
-          (container_variable
-            (varname))
-          (string_literal))))))
+        (string_content
+          (hash_element_expression
+            (container_variable
+              (varname))
+            (string_literal
+              (string_content))))))))

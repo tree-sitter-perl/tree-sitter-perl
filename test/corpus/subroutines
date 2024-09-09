@@ -249,7 +249,8 @@ method m3 ($tings) { }
     (anonymous_method_expression
       body: (block
         (expression_statement
-          (interpolated_string_literal)))))
+          (interpolated_string_literal
+            content: (string_content))))))
   (method_declaration_statement
     name: (bareword)
     attributes: (attrlist
@@ -306,6 +307,7 @@ sub named_params (:$red, :$blue) {}
         (scalar
           (varname))))
     (block)))
+
 ================================================================================
 Recursive Signatures
 ================================================================================

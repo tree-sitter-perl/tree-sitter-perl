@@ -15,6 +15,21 @@ map { lc($_) => 1 } @array;        # and this.
           (list_expression
             (unary_expression
               (interpolated_string_literal
+                (string_content
+                  (escape_sequence)
+                  (scalar
+                    (varname)))))
+            (number))))
+      (array
+        (varname))))
+  (comment)
+  (expression_statement
+    (map_grep_expression
+      (block
+        (expression_statement
+          (list_expression
+            (interpolated_string_literal
+              (string_content
                 (escape_sequence)
                 (scalar
                   (varname))))
@@ -28,22 +43,10 @@ map { lc($_) => 1 } @array;        # and this.
         (expression_statement
           (list_expression
             (interpolated_string_literal
-              (escape_sequence)
-              (scalar
-                (varname)))
-            (number))))
-      (array
-        (varname))))
-  (comment)
-  (expression_statement
-    (map_grep_expression
-      (block
-        (expression_statement
-          (list_expression
-            (interpolated_string_literal
-              (escape_sequence)
-              (scalar
-                (varname)))
+              (string_content
+                (escape_sequence)
+                (scalar
+                  (varname))))
             (number))))
       (array
         (varname))))
@@ -100,9 +103,10 @@ map { even_this   => $_ }, @array;     # perl guesses EXPR; slightly more SURPRI
       (anonymous_hash_expression
         (list_expression
           (interpolated_string_literal
-            (escape_sequence)
-            (scalar
-              (varname)))
+            (string_content
+              (escape_sequence)
+              (scalar
+                (varname))))
           (number)))
       (array
         (varname))))

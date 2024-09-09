@@ -174,7 +174,8 @@ Filetest operators
 (source_file
   (expression_statement
     (func1op_call_expression
-      (interpolated_string_literal)))
+      (interpolated_string_literal
+        (string_content))))
   (expression_statement
     (func1op_call_expression
       (scalar
@@ -198,12 +199,15 @@ print 'things', sum 1, 2, 3;
   (expression_statement
     (ambiguous_function_call_expression
       (function)
-      (string_literal)
-      (string_literal)))
+      (string_literal
+        (string_content))
+      (string_literal
+        (string_content))))
   (expression_statement
     (ambiguous_function_call_expression
       (function)
-      (string_literal)
+      (string_literal
+        (string_content))
       (ambiguous_function_call_expression
         (function)
         (number)
@@ -224,7 +228,8 @@ print { $sner{boppers} } 'herro';
       (indirect_object
         (scalar
           (varname)))
-      (string_literal)))
+      (string_literal
+        (string_content))))
   (expression_statement
     (ambiguous_function_call_expression
       (function)
@@ -235,7 +240,8 @@ print { $sner{boppers} } 'herro';
               (container_variable
                 (varname))
               (autoquoted_bareword)))))
-      (string_literal))))
+      (string_literal
+        (string_content)))))
 
 ================================================================================
 ambiguous funcs - indirect object fakeouts
@@ -253,7 +259,8 @@ print $sner / 2;
       (function)
       (ambiguous_function_call_expression
         (function)
-        (string_literal))))
+        (string_literal
+          (string_content)))))
   (expression_statement
     (ambiguous_function_call_expression
       (function)
@@ -319,7 +326,8 @@ for_sure_a_hash { hi => 'there' }, 9001;
       (anonymous_hash_expression
         (list_expression
           (autoquoted_bareword)
-          (string_literal)))
+          (string_literal
+            (string_content))))
       (number))))
 
 ================================================================================
@@ -336,7 +344,8 @@ print({ $sner{boppers} } 'herro');
       (indirect_object
         (scalar
           (varname)))
-      (string_literal)))
+      (string_literal
+        (string_content))))
   (expression_statement
     (function_call_expression
       (function)
@@ -347,4 +356,5 @@ print({ $sner{boppers} } 'herro');
               (container_variable
                 (varname))
               (autoquoted_bareword)))))
-      (string_literal))))
+      (string_literal
+        (string_content)))))

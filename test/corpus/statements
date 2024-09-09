@@ -358,7 +358,8 @@ while ($p) {} continue => 1;
       (expression_statement
         (ambiguous_function_call_expression
           (function)
-          (string_literal)))))
+          (string_literal
+            (string_content))))))
   (expression_statement
     (func0op_call_expression))
   (loop_statement
@@ -405,7 +406,8 @@ try { A(); } catch($e) { B(); } finally { C(); }
 (source_file
   (use_statement
     (package)
-    (string_literal))
+    (string_literal
+      (string_content)))
   (try_statement
     (block
       (expression_statement
@@ -487,7 +489,8 @@ defer { A(); }
 (source_file
   (use_statement
     (package)
-    (string_literal))
+    (string_literal
+      (string_content)))
   (defer_statement
     (block
       (expression_statement
@@ -602,7 +605,8 @@ class Example :isa(BaseClass) {
 (source_file
   (use_statement
     (package)
-    (string_literal))
+    (string_literal
+      (string_content)))
   (class_statement
     (package)
     (attrlist

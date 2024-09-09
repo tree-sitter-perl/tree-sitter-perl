@@ -81,7 +81,8 @@ data section, but not in strings
 
 (source_file
   (expression_statement
-    (string_literal)))
+    (string_literal
+      (string_content))))
 
 ================================================================================
 maths! higher prec
@@ -148,4 +149,5 @@ unicode whitespace
 
 (source_file
   (expression_statement
-    (string_literal)))
+    (string_literal
+      (string_content))))

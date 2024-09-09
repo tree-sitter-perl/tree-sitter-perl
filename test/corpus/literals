@@ -45,18 +45,23 @@ floats
 
 (source_file
   (expression_statement
-    (string_literal))
+    (string_literal
+      (string_content)))
   (expression_statement
     (string_literal
-      (escaped_delimiter)))
+      (string_content
+        (escaped_delimiter))))
   (expression_statement
     (string_literal
-      (escape_sequence)))
-  (expression_statement
-    (string_literal))
+      (string_content
+        (escape_sequence))))
   (expression_statement
     (string_literal
-      (escape_sequence))))
+      (string_content)))
+  (expression_statement
+    (string_literal
+      (string_content
+        (escape_sequence)))))
 
 ================================================================================
 q() strings
@@ -69,13 +74,17 @@ q"literal $without interpolation";
 
 (source_file
   (expression_statement
-    (string_literal))
+    (string_literal
+      (string_content)))
   (expression_statement
-    (string_literal))
+    (string_literal
+      (string_content)))
   (expression_statement
-    (string_literal))
+    (string_literal
+      (string_content)))
   (expression_statement
-    (string_literal)))
+    (string_literal
+      (string_content))))
 
 ================================================================================
 "" strings
@@ -89,19 +98,24 @@ q"literal $without interpolation";
 
 (source_file
   (expression_statement
-    (interpolated_string_literal))
+    (interpolated_string_literal
+      (string_content)))
   (expression_statement
     (interpolated_string_literal
-      (escaped_delimiter)))
+      (string_content
+        (escaped_delimiter))))
   (expression_statement
     (interpolated_string_literal
-      (escape_sequence)))
+      (string_content
+        (escape_sequence))))
   (expression_statement
     (interpolated_string_literal
-      (escape_sequence)))
+      (string_content
+        (escape_sequence))))
   (expression_statement
     (interpolated_string_literal
-      (escape_sequence))))
+      (string_content
+        (escape_sequence)))))
 
 ================================================================================
 "" strings - no runaway barewords (fix when ambiguous funcs hit)
@@ -114,7 +128,8 @@ BAREWORD"string"
   (expression_statement
     (ambiguous_function_call_expression
       (function)
-      (interpolated_string_literal))))
+      (interpolated_string_literal
+        (string_content)))))
 
 ================================================================================
 qq() strings
@@ -126,11 +141,14 @@ qq(a (string) here);
 
 (source_file
   (expression_statement
-    (interpolated_string_literal))
+    (interpolated_string_literal
+      (string_content)))
   (expression_statement
-    (interpolated_string_literal))
+    (interpolated_string_literal
+      (string_content)))
   (expression_statement
-    (interpolated_string_literal)))
+    (interpolated_string_literal
+      (string_content))))
 
 ================================================================================
 quotelike strings - tricky delimeters
@@ -144,13 +162,16 @@ q\backslashes\;
 
 (source_file
   (expression_statement
-    (string_literal))
+    (string_literal
+      (string_content)))
   (expression_statement
     (string_literal
-      (comment)))
+      (comment)
+      (string_content)))
   (comment)
   (expression_statement
-    (string_literal)))
+    (string_literal
+      (string_content))))
 
 ================================================================================
 Interpolation in "" strings
@@ -164,20 +185,24 @@ qq'with $scalar in single-quotes';
 (source_file
   (expression_statement
     (interpolated_string_literal
-      (scalar
-        (varname))))
+      (string_content
+        (scalar
+          (varname)))))
   (expression_statement
     (interpolated_string_literal
-      (scalar
-        (varname))))
+      (string_content
+        (scalar
+          (varname)))))
   (expression_statement
     (interpolated_string_literal
-      (array
-        (varname))))
+      (string_content
+        (array
+          (varname)))))
   (expression_statement
     (interpolated_string_literal
-      (scalar
-        (varname)))))
+      (string_content
+        (scalar
+          (varname))))))
 
 ================================================================================
 qw() lists
@@ -194,23 +219,30 @@ qw\ backslashes \;
 
 (source_file
   (expression_statement
-    (quoted_word_list))
-  (expression_statement
-    (quoted_word_list))
-  (expression_statement
-    (quoted_word_list))
-  (expression_statement
-    (quoted_word_list))
+    (quoted_word_list
+      (string_content)))
   (expression_statement
     (quoted_word_list))
   (expression_statement
     (quoted_word_list
-      (escape_sequence)))
+      (string_content)))
   (expression_statement
     (quoted_word_list
-      (escaped_delimiter)))
+      (string_content)))
   (expression_statement
-    (quoted_word_list)))
+    (quoted_word_list
+      (string_content)))
+  (expression_statement
+    (quoted_word_list
+      (string_content
+        (escape_sequence))))
+  (expression_statement
+    (quoted_word_list
+      (string_content
+        (escaped_delimiter))))
+  (expression_statement
+    (quoted_word_list
+      (string_content))))
 
 ================================================================================
 `` strings
@@ -222,13 +254,16 @@ qw\ backslashes \;
 
 (source_file
   (expression_statement
-    (command_string))
-  (expression_statement
-    (command_string))
+    (command_string
+      (string_content)))
   (expression_statement
     (command_string
-      (scalar
-        (varname)))))
+      (string_content)))
+  (expression_statement
+    (command_string
+      (string_content
+        (scalar
+          (varname))))))
 
 ================================================================================
 qx() strings
@@ -241,12 +276,16 @@ qx'command with no $interpolation';
 
 (source_file
   (expression_statement
-    (command_string))
-  (expression_statement
-    (command_string))
+    (command_string
+      (string_content)))
   (expression_statement
     (command_string
-      (scalar
-        (varname))))
+      (string_content)))
   (expression_statement
-    (command_string)))
+    (command_string
+      (string_content
+        (scalar
+          (varname)))))
+  (expression_statement
+    (command_string
+      (string_content))))
