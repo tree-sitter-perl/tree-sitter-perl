@@ -914,21 +914,23 @@ module.exports = grammar({
     ),
     _array_element_interpolation: $ => choice(
       seq(field('array', alias($.scalar, $.container_variable)), token.immediate('['), field('index', $._expr), ']'),
-      prec.left(TERMPREC.ARROW, seq($.scalar, token.immediate('->['), field('index', $._expr), ']')),
+      // TODO - i think we can get this figgered out; i think we can follow the -> token
+      // down in the fallbacks w/ space + then we'll be all G
+      prec.left(TERMPREC.ARROW, seq($.scalar, token.immediate('->'), '[', field('index', $._expr), ']')),
       seq($._subscripted_interpolations, token.immediate('['), field('index', $._expr), ']'),
     ),
     _hash_element_interpolation: $ => choice(
       seq(field('hash', alias($.scalar, $.container_variable)), token.immediate('{'), field('key', $._hash_key), '}'),
-      prec.left(TERMPREC.ARROW, seq($.scalar, token.immediate('->{'), field('key', $._hash_key), '}')),
+      prec.left(TERMPREC.ARROW, seq($.scalar, token.immediate('->'), '{', field('key', $._hash_key), '}')),
       seq($._subscripted_interpolations, token.immediate('{'), field('key', $._hash_key), '}'),
     ),
     _slice_expression_interpolation: $ => choice(
       seq(field('array', alias($.array, $.slice_container_variable)), token.immediate('['), $._expr, ']'),
-      seq(field('hash', alias($.array, $.slice_container_variable)), token.immediate('{'), $._expr, '}'),
+      seq(field('hash', alias($.array, $.slice_container_variable)), token.immediate('{'), $._hash_key, '}'),
       prec.left(TERMPREC.ARROW,
-        seq(field('arrayref', $.scalar), token.immediate('->@['), $._expr, ']')),
+        seq(field('arrayref', $.scalar), token.immediate('->@'), '[', $._expr, ']')),
       prec.left(TERMPREC.ARROW,
-        seq(field('hashref', $.scalar), token.immediate('->@{'), $._expr, '}')),
+        seq(field('hashref', $.scalar), token.immediate('->@{'), '{', $._hash_key, '}')),
     ),
     _interpolations: $ => choice(
       $.array,
@@ -950,9 +952,14 @@ module.exports = grammar({
       // Most array punctuation vars do not interpolate
       // we need the zw quote-end for "" (we leave regular _end so the scanner looks for it)
       seq('@', choice(/[^A-Za-z0-9_\$'+:-]/, $._quotelike_end_zw, $._quotelike_end)),
+      // for space sensitive hash/array derefs
+      '-> ',
+      '->@ ',
       '-',
-      '{',
-      '[',
+      // a drop poor-man's, but we don't want queries mistakenly picking up these tokens as
+      // part of a bracket pair
+      alias('{', '-> '),
+      alias('[', '-> '),
     ),
     _interpolated_string_content: $ => repeat1(
       choice(

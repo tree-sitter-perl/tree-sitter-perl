@@ -144,7 +144,7 @@ Slice interpolation
         (slice_expression
           hash: (slice_container_variable
             (varname))
-          (bareword)))))
+          (autoquoted_bareword)))))
   (expression_statement
     (interpolated_string_literal
       content: (string_content
