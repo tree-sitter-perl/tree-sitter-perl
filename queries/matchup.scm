@@ -22,9 +22,8 @@
 ) @scope.fun
 (return_expression "return" @mid.fun.1)
 
-(_
-  [
-    ("'" @open.quotelike "'" @close.quotelike)
-    ("'" @open.quotelike (_) "'"+ @mid.quotelike.1 (replacement) "'" @close.quotelike)
-  ]
-) @scope.quotelike
+[
+  (_ "'" @open.quotelike (string_content) "'" @close.quotelike)
+  (quoted_regexp "'" @open.quotelike "'" @close.quotelike)
+  (_ "'" @open.quotelike (_) "'"+ @mid.quotelike.1 (replacement) "'" @close.quotelike)
+] @scope.quotelike
