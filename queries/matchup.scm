@@ -5,11 +5,6 @@
     (block "}" @close.if) .
 ) @scope.if
 
-(conditional_expression
-  "?" @open.ternary
-  ":" @mid.ternary.1
-  ) @scope.ternary
-
 (_
   ["for" "foreach" "while" "unless"] @open.loop
   (block "}" @close.loop) .

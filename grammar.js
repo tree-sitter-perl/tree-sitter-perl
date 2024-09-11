@@ -69,6 +69,8 @@ replacement = ($, node) =>
 trContent = ($, node) =>
   field('content', alias(node, $.transliteration_content))
 
+aliasMany = (to, tokens) => tokens.map(t => alias(t, to))
+
 /**
  *
  * @param {RuleOrLiteral[]} terms
@@ -952,14 +954,20 @@ module.exports = grammar({
       // Most array punctuation vars do not interpolate
       // we need the zw quote-end for "" (we leave regular _end so the scanner looks for it)
       seq('@', choice(/[^A-Za-z0-9_\$'+:-]/, $._quotelike_end_zw, $._quotelike_end)),
-      // for space sensitive hash/array derefs
-      '-> ',
-      '->@ ',
-      '-',
+      ...aliasMany('not-interpolated',
+        [
+          // for space sensitive hash/array derefs we have a space-included version of the
+          // arrow to beat the non-space version in lexical prec
+          '-> ',
+          '->@ ',
+          // these are re-aliased to not-interpolated so that a query for the actual
+          // syntactic token won't match
+          '-',
+          '{',
+          '[',
+        ])
       // a drop poor-man's, but we don't want queries mistakenly picking up these tokens as
       // part of a bracket pair
-      alias('{', '-> '),
-      alias('[', '-> '),
     ),
     _interpolated_string_content: $ => repeat1(
       choice(
