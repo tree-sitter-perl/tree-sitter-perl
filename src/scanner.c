@@ -450,8 +450,9 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     }
   }
 
-  if (iswspace(c) && valid_symbols[TOKEN_NO_INTERP_WHITESPACE_ZW])
-    TOKEN(TOKEN_NO_INTERP_WHITESPACE_ZW);
+  if (iswspace(c) && valid_symbols[TOKEN_NO_INTERP_WHITESPACE_ZW]) {
+      TOKEN(TOKEN_NO_INTERP_WHITESPACE_ZW);
+  }
   skip_ws_to_eol(lexer);
   /* heredocs override everything, so they must be here before */
   if (valid_symbols[TOKEN_HEREDOC_START]) {
