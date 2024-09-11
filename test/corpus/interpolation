@@ -100,7 +100,7 @@ Space skips interpolation
 ================================================================================
 "an array $elem [0]";
 "an array $elem ->[1] deref";
-"an array $elem-> [1] deref";
+"an array $elem-> [1] deref and a slice $slice->@ [1..10]";
 "an array $elem->
 [1] deref";
 --------------------------------------------------------------------------------
@@ -119,8 +119,9 @@ Space skips interpolation
   (expression_statement
     (interpolated_string_literal
       (string_content
-        (scalar
-          (varname)))))
+        (scalar (varname))
+        (scalar (varname))
+        )))
   (expression_statement
     (interpolated_string_literal
       (string_content
