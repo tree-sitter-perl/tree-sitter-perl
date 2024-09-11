@@ -6573,11 +6573,8 @@
                 }
               },
               {
-                "type": "IMMEDIATE_TOKEN",
-                "content": {
-                  "type": "STRING",
-                  "value": "{"
-                }
+                "type": "STRING",
+                "value": "{"
               },
               {
                 "type": "FIELD",
@@ -6715,11 +6712,8 @@
                 }
               },
               {
-                "type": "IMMEDIATE_TOKEN",
-                "content": {
-                  "type": "STRING",
-                  "value": "["
-                }
+                "type": "STRING",
+                "value": "["
               },
               {
                 "type": "SYMBOL",
@@ -6880,15 +6874,6 @@
           "type": "ALIAS",
           "content": {
             "type": "STRING",
-            "value": "->"
-          },
-          "named": false,
-          "value": "not-interpolated"
-        },
-        {
-          "type": "ALIAS",
-          "content": {
-            "type": "STRING",
             "value": "-> "
           },
           "named": false,
@@ -6898,7 +6883,7 @@
           "type": "ALIAS",
           "content": {
             "type": "STRING",
-            "value": "->@"
+            "value": "->@ "
           },
           "named": false,
           "value": "not-interpolated"
@@ -6907,7 +6892,16 @@
           "type": "ALIAS",
           "content": {
             "type": "STRING",
-            "value": "->@ "
+            "value": "->\n"
+          },
+          "named": false,
+          "value": "not-interpolated"
+        },
+        {
+          "type": "ALIAS",
+          "content": {
+            "type": "STRING",
+            "value": "->@\n"
           },
           "named": false,
           "value": "not-interpolated"

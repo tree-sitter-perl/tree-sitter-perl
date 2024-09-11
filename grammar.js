@@ -957,9 +957,12 @@ module.exports = grammar({
       ...aliasMany('not-interpolated',
         [
           // for space sensitive hash/array derefs we have a space-included version of the
-          // arrow to beat the non-space version in lexical prec
+          // arrow to beat the non-space version in lexical prec. this is hacky and gross
+          // but eh
           '-> ',
           '->@ ',
+          "->\n",
+          "->@\n",
           // these are re-aliased to not-interpolated so that a query for the actual
           // syntactic token won't match
           '-',

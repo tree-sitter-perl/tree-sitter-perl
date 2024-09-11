@@ -101,9 +101,16 @@ Space skips interpolation
 "an array $elem [0]";
 "an array $elem ->[1] deref";
 "an array $elem-> [1] deref";
+"an array $elem->
+[1] deref";
 --------------------------------------------------------------------------------
 
 (source_file
+  (expression_statement
+    (interpolated_string_literal
+      (string_content
+        (scalar
+          (varname)))))
   (expression_statement
     (interpolated_string_literal
       (string_content
