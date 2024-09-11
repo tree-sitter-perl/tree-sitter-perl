@@ -2191,7 +2191,7 @@
             },
             {
               "type": "SYMBOL",
-              "name": "_expr"
+              "name": "_hash_key"
             },
             {
               "type": "STRING",
@@ -2264,7 +2264,7 @@
               },
               {
                 "type": "SYMBOL",
-                "name": "_expr"
+                "name": "_hash_key"
               },
               {
                 "type": "STRING",
@@ -2333,7 +2333,7 @@
             },
             {
               "type": "SYMBOL",
-              "name": "_expr"
+              "name": "_hash_key"
             },
             {
               "type": "STRING",
@@ -2406,7 +2406,7 @@
               },
               {
                 "type": "SYMBOL",
-                "name": "_expr"
+                "name": "_hash_key"
               },
               {
                 "type": "STRING",
@@ -6409,6 +6409,13 @@
         }
       ]
     },
+    "_interp_arrow": {
+      "type": "IMMEDIATE_TOKEN",
+      "content": {
+        "type": "STRING",
+        "value": "->"
+      }
+    },
     "_array_element_interpolation": {
       "type": "CHOICE",
       "members": [
@@ -6460,11 +6467,12 @@
                 "name": "scalar"
               },
               {
-                "type": "IMMEDIATE_TOKEN",
-                "content": {
-                  "type": "STRING",
-                  "value": "->["
-                }
+                "type": "SYMBOL",
+                "name": "_interp_arrow"
+              },
+              {
+                "type": "STRING",
+                "value": "["
               },
               {
                 "type": "FIELD",
@@ -6562,11 +6570,12 @@
                 "name": "scalar"
               },
               {
-                "type": "IMMEDIATE_TOKEN",
-                "content": {
-                  "type": "STRING",
-                  "value": "->{"
-                }
+                "type": "SYMBOL",
+                "name": "_interp_arrow"
+              },
+              {
+                "type": "STRING",
+                "value": "{"
               },
               {
                 "type": "FIELD",
@@ -6674,7 +6683,7 @@
             },
             {
               "type": "SYMBOL",
-              "name": "_expr"
+              "name": "_hash_key"
             },
             {
               "type": "STRING",
@@ -6697,11 +6706,16 @@
                 }
               },
               {
-                "type": "IMMEDIATE_TOKEN",
-                "content": {
-                  "type": "STRING",
-                  "value": "->@["
-                }
+                "type": "SYMBOL",
+                "name": "_interp_arrow"
+              },
+              {
+                "type": "STRING",
+                "value": "@"
+              },
+              {
+                "type": "STRING",
+                "value": "["
               },
               {
                 "type": "SYMBOL",
@@ -6729,15 +6743,20 @@
                 }
               },
               {
-                "type": "IMMEDIATE_TOKEN",
-                "content": {
-                  "type": "STRING",
-                  "value": "->@{"
-                }
+                "type": "SYMBOL",
+                "name": "_interp_arrow"
+              },
+              {
+                "type": "STRING",
+                "value": "@"
+              },
+              {
+                "type": "STRING",
+                "value": "{"
               },
               {
                 "type": "SYMBOL",
-                "name": "_expr"
+                "name": "_hash_key"
               },
               {
                 "type": "STRING",
@@ -6855,16 +6874,78 @@
           ]
         },
         {
-          "type": "STRING",
-          "value": "-"
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "scalar"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "_interp_arrow"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "_no_interp_whitespace_zw"
+            }
+          ]
         },
         {
-          "type": "STRING",
-          "value": "{"
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "scalar"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "_interp_arrow"
+            },
+            {
+              "type": "STRING",
+              "value": "@"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "_no_interp_whitespace_zw"
+            }
+          ]
         },
         {
-          "type": "STRING",
-          "value": "["
+          "type": "SYMBOL",
+          "name": "_nonvar_interpolation_fallbacks"
+        }
+      ]
+    },
+    "_nonvar_interpolation_fallbacks": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "ALIAS",
+          "content": {
+            "type": "STRING",
+            "value": "-"
+          },
+          "named": false,
+          "value": "not-interpolated"
+        },
+        {
+          "type": "ALIAS",
+          "content": {
+            "type": "STRING",
+            "value": "{"
+          },
+          "named": false,
+          "value": "not-interpolated"
+        },
+        {
+          "type": "ALIAS",
+          "content": {
+            "type": "STRING",
+            "value": "["
+          },
+          "named": false,
+          "value": "not-interpolated"
         }
       ]
     },
@@ -7497,7 +7578,7 @@
           },
           {
             "type": "SYMBOL",
-            "name": "_interpolation_fallbacks"
+            "name": "_nonvar_interpolation_fallbacks"
           },
           {
             "type": "SEQ",

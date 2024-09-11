@@ -69,6 +69,8 @@ replacement = ($, node) =>
 trContent = ($, node) =>
   field('content', alias(node, $.transliteration_content))
 
+aliasMany = (to, tokens) => tokens.map(t => alias(t, to))
+
 /**
  *
  * @param {RuleOrLiteral[]} terms
@@ -409,20 +411,20 @@ module.exports = grammar({
     slice_container_variable: $ => seq('@', $._var_indirob),
     slice_expression: $ => choice(
       seq(field('array', $.slice_container_variable), '[', $._expr, ']'),
-      seq(field('hash', $.slice_container_variable), '{', $._expr, '}'),
+      seq(field('hash', $.slice_container_variable), '{', $._hash_key, '}'),
       prec.left(TERMPREC.ARROW,
         seq(field('arrayref', $._term), '->', '@', '[', $._expr, ']')),
       prec.left(TERMPREC.ARROW,
-        seq(field('hashref', $._term), '->', '@', '{', $._expr, '}')),
+        seq(field('hashref', $._term), '->', '@', '{', $._hash_key, '}')),
     ),
     keyval_container_variable: $ => seq($._HASH_PERCENT, $._var_indirob),
     keyval_expression: $ => choice(
       seq(field('array', $.keyval_container_variable), '[', $._expr, ']'),
-      seq(field('hash', $.keyval_container_variable), '{', $._expr, '}'),
+      seq(field('hash', $.keyval_container_variable), '{', $._hash_key, '}'),
       prec.left(TERMPREC.ARROW,
         seq(field('arrayref', $._term), '->', '%', '[', $._expr, ']')),
       prec.left(TERMPREC.ARROW,
-        seq(field('hashref', $._term), '->', '%', '{', $._expr, '}')),
+        seq(field('hashref', $._term), '->', '%', '{', $._hash_key, '}')),
     ),
 
     _term: $ => choice(
@@ -912,23 +914,24 @@ module.exports = grammar({
     _braced_array: $ => seq(
       '@', choice($.block, $._var_indirob_autoquote), $._NONASSOC
     ),
+    _interp_arrow: $ => token.immediate('->'),
     _array_element_interpolation: $ => choice(
       seq(field('array', alias($.scalar, $.container_variable)), token.immediate('['), field('index', $._expr), ']'),
-      prec.left(TERMPREC.ARROW, seq($.scalar, token.immediate('->['), field('index', $._expr), ']')),
+      prec.left(TERMPREC.ARROW, seq($.scalar, $._interp_arrow, '[', field('index', $._expr), ']')),
       seq($._subscripted_interpolations, token.immediate('['), field('index', $._expr), ']'),
     ),
     _hash_element_interpolation: $ => choice(
       seq(field('hash', alias($.scalar, $.container_variable)), token.immediate('{'), field('key', $._hash_key), '}'),
-      prec.left(TERMPREC.ARROW, seq($.scalar, token.immediate('->{'), field('key', $._hash_key), '}')),
+      prec.left(TERMPREC.ARROW, seq($.scalar, $._interp_arrow, '{', field('key', $._hash_key), '}')),
       seq($._subscripted_interpolations, token.immediate('{'), field('key', $._hash_key), '}'),
     ),
     _slice_expression_interpolation: $ => choice(
       seq(field('array', alias($.array, $.slice_container_variable)), token.immediate('['), $._expr, ']'),
-      seq(field('hash', alias($.array, $.slice_container_variable)), token.immediate('{'), $._expr, '}'),
+      seq(field('hash', alias($.array, $.slice_container_variable)), token.immediate('{'), $._hash_key, '}'),
       prec.left(TERMPREC.ARROW,
-        seq(field('arrayref', $.scalar), token.immediate('->@['), $._expr, ']')),
+        seq(field('arrayref', $.scalar), $._interp_arrow, '@', '[', $._expr, ']')),
       prec.left(TERMPREC.ARROW,
-        seq(field('hashref', $.scalar), token.immediate('->@{'), $._expr, '}')),
+        seq(field('hashref', $.scalar), $._interp_arrow, '@', '{', $._hash_key, '}')),
     ),
     _interpolations: $ => choice(
       $.array,
@@ -950,9 +953,18 @@ module.exports = grammar({
       // Most array punctuation vars do not interpolate
       // we need the zw quote-end for "" (we leave regular _end so the scanner looks for it)
       seq('@', choice(/[^A-Za-z0-9_\$'+:-]/, $._quotelike_end_zw, $._quotelike_end)),
-      '-',
-      '{',
-      '[',
+      // handling space sensitivity more correctly re deref-ing interps
+      seq($.scalar, $._interp_arrow, $._no_interp_whitespace_zw),
+      seq($.scalar, $._interp_arrow, '@', $._no_interp_whitespace_zw),
+      $._nonvar_interpolation_fallbacks
+    ),
+    // a separate fallback section for non-vars b/c no variables interp inside of
+    // transliterations
+    _nonvar_interpolation_fallbacks: $ => choice(
+      // these are re-aliased to not-interpolated so that a query for the actual
+      // syntactic token won't match; we don't want queries mistakenly picking up these tokens as
+      // part of a bracket pair
+      ...aliasMany('not-interpolated', [ '-', '{', '[', ]),
     ),
     _interpolated_string_content: $ => repeat1(
       choice(
@@ -1071,7 +1083,7 @@ module.exports = grammar({
     _interpolated_transliteration_content: $ => repeat1(
       choice(
         $._qq_string_content,
-        $._interpolation_fallbacks,
+        $._nonvar_interpolation_fallbacks,
         seq(choice('$', '@'), /./), // no variables interpolate AT ALL
         $.escape_sequence,
         $.escaped_delimiter,

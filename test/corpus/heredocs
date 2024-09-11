@@ -151,12 +151,21 @@ weird heredoc interpolation (gh#133)
 <<EOF;
 @
 EOF
+<<EOF;
+$sner->
+EOF
 --------------------------------------------------------------------------------
 
 (source_file
   (expression_statement
     (heredoc_token))
   (heredoc_content
+    (heredoc_end))
+  (expression_statement
+    (heredoc_token))
+  (heredoc_content
+    (scalar
+      (varname))
     (heredoc_end)))
 
 ================================================================================

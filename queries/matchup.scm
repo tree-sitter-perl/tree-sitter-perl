@@ -5,11 +5,6 @@
     (block "}" @close.if) .
 ) @scope.if
 
-(conditional_expression
-  "?" @open.ternary
-  ":" @mid.ternary.1
-  ) @scope.ternary
-
 (_
   ["for" "foreach" "while" "unless"] @open.loop
   (block "}" @close.loop) .
@@ -22,9 +17,14 @@
 ) @scope.fun
 (return_expression "return" @mid.fun.1)
 
-(_
-  [
-    ("'" @open.quotelike "'" @close.quotelike)
-    ("'" @open.quotelike (_) "'"+ @mid.quotelike.1 (replacement) "'" @close.quotelike)
-  ]
-) @scope.quotelike
+[
+  (_ "'" @open.quotelike (string_content) "'" @close.quotelike)
+  (quoted_regexp "'" @open.quotelike "'" @close.quotelike)
+  (_ "'" @open.quotelike (_) "'"+ @mid.quotelike.1 (replacement) "'" @close.quotelike)
+] @scope.quotelike
+
+(try_statement
+  "try" @open.try
+  "catch"? @mid.try.1
+  "finally"? @close.try
+  ) @scope.try
