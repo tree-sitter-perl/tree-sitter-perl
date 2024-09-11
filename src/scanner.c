@@ -451,8 +451,6 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   }
 
   if (iswspace(c) && valid_symbols[TOKEN_NO_INTERP_WHITESPACE_ZW]) {
-      lexer->mark_end(lexer);
-      ADVANCE_C;
       TOKEN(TOKEN_NO_INTERP_WHITESPACE_ZW);
   }
   skip_ws_to_eol(lexer);
