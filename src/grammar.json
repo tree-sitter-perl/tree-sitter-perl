@@ -7996,8 +7996,17 @@
       ]
     },
     "primitive": {
-      "type": "SYMBOL",
-      "name": "number"
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "number"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "boolean"
+        }
+      ]
     },
     "number": {
       "type": "TOKEN",
@@ -8350,6 +8359,19 @@
           }
         ]
       }
+    },
+    "boolean": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "true"
+        },
+        {
+          "type": "STRING",
+          "value": "false"
+        }
+      ]
     }
   },
   "extras": [
