@@ -23,7 +23,7 @@
 [
   "defer"
   "do" "eval"
-  "my" "our" "local" "state" "field"
+  "my" "our" "local" "dynamically" "state" "field"
   "last" "next" "redo" "goto"
   "undef"
 ] @keyword

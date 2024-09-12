@@ -636,7 +636,7 @@ module.exports = grammar({
     ),
 
     localization_expression: $ =>
-      prec(TERMPREC.UNOP, seq('local', $._term)),
+      prec(TERMPREC.UNOP, seq(choice('local', 'dynamically'), $._term)),
 
     // this has negative prec b/c it's only if the parens weren't eaten elsewhere
     stub_expression: $ => prec(-1, seq('(', ')')),
