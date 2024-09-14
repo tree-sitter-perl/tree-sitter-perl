@@ -181,6 +181,8 @@ module.exports = grammar({
     _barestmt: $ => choice(
       $.package_statement,
       $.class_statement,
+      $.role_statement,
+      $.class_phaser_statement,
       $.use_version_statement,
       $.use_statement,
       $.subroutine_declaration_statement,
@@ -212,6 +214,24 @@ module.exports = grammar({
         optional(field('version', $._version)),
         optseq(':', optional(field('attributes', $.attrlist))),
         $.block),
+    ),
+    role_statement: $ => choice(
+      seq('role',
+        field('name', $.package),
+        optional(field('version', $._version)),
+        optseq(':', optional(field('attributes', $.attrlist))),
+        $._semicolon),
+      seq('role',
+        field('name', $.package),
+        optional(field('version', $._version)),
+        optseq(':', optional(field('attributes', $.attrlist))),
+        $.block),
+    ),
+    class_phaser_statement: $ => seq(
+      field('phase', choice('BUILD', 'ADJUST')),
+      optseq(':', optional(field('attributes', $.attrlist))),
+      optional($.signature),
+      $.block
     ),
     use_version_statement: $ => seq($._KW_USE, field('version', $._version), $._semicolon),
     use_statement: $ => seq(
@@ -806,7 +826,7 @@ module.exports = grammar({
     _KW_FOR: $ => choice('for', 'foreach'),
     _LOOPEX: $ => choice('last', 'next', 'redo'),
 
-    _PHASE_NAME: $ => choice('BEGIN', 'INIT', 'CHECK', 'UNITCHECK', 'END', 'ADJUST'),
+    _PHASE_NAME: $ => choice('BEGIN', 'INIT', 'CHECK', 'UNITCHECK', 'END'),
 
     // Anything toke.c calls FUN0 or FUN0OP; the distinction does not matter to us
     _func0op: $ => choice(
