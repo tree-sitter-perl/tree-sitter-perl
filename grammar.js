@@ -288,6 +288,7 @@ module.exports = grammar({
     ),
     subroutine_declaration_statement: $ => seq(
       optional(field('lexical', 'my')),
+      optional('async'),
       'sub',
       field('name', $.bareword),
       optseq(':', optional(field('attributes', $.attrlist))),
@@ -296,6 +297,7 @@ module.exports = grammar({
     ),
 
     method_declaration_statement: $ => seq(
+      optional('async'),
       'method',
       field('name', $.bareword),
       optseq(':', optional(field('attributes', $.attrlist))),
@@ -613,6 +615,7 @@ module.exports = grammar({
     ),
 
     anonymous_subroutine_expression: $ => seq(
+      optional('async'),
       'sub',
       optseq(':', optional(field('attributes', $.attrlist))),
       optional(choice($.prototype, $.signature)),
@@ -620,18 +623,22 @@ module.exports = grammar({
     ),
 
     anonymous_method_expression: $ => seq(
+      optional('async'),
       'method',
       optseq(':', optional(field('attributes', $.attrlist))),
       optional(choice($.prototype, $.signature)),
       field('body', $.block),
     ),
 
-    do_expression: $ => choice(
-      /* TODO: do FILENAME */
-      seq('do', $.block),
+    // do FILENAME is more of an eval, so we parse it as eval_expression w/ a filename
+      // node inside
+    do_expression: $ => choice(seq('do', $.block)),
+    eval_expression: $ => prec(TERMPREC.UNOP,
+      choice(
+        seq('eval', choice($.block, $._term)),
+        seq('do', alias($._term, $.filename))
+      )
     ),
-
-    eval_expression: $ => prec(TERMPREC.UNOP, seq('eval', choice($.block, $._term))),
 
     _declared_vars: $ => choice(
       alias($._declare_scalar, $.scalar),
