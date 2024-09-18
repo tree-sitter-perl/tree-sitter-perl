@@ -526,7 +526,7 @@ module.exports = grammar({
         [prec.right, binop, '**', TERMPREC.POWOP], // _POWOP
         [prec.left, binop, choice('||', '//', '^^'), TERMPREC.OROR], // _OROR_DORDOR
         [prec.left, binop, '&&', TERMPREC.ANDAND], // _ANDAND
-        [prec.left, binop, '|', TERMPREC.BITOROP], // _BITORDOP
+        [prec.left, binop, choice('|', '^'), TERMPREC.BITOROP], // _BITORDOP
         [prec.left, binop, '&', TERMPREC.BITANDOP], // _BITANDOP
         [prec.left, binop, choice('<<', '>>'), TERMPREC.SHIFTOP], // _SHIFTOP
         [prec.left, binop, choice('+', '-', '.'), TERMPREC.ADDOP], // _ADDOP
