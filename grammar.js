@@ -57,19 +57,23 @@ binop.nonassoc = ($, op, term) =>
     )
   )
 
-stringContent = ($, node) =>
+const stringContent = ($, node) =>
   field('content', alias(node, $.string_content))
 
-regexpContent = ($, node) =>
+const regexpContent = ($, node) =>
   field('content', alias(node, $.regexp_content))
 
-replacement = ($, node) =>
+const replacement = ($, node) =>
   alias(node, $.replacement)
 
-trContent = ($, node) =>
+const trContent = ($, node) =>
   field('content', alias(node, $.transliteration_content))
 
-aliasMany = (to, tokens) => tokens.map(t => alias(t, to))
+const aliasMany = (to, tokens) => tokens.map(t => alias(t, to))
+
+
+// little helper just to keep things DRY
+const subExtensions = () => repeat(choice('extended', 'async'))
 
 /**
  *
@@ -181,6 +185,8 @@ module.exports = grammar({
     _barestmt: $ => choice(
       $.package_statement,
       $.class_statement,
+      $.role_statement,
+      $.class_phaser_statement,
       $.use_version_statement,
       $.use_statement,
       $.subroutine_declaration_statement,
@@ -212,6 +218,24 @@ module.exports = grammar({
         optional(field('version', $._version)),
         optseq(':', optional(field('attributes', $.attrlist))),
         $.block),
+    ),
+    role_statement: $ => choice(
+      seq('role',
+        field('name', $.package),
+        optional(field('version', $._version)),
+        optseq(':', optional(field('attributes', $.attrlist))),
+        $._semicolon),
+      seq('role',
+        field('name', $.package),
+        optional(field('version', $._version)),
+        optseq(':', optional(field('attributes', $.attrlist))),
+        $.block),
+    ),
+    class_phaser_statement: $ => seq(
+      field('phase', choice('BUILD', 'ADJUST')),
+      optseq(':', optional(field('attributes', $.attrlist))),
+      optional($.signature),
+      $.block
     ),
     use_version_statement: $ => seq($._KW_USE, field('version', $._version), $._semicolon),
     use_statement: $ => seq(
@@ -268,6 +292,7 @@ module.exports = grammar({
     ),
     subroutine_declaration_statement: $ => seq(
       optional(field('lexical', 'my')),
+      subExtensions(),
       'sub',
       field('name', $.bareword),
       optseq(':', optional(field('attributes', $.attrlist))),
@@ -276,6 +301,8 @@ module.exports = grammar({
     ),
 
     method_declaration_statement: $ => seq(
+      optional(field('lexical', 'my')),
+      subExtensions(),
       'method',
       field('name', $.bareword),
       optseq(':', optional(field('attributes', $.attrlist))),
@@ -305,9 +332,9 @@ module.exports = grammar({
         $._loop_body
       ),
     _for_initializer: $ => choice(
-          seq(optional(choice('my', 'state', 'our')), field('variable', $.scalar)),
-          seq('my', field('variables', paren_list_of($.scalar))),
-        ),
+      seq(optional(choice('my', 'state', 'our')), field('variable', $.scalar)),
+      seq('my', field('variables', paren_list_of($.scalar))),
+    ),
     for_statement: $ =>
       seq($._KW_FOR,
         optional($._for_initializer),
@@ -442,6 +469,7 @@ module.exports = grammar({
       $.anonymous_method_expression,
       $.do_expression,
       $.eval_expression,
+      $.await_expression,
       $.conditional_expression,
       $.refgen_expression,
       $.localization_expression,
@@ -545,7 +573,7 @@ module.exports = grammar({
     // perl.y calls this `termeqop`
     equality_expression: $ =>
       choice(
-        prec.left(TERMPREC.CHEQOP, binop(choice('==', '!=', 'eq', 'ne'), $._term)), // _CHEQOP
+        prec.left(TERMPREC.CHEQOP, binop(choice('==', '!=', 'eq', '===', 'equ', 'eqr', 'ne'), $._term)), // _CHEQOP
         prec.right(TERMPREC.CHEQOP, binop.nonassoc($, choice('<=>', 'cmp', '~~'), $._term)), // _NCEQOP
       ),
 
@@ -555,7 +583,7 @@ module.exports = grammar({
         prec.left(TERMPREC.CHRELOP, binop(choice('<', '<=', '>=', '>', 'lt', 'le', 'ge', 'gt'), $._term)), // _CHRELOP
         prec.right(TERMPREC.CHRELOP, binop.nonassoc($, 'isa', $._term)), // _NCRELOP
       )
-      ,
+    ,
 
     // perly.y calls this `termunop`
     unary_expression: $ => choice(
@@ -593,6 +621,7 @@ module.exports = grammar({
     ),
 
     anonymous_subroutine_expression: $ => seq(
+      subExtensions(),
       'sub',
       optseq(':', optional(field('attributes', $.attrlist))),
       optional(choice($.prototype, $.signature)),
@@ -600,18 +629,23 @@ module.exports = grammar({
     ),
 
     anonymous_method_expression: $ => seq(
+      subExtensions(),
       'method',
       optseq(':', optional(field('attributes', $.attrlist))),
       optional(choice($.prototype, $.signature)),
       field('body', $.block),
     ),
 
-    do_expression: $ => choice(
-      /* TODO: do FILENAME */
-      seq('do', $.block),
+    // do FILENAME is more of an eval, so we parse it as eval_expression w/ a filename
+    // node inside
+    do_expression: $ => choice(seq('do', $.block)),
+    eval_expression: $ => prec(TERMPREC.UNOP,
+      choice(
+        seq('eval', choice($.block, $._term)),
+        seq('do', alias($._term, $.filename))
+      )
     ),
-
-    eval_expression: $ => prec(TERMPREC.UNOP, seq('eval', choice($.block, $._term))),
+    await_expression: $ => seq('await', $._term),
 
     _declared_vars: $ => choice(
       alias($._declare_scalar, $.scalar),
@@ -636,7 +670,7 @@ module.exports = grammar({
     ),
 
     localization_expression: $ =>
-      prec(TERMPREC.UNOP, seq('local', $._term)),
+      prec(TERMPREC.UNOP, seq(choice('local', 'dynamically'), $._term)),
 
     // this has negative prec b/c it's only if the parens weren't eaten elsewhere
     stub_expression: $ => prec(-1, seq('(', ')')),
@@ -733,7 +767,7 @@ module.exports = grammar({
           // we handle this_takes_a_block { thing; other_thing }; here. we don't wanna accept an indirob of scalar tho
           seq(field('function', $.function), alias($.block, $.indirect_object)),
           // we handle cases like takes_a_hash { 1 => 2 }; by having this special case
-          seq(field('function', $.function), field('arguments', alias($._tricky_indirob_hashref, $.anonymous_hash_expression)), optseq($._PERLY_COMMA , field('arguments', $._term_rightward)))
+          seq(field('function', $.function), field('arguments', alias($._tricky_indirob_hashref, $.anonymous_hash_expression)), optseq($._PERLY_COMMA, field('arguments', $._term_rightward)))
         )
       ),
     // we only parse a function if it won't be an indirob
@@ -742,21 +776,22 @@ module.exports = grammar({
     method_call_expression: $ => prec.left(TERMPREC.ARROW, seq(
       field('invocant', $._term),
       '->',
+      optional('&'),
       field('method', $.method),
       optseq('(', optional(field('arguments', $._expr)), ')')
     )),
     method: $ => choice($._bareword, $.scalar),
 
     _signature_varname: $ => alias($._identifier, $.varname),
-    scalar:   $ => seq('$',  $._var_indirob),
-    _declare_scalar:   $ => seq('$',  $.varname),
+    scalar: $ => seq('$', $._var_indirob),
+    _declare_scalar: $ => seq('$', $.varname),
     _signature_scalar: $ => seq('$', $._signature_varname),
-    array:    $ => seq('@',  $._var_indirob),
-    _declare_array:    $ => seq('@',  $.varname),
+    array: $ => seq('@', $._var_indirob),
+    _declare_array: $ => seq('@', $.varname),
     _signature_array: $ => seq('@', $._signature_varname),
     _HASH_PERCENT: $ => alias(token(prec(2, '%')), '%'), // self-aliasing b/c token
-    hash:     $ => seq($._HASH_PERCENT, $._var_indirob),
-    _declare_hash:    $ => seq($._HASH_PERCENT,  $.varname),
+    hash: $ => seq($._HASH_PERCENT, $._var_indirob),
+    _declare_hash: $ => seq($._HASH_PERCENT, $.varname),
     _signature_hash: $ => seq($._HASH_PERCENT, $._signature_varname),
 
     arraylen: $ => seq('$#', $._var_indirob),
@@ -777,9 +812,9 @@ module.exports = grammar({
     ),
     // not all indirobs are alike; for variables, they have autoquoting behavior
     _var_indirob_autoquote: $ => seq(
-        $._PERLY_BRACE_OPEN,
-        alias(choice($._brace_autoquoted_token, $._bareword, $._ident_special, /\^\w+/ ), $.varname),
-        $._brace_end_zw, '}'
+      $._PERLY_BRACE_OPEN,
+      alias(choice($._brace_autoquoted_token, $._bareword, $._ident_special, /\^\w+/), $.varname),
+      $._brace_end_zw, '}'
     ),
     _var_indirob: $ => choice(
       alias($._indirob, $.varname),
@@ -806,7 +841,7 @@ module.exports = grammar({
     _KW_FOR: $ => choice('for', 'foreach'),
     _LOOPEX: $ => choice('last', 'next', 'redo'),
 
-    _PHASE_NAME: $ => choice('BEGIN', 'INIT', 'CHECK', 'UNITCHECK', 'END', 'ADJUST'),
+    _PHASE_NAME: $ => choice('BEGIN', 'INIT', 'CHECK', 'UNITCHECK', 'END'),
 
     // Anything toke.c calls FUN0 or FUN0OP; the distinction does not matter to us
     _func0op: $ => choice(
@@ -872,7 +907,7 @@ module.exports = grammar({
 
     // we cast these into imaginary tokens to be quote chars with handedness
     _apostrophe: $ => alias($._single_quote, "'"),
-    _quotation_mark: $ => alias($._double_quote,"'"),
+    _quotation_mark: $ => alias($._double_quote, "'"),
     _backtick: $ => alias($._backtick_quote, "'"),
     _search_slash: $ => alias($._search_slash_quote, "'"),
     _quotelike_begin: $ => alias($._quotelike_begin_quote, "'"),
@@ -964,7 +999,7 @@ module.exports = grammar({
       // these are re-aliased to not-interpolated so that a query for the actual
       // syntactic token won't match; we don't want queries mistakenly picking up these tokens as
       // part of a bracket pair
-      ...aliasMany('not-interpolated', [ '-', '{', '[', ]),
+      ...aliasMany('not-interpolated', ['-', '{', '[',]),
     ),
     _interpolated_string_content: $ => repeat1(
       choice(
@@ -997,7 +1032,7 @@ module.exports = grammar({
       seq(
         'qx',
         $._apostrophe,
-        optional(stringContent($,$._noninterpolated_string_content)),
+        optional(stringContent($, $._noninterpolated_string_content)),
         $._quotelike_end
       )
     ),
@@ -1023,20 +1058,20 @@ module.exports = grammar({
       choice(
         seq(
           choice(
-          seq(
-            choice(
-              $._search_slash,
-              seq(field('operator', 'm'), $._quotelike_begin)
+            seq(
+              choice(
+                $._search_slash,
+                seq(field('operator', 'm'), $._quotelike_begin)
+              ),
+              optional(regexpContent($, $._interpolated_regexp_content)),
             ),
-            optional(regexpContent($, $._interpolated_regexp_content)),
+            seq(
+              field('operator', 'm'),
+              $._apostrophe,
+              optional(regexpContent($, $._noninterpolated_string_content)), // TODO: regexp content
+            ),
           ),
-          seq(
-            field('operator', 'm'),
-            $._apostrophe,
-            optional(regexpContent($, $._noninterpolated_string_content)), // TODO: regexp content
-          ),
-        ),
-        $._quotelike_end,
+          $._quotelike_end,
         ),
         '//' // empty pattern is handled specially so we can manage shift // 'default'
       ),
@@ -1075,10 +1110,10 @@ module.exports = grammar({
       )
     ),
 
-    quoted_regexp_modifiers:        $ => token.immediate(prec(2, /[msixpadlun]+/)),
-    match_regexp_modifiers:         $ => token.immediate(prec(2, /[msixpadluncg]+/)),
-    substitution_regexp_modifiers:  $ => token.immediate(prec(2, /[msixpogcedualr]+/)),
-    transliteration_modifiers:      $ => token.immediate(prec(2, /[cdsr]+/)),
+    quoted_regexp_modifiers: $ => token.immediate(prec(2, /[msixpadlun]+/)),
+    match_regexp_modifiers: $ => token.immediate(prec(2, /[msixpadluncg]+/)),
+    substitution_regexp_modifiers: $ => token.immediate(prec(2, /[msixpogcedualr]+/)),
+    transliteration_modifiers: $ => token.immediate(prec(2, /[cdsr]+/)),
 
     _interpolated_transliteration_content: $ => repeat1(
       choice(
@@ -1167,7 +1202,7 @@ module.exports = grammar({
     // this pattern tries to encapsulate the joys of S_scan_ident in toke.c in perl core
     // _dollar_ident_zw takes care of the subtleties that distinguish $$; ( only $$
     // followed by semicolon ) from $$deref
-    _ident_special: $ => choice(/[0-9]+|\^([A-Z[?\^_]|])|\S/, seq('$', $._dollar_ident_zw) ),
+    _ident_special: $ => choice(/[0-9]+|\^([A-Z[?\^_]|])|\S/, seq('$', $._dollar_ident_zw)),
 
     bareword: $ => prec.dynamic(1, $._bareword),
     // _bareword is at the very end b/c the lexer prefers tokens defined earlier in the grammar

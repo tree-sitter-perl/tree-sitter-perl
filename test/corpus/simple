@@ -151,3 +151,16 @@ unicode whitespace
   (expression_statement
     (string_literal
       (string_content))))
+
+================================================================================
+booleans
+================================================================================
+true;
+false;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (boolean))
+  (expression_statement
+    (boolean)))

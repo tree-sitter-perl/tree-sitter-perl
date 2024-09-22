@@ -595,11 +595,15 @@ bare blocks
 Class syntax
 ================================================================================
 use feature 'class';
+role Ting v9001 {
+  BUILD (:$named_arg) { }
+}
 class Example :isa(BaseClass) {
   field $x :attribute = 123;
-  ADJUST { $x++; }
+  ADJUST :params { $x++; }
   method y { 456; }
 }
+
 --------------------------------------------------------------------------------
 
 (source_file
@@ -607,6 +611,16 @@ class Example :isa(BaseClass) {
     (package)
     (string_literal
       (string_content)))
+  (role_statement
+    (package)
+    (version)
+    (block
+      (class_phaser_statement
+        (signature
+          (named_parameter
+            (scalar
+              (varname))))
+        (block))))
   (class_statement
     (package)
     (attrlist
@@ -623,7 +637,10 @@ class Example :isa(BaseClass) {
               (attribute
                 (attribute_name))))
           (number)))
-      (phaser_statement
+      (class_phaser_statement
+        (attrlist
+          (attribute
+            (attribute_name)))
         (block
           (expression_statement
             (postinc_expression

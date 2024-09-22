@@ -333,3 +333,61 @@ sub but_why ($cb = sub ($arg) { say $arg }) {}
                 (scalar
                   (varname))))))))
     (block)))
+
+================================================================================
+async/await
+================================================================================
+async sub ($thing) {
+  await $thing->promise;
+}
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (anonymous_subroutine_expression
+      (signature
+        (mandatory_parameter
+          (scalar
+            (varname))))
+      (block
+        (expression_statement
+          (await_expression
+            (method_call_expression
+              (scalar
+                (varname))
+              (method))))))))
+
+================================================================================
+extended sub/method
+================================================================================
+extended sub thingy {}
+my extended method stuff {};
+my async extended method stuff {};
+my extended async method stuff {};
+--------------------------------------------------------------------------------
+
+(source_file
+  (subroutine_declaration_statement
+    (bareword)
+    (block))
+  (method_declaration_statement
+    (bareword)
+    (block))
+  (method_declaration_statement
+    (bareword)
+    (block))
+  (method_declaration_statement
+    (bareword)
+    (block)))
+
+================================================================================
+lexical method calls experimental Object::Pad syntax
+================================================================================
+$sner->&over_9000
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement
+    (method_call_expression
+      (scalar
+        (varname))
+      (method))))
