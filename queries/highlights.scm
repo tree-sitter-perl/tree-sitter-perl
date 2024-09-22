@@ -14,7 +14,7 @@
 
 "return" @keyword.return
 
-[ "sub" "method" ] @keyword.function
+[ "sub" "method" "async" "extended" ] @keyword.function
 
 [ "map" "grep" "sort" ] @function.builtin
 
@@ -23,14 +23,17 @@
 [
   "defer"
   "do" "eval"
-  "my" "our" "local" "state" "field"
+  "my" "our" "local" "dynamically" "state" "field"
   "last" "next" "redo" "goto"
-  "undef"
+  "undef" "await"
 ] @keyword
 
 (yadayada) @exception
 
 (phaser_statement phase: _ @keyword.phaser)
+(class_phaser_statement phase: _ @keyword.phaser)
+
+
 
 (_ operator: _ @operator)
 "\\" @operator
