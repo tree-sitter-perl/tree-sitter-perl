@@ -379,3 +379,15 @@ my extended async method stuff {};
   (method_declaration_statement
     (bareword)
     (block)))
+
+================================================================================
+lexical method calls experimental Object::Pad syntax
+================================================================================
+$sner->&over_9000
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement
+    (method_call_expression
+      (scalar
+        (varname))
+      (method))))

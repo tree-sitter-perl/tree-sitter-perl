@@ -776,6 +776,7 @@ module.exports = grammar({
     method_call_expression: $ => prec.left(TERMPREC.ARROW, seq(
       field('invocant', $._term),
       '->',
+      optional('&'),
       field('method', $.method),
       optseq('(', optional(field('arguments', $._expr)), ')')
     )),
