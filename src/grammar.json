@@ -7266,11 +7266,14 @@
             {
               "type": "ALIAS",
               "content": {
-                "type": "SYMBOL",
-                "name": "_interp_arrow"
+                "type": "IMMEDIATE_TOKEN",
+                "content": {
+                  "type": "STRING",
+                  "value": "->"
+                }
               },
               "named": false,
-              "value": "not-interpolated"
+              "value": "sner"
             },
             {
               "type": "SYMBOL",
@@ -7288,11 +7291,14 @@
             {
               "type": "ALIAS",
               "content": {
-                "type": "SYMBOL",
-                "name": "_interp_arrow"
+                "type": "IMMEDIATE_TOKEN",
+                "content": {
+                  "type": "STRING",
+                  "value": "->"
+                }
               },
               "named": false,
-              "value": "not-interpolated"
+              "value": "sner"
             },
             {
               "type": "STRING",
@@ -8818,6 +8824,10 @@
     ],
     [
       "_loop_body"
+    ],
+    [
+      "_interp_arrow",
+      "_interpolation_fallbacks"
     ]
   ],
   "precedences": [],
