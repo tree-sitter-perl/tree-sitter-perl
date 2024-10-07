@@ -1,4 +1,5 @@
 {
+  "$schema": "https://tree-sitter.github.io/tree-sitter/assets/schemas/grammar.schema.json",
   "name": "perl",
   "word": "_identifier",
   "rules": {
@@ -7263,8 +7264,13 @@
               "name": "scalar"
             },
             {
-              "type": "SYMBOL",
-              "name": "_interp_arrow"
+              "type": "ALIAS",
+              "content": {
+                "type": "SYMBOL",
+                "name": "_interp_arrow"
+              },
+              "named": false,
+              "value": "not-interpolated"
             },
             {
               "type": "SYMBOL",
@@ -7280,8 +7286,13 @@
               "name": "scalar"
             },
             {
-              "type": "SYMBOL",
-              "name": "_interp_arrow"
+              "type": "ALIAS",
+              "content": {
+                "type": "SYMBOL",
+                "name": "_interp_arrow"
+              },
+              "named": false,
+              "value": "not-interpolated"
             },
             {
               "type": "STRING",
