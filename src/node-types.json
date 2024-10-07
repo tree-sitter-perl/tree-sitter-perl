@@ -20978,6 +20978,7 @@
   {
     "type": "source_file",
     "named": true,
+    "root": true,
     "fields": {},
     "children": {
       "multiple": true,
@@ -23460,6 +23461,10 @@
   },
   {
     "type": "sleep",
+    "named": false
+  },
+  {
+    "type": "sner",
     "named": false
   },
   {
