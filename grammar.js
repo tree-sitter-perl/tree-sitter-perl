@@ -165,7 +165,9 @@ module.exports = grammar({
     // nameless params need extra lookahead
     [$.optional_parameter],
     // these are all dynamic handling for continue BLOCK vs func0 b/c we don't get lookahead
-    [$._loop_body]
+    [$._loop_body],
+    // we need an extra lookahead so we can correctly hide the `->` in a non-interpolating case
+    [$._interp_arrow, $._interpolation_fallbacks]
   ],
   rules: {
     source_file: $ => seq(repeat($._fullstmt), optional($.__DATA__)),
@@ -949,7 +951,9 @@ module.exports = grammar({
     _braced_array: $ => seq(
       '@', choice($.block, $._var_indirob_autoquote), $._NONASSOC
     ),
+
     _interp_arrow: $ => token.immediate('->'),
+
     _array_element_interpolation: $ => choice(
       seq(field('array', alias($.scalar, $.container_variable)), token.immediate('['), field('index', $._expr), ']'),
       prec.left(TERMPREC.ARROW, seq($.scalar, $._interp_arrow, '[', field('index', $._expr), ']')),
@@ -989,8 +993,8 @@ module.exports = grammar({
       // we need the zw quote-end for "" (we leave regular _end so the scanner looks for it)
       seq('@', choice(/[^A-Za-z0-9_\$'+:-]/, $._quotelike_end_zw, $._quotelike_end)),
       // handling space sensitivity more correctly re deref-ing interps
-      seq($.scalar, $._interp_arrow, $._no_interp_whitespace_zw),
-      seq($.scalar, $._interp_arrow, '@', $._no_interp_whitespace_zw),
+      seq($.scalar, alias(token.immediate('->'), 'sner'), $._no_interp_whitespace_zw),
+      seq($.scalar, alias(token.immediate('->'), 'sner'), '@', $._no_interp_whitespace_zw),
       $._nonvar_interpolation_fallbacks
     ),
     // a separate fallback section for non-vars b/c no variables interp inside of

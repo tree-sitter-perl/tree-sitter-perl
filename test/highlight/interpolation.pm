@@ -14,7 +14,9 @@
  "@)";
 # ^^ string
 "$thing-> {ting}    also $shtuff ->{hi}";
-#      ^^^^^ string              ^^^ string
+#      ^^^^^ string
+#                                 ^^^ string
 "$thing->{time}";
+#      ^^ punctuation.delimiter
 #        ^ punctuation.bracket
 #         ^^ string.special

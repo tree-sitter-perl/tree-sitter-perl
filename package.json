@@ -34,20 +34,8 @@
     "eslint-plugin-n": "^15.2.4",
     "eslint-plugin-promise": "^6.0.0",
     "prebuildify": "^6.0.0",
-    "tree-sitter-cli": "^0.22.6"
+    "tree-sitter-cli": "^0.24.2"
   },
-  "tree-sitter": [
-    {
-      "highlights": "queries/highlights.scm",
-      "scope": "source.pm",
-      "file-types": [
-        "pm",
-        "pl"
-      ],
-      "first-line-regex": "#!.*\\bperl\\b",
-      "injection-regex": "(perl|pl)"
-    }
-  ],
   "files": [
     "grammar.js",
     "binding.gyp",
@@ -55,5 +43,11 @@
     "bindings/node/*",
     "queries/*",
     "src/**"
+  ],
+  "tree-sitter": [
+    {
+      "scope": "source.perl",
+      "injection-regex": "^perl$"
+    }
   ]
 }
