@@ -47,6 +47,9 @@ is respectively less than, matching, or greater than the array member.
 
 */
 
+#ifndef BSEARCH_H
+#define BSEARCH_H
+
 #include <stdio.h>
 #include <sys/types.h> /* size_t */
 
@@ -83,3 +86,5 @@ void *bsearch(const void *key, const void *base0, size_t nmemb, size_t size,
   }
   return (NULL);
 }
+
+#endif
