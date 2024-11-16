@@ -451,7 +451,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   }
 
   if (iswspace(c) && valid_symbols[TOKEN_NO_INTERP_WHITESPACE_ZW]) {
-      TOKEN(TOKEN_NO_INTERP_WHITESPACE_ZW);
+    TOKEN(TOKEN_NO_INTERP_WHITESPACE_ZW);
   }
   skip_ws_to_eol(lexer);
   /* heredocs override everything, so they must be here before */
@@ -535,7 +535,8 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     }
   }
 
-  if ((valid_symbols[TOKEN_SEARCH_SLASH] && c == '/') && !valid_symbols[NO_TOKEN_SEARCH_SLASH_PLZ]) {
+  if ((valid_symbols[TOKEN_SEARCH_SLASH] && c == '/') &&
+      !valid_symbols[NO_TOKEN_SEARCH_SLASH_PLZ]) {
     ADVANCE_C;
     MARK_END;
 
