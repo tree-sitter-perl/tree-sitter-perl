@@ -18,7 +18,7 @@
 
 [ "map" "grep" "sort" ] @function.builtin
 
-[ "package" "class" ] @include
+[ "package" "class" "role" ] @include
 
 [
   "defer"

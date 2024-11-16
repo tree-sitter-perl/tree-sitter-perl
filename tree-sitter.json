@@ -7,7 +7,8 @@
       "path": ".",
       "file-types": [
         "pm",
-        "pl"
+        "pl",
+        "t"
       ],
       "highlights": "queries/highlights.scm",
       "injection-regex": "(perl|pl)",
