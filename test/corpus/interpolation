@@ -96,6 +96,25 @@ Hash element interpolation
           (autoquoted_bareword))))))
 
 ================================================================================
+Method calls don't interpolate
+================================================================================
+"this is not a $method->call";
+"this is not a $method->$call";
+--------------------------------------------------------------------------------
+(source_file
+  (expression_statement
+    (interpolated_string_literal
+      (string_content
+        (scalar
+          (varname)))))
+  (expression_statement
+    (interpolated_string_literal
+      (string_content
+        (scalar
+          (varname)
+        (scalar
+          (varname))))))
+================================================================================
 Space skips interpolation
 ================================================================================
 "an array $elem [0]";

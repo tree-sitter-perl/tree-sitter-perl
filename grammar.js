@@ -993,8 +993,17 @@ module.exports = grammar({
       // we need the zw quote-end for "" (we leave regular _end so the scanner looks for it)
       seq('@', choice(/[^A-Za-z0-9_\$'+:-]/, $._quotelike_end_zw, $._quotelike_end)),
       // handling space sensitivity more correctly re deref-ing interps
-      seq($.scalar, alias(token.immediate('->'), 'sner'), $._no_interp_whitespace_zw),
-      seq($.scalar, alias(token.immediate('->'), 'sner'), '@', $._no_interp_whitespace_zw),
+      seq(
+        $.scalar,
+        alias(token.immediate('->'), 'sner'),
+        choice(
+          // handle "$ting->@ {blah}" and "$ting-> {blah}"
+          seq(optional('@'), $._no_interp_whitespace_zw),
+          // handle method calls "$ting->call" by taking anything other than @, {, and [
+          // TODO - but now we end up eating the next char, so we mess up "$ting->$name"
+          /[^@{\[]/
+        )
+      ),
       $._nonvar_interpolation_fallbacks
     ),
     // a separate fallback section for non-vars b/c no variables interp inside of
@@ -1003,7 +1012,7 @@ module.exports = grammar({
       // these are re-aliased to not-interpolated so that a query for the actual
       // syntactic token won't match; we don't want queries mistakenly picking up these tokens as
       // part of a bracket pair
-      ...aliasMany('not-interpolated', ['-', '{', '[',]),
+      ...aliasMany('not-interpolated', ['-', '{', '[', ]),
     ),
     _interpolated_string_content: $ => repeat1(
       choice(
