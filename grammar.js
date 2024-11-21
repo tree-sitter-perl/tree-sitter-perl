@@ -972,9 +972,13 @@ module.exports = grammar({
       prec.left(TERMPREC.ARROW,
         seq(field('hashref', $.scalar), $._interp_arrow, '@', '{', $._hash_key, '}')),
     ),
+    _scalar_deref_interpolation: $ => prec.left(TERMPREC.ARROW, seq($.scalar, $._interp_arrow, token.immediate('$*'))),
+    _array_deref_interpolation: $ => prec.left(TERMPREC.ARROW, seq(field('arrayref', $.scalar), $._interp_arrow, token.immediate('@*'))),
     _interpolations: $ => choice(
-      $.array,
       $.scalar,
+      $.array,
+      alias($._scalar_deref_interpolation, $.scalar_deref_expression),
+      alias($._array_deref_interpolation, $.array_deref_expression),
       alias($._braced_scalar, $.scalar),
       alias($._braced_array, $.array),
       $._subscripted_interpolations,
@@ -995,13 +999,14 @@ module.exports = grammar({
       // handling space sensitivity more correctly re deref-ing interps
       seq(
         $.scalar,
-        alias(token.immediate('->'), 'sner'),
+        alias(token.immediate('->'), 'not-interpolated'),
         choice(
           // handle "$ting->@ {blah}" and "$ting-> {blah}"
-          seq(optional('@'), $._no_interp_whitespace_zw),
+          seq(optional(choice('@', '$')), $._no_interp_whitespace_zw),
+          // handle dynamic method calls like $scalar->$scalar
+          $.scalar,
           // handle method calls "$ting->call" by taking anything other than @, {, and [
-          // TODO - but now we end up eating the next char, so we mess up "$ting->$name"
-          /[^@{\[]/
+          /[^@${\[]/
         )
       ),
       $._nonvar_interpolation_fallbacks
@@ -1012,7 +1017,7 @@ module.exports = grammar({
       // these are re-aliased to not-interpolated so that a query for the actual
       // syntactic token won't match; we don't want queries mistakenly picking up these tokens as
       // part of a bracket pair
-      ...aliasMany('not-interpolated', ['-', '{', '[', ]),
+      ...aliasMany('not-interpolated', ['-', '{', '[',]),
     ),
     _interpolated_string_content: $ => repeat1(
       choice(
