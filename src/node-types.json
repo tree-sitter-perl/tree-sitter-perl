@@ -1734,10 +1734,21 @@
   {
     "type": "array_deref_expression",
     "named": true,
-    "fields": {},
+    "fields": {
+      "arrayref": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "scalar",
+            "named": true
+          }
+        ]
+      }
+    },
     "children": {
       "multiple": false,
-      "required": true,
+      "required": false,
       "types": [
         {
           "type": "ambiguous_function_call_expression",
@@ -11265,6 +11276,10 @@
           "named": true
         },
         {
+          "type": "array_deref_expression",
+          "named": true
+        },
+        {
           "type": "array_element_expression",
           "named": true
         },
@@ -11282,6 +11297,10 @@
         },
         {
           "type": "scalar",
+          "named": true
+        },
+        {
+          "type": "scalar_deref_expression",
           "named": true
         },
         {
@@ -18305,6 +18324,10 @@
           "named": true
         },
         {
+          "type": "array_deref_expression",
+          "named": true
+        },
+        {
           "type": "array_element_expression",
           "named": true
         },
@@ -18322,6 +18345,10 @@
         },
         {
           "type": "scalar",
+          "named": true
+        },
+        {
+          "type": "scalar_deref_expression",
           "named": true
         },
         {
@@ -18924,6 +18951,10 @@
           "named": true
         },
         {
+          "type": "array_deref_expression",
+          "named": true
+        },
+        {
           "type": "array_element_expression",
           "named": true
         },
@@ -18941,6 +18972,10 @@
         },
         {
           "type": "scalar",
+          "named": true
+        },
+        {
+          "type": "scalar_deref_expression",
           "named": true
         },
         {
@@ -21186,6 +21221,10 @@
           "named": true
         },
         {
+          "type": "array_deref_expression",
+          "named": true
+        },
+        {
           "type": "array_element_expression",
           "named": true
         },
@@ -21203,6 +21242,10 @@
         },
         {
           "type": "scalar",
+          "named": true
+        },
+        {
+          "type": "scalar_deref_expression",
           "named": true
         },
         {
@@ -22688,6 +22731,10 @@
     "named": false
   },
   {
+    "type": "$*",
+    "named": false
+  },
+  {
     "type": "%",
     "named": false
   },
@@ -22877,6 +22924,10 @@
   },
   {
     "type": "@",
+    "named": false
+  },
+  {
+    "type": "@*",
     "named": false
   },
   {
@@ -23357,11 +23408,11 @@
   },
   {
     "type": "prototype",
-    "named": true
+    "named": false
   },
   {
     "type": "prototype",
-    "named": false
+    "named": true
   },
   {
     "type": "q",
@@ -23461,10 +23512,6 @@
   },
   {
     "type": "sleep",
-    "named": false
-  },
-  {
-    "type": "sner",
     "named": false
   },
   {

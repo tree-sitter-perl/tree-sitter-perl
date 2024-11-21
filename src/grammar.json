@@ -7150,16 +7150,86 @@
         }
       ]
     },
+    "_scalar_deref_interpolation": {
+      "type": "PREC_LEFT",
+      "value": 24,
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "SYMBOL",
+            "name": "scalar"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "_interp_arrow"
+          },
+          {
+            "type": "IMMEDIATE_TOKEN",
+            "content": {
+              "type": "STRING",
+              "value": "$*"
+            }
+          }
+        ]
+      }
+    },
+    "_array_deref_interpolation": {
+      "type": "PREC_LEFT",
+      "value": 24,
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "FIELD",
+            "name": "arrayref",
+            "content": {
+              "type": "SYMBOL",
+              "name": "scalar"
+            }
+          },
+          {
+            "type": "SYMBOL",
+            "name": "_interp_arrow"
+          },
+          {
+            "type": "IMMEDIATE_TOKEN",
+            "content": {
+              "type": "STRING",
+              "value": "@*"
+            }
+          }
+        ]
+      }
+    },
     "_interpolations": {
       "type": "CHOICE",
       "members": [
         {
           "type": "SYMBOL",
-          "name": "array"
+          "name": "scalar"
         },
         {
           "type": "SYMBOL",
-          "name": "scalar"
+          "name": "array"
+        },
+        {
+          "type": "ALIAS",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_scalar_deref_interpolation"
+          },
+          "named": true,
+          "value": "scalar_deref_expression"
+        },
+        {
+          "type": "ALIAS",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_array_deref_interpolation"
+          },
+          "named": true,
+          "value": "array_deref_expression"
         },
         {
           "type": "ALIAS",
@@ -7273,40 +7343,50 @@
                 }
               },
               "named": false,
-              "value": "sner"
+              "value": "not-interpolated"
             },
             {
-              "type": "SYMBOL",
-              "name": "_no_interp_whitespace_zw"
-            }
-          ]
-        },
-        {
-          "type": "SEQ",
-          "members": [
-            {
-              "type": "SYMBOL",
-              "name": "scalar"
-            },
-            {
-              "type": "ALIAS",
-              "content": {
-                "type": "IMMEDIATE_TOKEN",
-                "content": {
-                  "type": "STRING",
-                  "value": "->"
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "SEQ",
+                  "members": [
+                    {
+                      "type": "CHOICE",
+                      "members": [
+                        {
+                          "type": "CHOICE",
+                          "members": [
+                            {
+                              "type": "STRING",
+                              "value": "@"
+                            },
+                            {
+                              "type": "STRING",
+                              "value": "$"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "BLANK"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "SYMBOL",
+                      "name": "_no_interp_whitespace_zw"
+                    }
+                  ]
+                },
+                {
+                  "type": "SYMBOL",
+                  "name": "scalar"
+                },
+                {
+                  "type": "PATTERN",
+                  "value": "[^@${\\[]"
                 }
-              },
-              "named": false,
-              "value": "sner"
-            },
-            {
-              "type": "STRING",
-              "value": "@"
-            },
-            {
-              "type": "SYMBOL",
-              "name": "_no_interp_whitespace_zw"
+              ]
             }
           ]
         },
