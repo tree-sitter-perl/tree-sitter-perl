@@ -972,9 +972,13 @@ module.exports = grammar({
       prec.left(TERMPREC.ARROW,
         seq(field('hashref', $.scalar), $._interp_arrow, '@', '{', $._hash_key, '}')),
     ),
+    _scalar_deref_interpolation: $ => prec.left(TERMPREC.ARROW, seq($.scalar, $._interp_arrow, token.immediate('$*'))),
+    _array_deref_interpolation: $ => prec.left(TERMPREC.ARROW, seq(field('arrayref', $.scalar), $._interp_arrow, token.immediate('@*'))),
     _interpolations: $ => choice(
-      $.array,
       $.scalar,
+      $.array,
+      alias($._scalar_deref_interpolation, $.scalar_deref_expression),
+      alias($._array_deref_interpolation, $.array_deref_expression),
       alias($._braced_scalar, $.scalar),
       alias($._braced_array, $.array),
       $._subscripted_interpolations,
@@ -993,8 +997,18 @@ module.exports = grammar({
       // we need the zw quote-end for "" (we leave regular _end so the scanner looks for it)
       seq('@', choice(/[^A-Za-z0-9_\$'+:-]/, $._quotelike_end_zw, $._quotelike_end)),
       // handling space sensitivity more correctly re deref-ing interps
-      seq($.scalar, alias(token.immediate('->'), 'sner'), $._no_interp_whitespace_zw),
-      seq($.scalar, alias(token.immediate('->'), 'sner'), '@', $._no_interp_whitespace_zw),
+      seq(
+        $.scalar,
+        alias(token.immediate('->'), 'not-interpolated'),
+        choice(
+          // handle "$ting->@ {blah}" and "$ting-> {blah}"
+          seq(optional(choice('@', '$')), $._no_interp_whitespace_zw),
+          // handle dynamic method calls like $scalar->$scalar
+          $.scalar,
+          // handle method calls "$ting->call" by taking anything other than @, {, and [
+          /[^@${\[]/
+        )
+      ),
       $._nonvar_interpolation_fallbacks
     ),
     // a separate fallback section for non-vars b/c no variables interp inside of

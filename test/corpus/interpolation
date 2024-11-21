@@ -96,6 +96,27 @@ Hash element interpolation
           (autoquoted_bareword))))))
 
 ================================================================================
+Method calls don't interpolate
+================================================================================
+"this is not a $method->call";
+"this is not a $method->$call";
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (interpolated_string_literal
+      (string_content
+        (scalar
+          (varname)))))
+  (expression_statement
+    (interpolated_string_literal
+      (string_content
+        (scalar
+          (varname))
+        (scalar
+          (varname))))))
+
+================================================================================
 Space skips interpolation
 ================================================================================
 "an array $elem [0]";
@@ -119,9 +140,10 @@ Space skips interpolation
   (expression_statement
     (interpolated_string_literal
       (string_content
-        (scalar (varname))
-        (scalar (varname))
-        )))
+        (scalar
+          (varname))
+        (scalar
+          (varname)))))
   (expression_statement
     (interpolated_string_literal
       (string_content
@@ -163,6 +185,33 @@ Slice interpolation
             (number)
             (number)
             (number)))))))
+
+================================================================================
+Postfix star interpolation
+================================================================================
+"a $scalaref->$* and an unrolled $aryref->@*";
+"but $not-> $* or $here->$ *"
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (interpolated_string_literal
+      (string_content
+        (scalar_deref_expression
+          (scalar
+            (varname)))
+        (array_deref_expression
+          (scalar
+            (varname))))))
+  (expression_statement
+    (interpolated_string_literal
+      (string_content
+        (scalar
+          (varname))
+        (scalar
+          (varname))
+        (scalar
+          (varname))))))
 
 ================================================================================
 Punctuation vars that interpolate
