@@ -416,21 +416,24 @@ module.exports = grammar({
     // for highlighting. We raise its prec b/c in a print (print $thing{stuff}) it becomes a var
     // not an indirob
     container_variable: $ => prec(2, seq('$', $._var_indirob)),
+    // NOTE - regarding ?-> (optchain): we can't put it in its own rule b/c then the stuff
+    // we have about interpolations stops working correctly; so annoyingly it must be
+    // implemented via inline choice in each rule 😢
     array_element_expression: $ => choice(
       // perly.y matches scalar '[' expr ']' here but that would yield a scalar var node
       seq(field('array', $.container_variable), '[', field('index', $._expr), ']'),
-      prec.left(TERMPREC.ARROW, seq($._term, '->', '[', field('index', $._expr), ']')),
+      prec.left(TERMPREC.ARROW, seq($._term, choice('->', '?->'), '[', field('index', $._expr), ']')),
       seq($._subscripted, '[', field('index', $._expr), ']'),
     ),
     _hash_key: $ => choice($._brace_autoquoted, $._expr),
     hash_element_expression: $ => choice(
       // perly.y matches scalar '{' expr '}' here but that would yield a scalar var node
       seq(field('hash', $.container_variable), '{', field('key', $._hash_key), '}'),
-      prec.left(TERMPREC.ARROW, seq($._term, '->', '{', field('key', $._hash_key), '}')),
+      prec.left(TERMPREC.ARROW, seq($._term, choice('->', '?->'), '{', field('key', $._hash_key), '}')),
       seq($._subscripted, '{', field('key', $._hash_key), '}'),
     ),
     coderef_call_expression: $ => choice(
-      prec.left(TERMPREC.ARROW, seq($._term, '->', '(', optional(field('arguments', $._expr)), ')')),
+      prec.left(TERMPREC.ARROW, seq($._term, choice('->', '?->'), '(', optional(field('arguments', $._expr)), ')')),
       seq($._subscripted, '(', optional(field('arguments', $._expr)), ')'),
     ),
     anonymous_slice_expression: $ => choice(
@@ -442,18 +445,18 @@ module.exports = grammar({
       seq(field('array', $.slice_container_variable), '[', $._expr, ']'),
       seq(field('hash', $.slice_container_variable), '{', $._hash_key, '}'),
       prec.left(TERMPREC.ARROW,
-        seq(field('arrayref', $._term), '->', '@', '[', $._expr, ']')),
+        seq(field('arrayref', $._term), choice('->', '?->'), '@', '[', $._expr, ']')),
       prec.left(TERMPREC.ARROW,
-        seq(field('hashref', $._term), '->', '@', '{', $._hash_key, '}')),
+        seq(field('hashref', $._term), choice('->', '?->'), '@', '{', $._hash_key, '}')),
     ),
     keyval_container_variable: $ => seq($._HASH_PERCENT, $._var_indirob),
     keyval_expression: $ => choice(
       seq(field('array', $.keyval_container_variable), '[', $._expr, ']'),
       seq(field('hash', $.keyval_container_variable), '{', $._hash_key, '}'),
       prec.left(TERMPREC.ARROW,
-        seq(field('arrayref', $._term), '->', '%', '[', $._expr, ']')),
+        seq(field('arrayref', $._term), choice('->', '?->'), '%', '[', $._expr, ']')),
       prec.left(TERMPREC.ARROW,
-        seq(field('hashref', $._term), '->', '%', '{', $._hash_key, '}')),
+        seq(field('hashref', $._term), choice('->', '?->'), '%', '{', $._hash_key, '}')),
     ),
 
     _term: $ => choice(
@@ -678,15 +681,15 @@ module.exports = grammar({
     stub_expression: $ => prec(-1, seq('(', ')')),
 
     scalar_deref_expression: $ =>
-      prec.left(TERMPREC.ARROW, seq($._term, '->', '$', '*')),
+      prec.left(TERMPREC.ARROW, seq($._term, choice('->', '?->'), '$', '*')),
     array_deref_expression: $ =>
-      prec.left(TERMPREC.ARROW, seq($._term, '->', '@', '*')),
+      prec.left(TERMPREC.ARROW, seq($._term, choice('->', '?->'), '@', '*')),
     hash_deref_expression: $ =>
-      prec.left(TERMPREC.ARROW, seq($._term, '->', '%', '*')),
+      prec.left(TERMPREC.ARROW, seq($._term, choice('->', '?->'), '%', '*')),
     amper_deref_expression: $ =>
-      prec.left(TERMPREC.ARROW, seq($._term, '->', '&', '*')),
+      prec.left(TERMPREC.ARROW, seq($._term, choice('->', '?->'), '&', '*')),
     glob_deref_expression: $ =>
-      prec.left(TERMPREC.ARROW, seq($._term, '->', '*', '*')),
+      prec.left(TERMPREC.ARROW, seq($._term, choice('->', '?->'), '*', '*')),
 
     require_expression: $ =>
       prec.left(TERMPREC.REQUIRE, seq('require', optional($._term))),
@@ -777,7 +780,7 @@ module.exports = grammar({
 
     method_call_expression: $ => prec.left(TERMPREC.ARROW, seq(
       field('invocant', $._term),
-      '->',
+      choice('->', '?->'),
       optional('&'),
       field('method', $.method),
       optseq('(', optional(field('arguments', $._expr)), ')')
