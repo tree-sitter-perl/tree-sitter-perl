@@ -4,7 +4,9 @@ This is Yet Another perl tree-sitter module.
 
 ## Getting Started Developing
 
-To get started, install the dependencies for this repo
+To get started, install the dependencies for this repo. The only thing you'll need
+installed is node v20 or above (we use more advanced regex features for the unicode
+support).
 
 ```bash
 npm run dev-install
@@ -12,7 +14,8 @@ npm run dev-install
 
 That should get you set up with tree-sitter's cli locally. (npm install won't work b/c it
 needs the library to be generated to build the bindings so we can use this repo for node
-bindings)
+bindings).
+
 
 ### Generating the Bindings
 
