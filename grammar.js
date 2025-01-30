@@ -1147,8 +1147,8 @@ module.exports = grammar({
       )
     ),
 
-    quoted_regexp_modifiers: $ => token.immediate(prec(2, /[msixpadlun]+/)),
-    match_regexp_modifiers: $ => token.immediate(prec(2, /[msixpadluncg]+/)),
+    quoted_regexp_modifiers: $ => token.immediate(prec(2, /[msixpodualn]+/)),
+    match_regexp_modifiers: $ => token.immediate(prec(2, /[msixpogcdualn]+/)),
     substitution_regexp_modifiers: $ => token.immediate(prec(2, /[msixpogcedualr]+/)),
     transliteration_modifiers: $ => token.immediate(prec(2, /[cdsr]+/)),
 

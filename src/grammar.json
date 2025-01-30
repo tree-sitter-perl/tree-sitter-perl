@@ -8217,7 +8217,7 @@
         "value": 2,
         "content": {
           "type": "PATTERN",
-          "value": "[msixpadlun]+"
+          "value": "[msixpodualn]+"
         }
       }
     },
@@ -8228,7 +8228,7 @@
         "value": 2,
         "content": {
           "type": "PATTERN",
-          "value": "[msixpadluncg]+"
+          "value": "[msixpogcdualn]+"
         }
       }
     },
