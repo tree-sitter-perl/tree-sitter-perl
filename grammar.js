@@ -101,6 +101,7 @@ module.exports = grammar({
     $._PHASE_NAME,
     $._HASH_PERCENT,
     $._bareword,
+    $._unambiguous_function,
   ],
   externals: $ => [
     /* ident-alikes */
@@ -159,6 +160,7 @@ module.exports = grammar({
     [$.return_expression],
     [$._listexpr, $.list_expression, $._term_rightward],
     [$.function, $.bareword],
+    [$.function, $.function_call_expression],
     [$._term, $.indirect_object],
     [$.expression_statement, $._tricky_indirob_hashref],
     [$.autoquoted_bareword],
@@ -482,6 +484,7 @@ module.exports = grammar({
       $.stub_expression,
       $.scalar,
       $.glob,
+      $.glob_slot_expression,
       $.hash,
       $.array,
       $.arraylen,
@@ -496,6 +499,7 @@ module.exports = grammar({
        */
       $.scalar_deref_expression,
       $.array_deref_expression,
+      $.arraylen_deref_expression,
       $.hash_deref_expression,
       $.amper_deref_expression,
       $.glob_deref_expression,
@@ -603,7 +607,7 @@ module.exports = grammar({
       field('condition', $._term), '?', field('consequent', $._term), ':', field('alternative', $._term)
     )),
 
-    refgen_expression: $ => seq('\\', $._term), // _REFGEN
+    refgen_expression: $ => prec.left(TERMPREC.UMINUS, seq('\\', choice(alias($.amper_sub, $.function), $._term))), // _REFGEN
 
     anonymous_array_expression: $ => seq(
       '[', optional($._expr), ']'
@@ -681,6 +685,8 @@ module.exports = grammar({
       prec.left(TERMPREC.ARROW, seq($._term, '->', '$', '*')),
     array_deref_expression: $ =>
       prec.left(TERMPREC.ARROW, seq($._term, '->', '@', '*')),
+    arraylen_deref_expression: $ =>
+      prec.left(TERMPREC.ARROW, seq($._term, '->', '$#', '*')),
     hash_deref_expression: $ =>
       prec.left(TERMPREC.ARROW, seq($._term, '->', '%', '*')),
     amper_deref_expression: $ =>
@@ -753,11 +759,13 @@ module.exports = grammar({
       // this may be kinda evil, but we use this token as a flag to not accept a search slash
       seq($.scalar, optional($._no_search_slash_plz)),
     ),
-    // the usage of NONASSOC here is to make it that any parse of a paren after a func
-    // automatically becomes a non-ambiguous function call
+    _unambiguous_function: $ => alias(choice($._bareword, $.amper_sub), $.function),
     function_call_expression: $ => choice(
-      seq(field('function', $.function), '(', $._NONASSOC, optional(field('arguments', $._expr)), ')'),
-      seq(field('function', $.function), '(', $._NONASSOC, $.indirect_object, field('arguments', $._expr), ')'),
+      seq(field('function', alias($.amper_sub, $.function))),
+      // the usage of NONASSOC here is to make it that any parse of a paren after a func
+      // automatically becomes a non-ambiguous function call
+      seq(field('function', $._unambiguous_function), '(', $._NONASSOC, optional(field('arguments', $._expr)), ')'),
+      seq(field('function', $._unambiguous_function), '(', $._NONASSOC, $.indirect_object, field('arguments', $._expr), ')'),
     ),
     _tricky_indirob_hashref: $ => seq($._PERLY_BRACE_OPEN, $._expr, $._PERLY_SEMICOLON, '}'),
     ambiguous_function_call_expression: $ =>
@@ -791,14 +799,22 @@ module.exports = grammar({
     array: $ => seq('@', $._var_indirob),
     _declare_array: $ => seq('@', $.varname),
     _signature_array: $ => seq('@', $._signature_varname),
+    // these need to have higher prec than the equivalent operator symbols
     _HASH_PERCENT: $ => alias(token(prec(2, '%')), '%'), // self-aliasing b/c token
+    _SUB_AMPER: $ => alias(token(prec(2, '&')), '&'), // self-aliasing b/c token
+    _GLOB_STAR: $ => alias(token(prec(2, '*')), '*'), // self-aliasing b/c token
+
     hash: $ => seq($._HASH_PERCENT, $._var_indirob),
     _declare_hash: $ => seq($._HASH_PERCENT, $.varname),
     _signature_hash: $ => seq($._HASH_PERCENT, $._signature_varname),
 
     arraylen: $ => seq('$#', $._var_indirob),
-    // perly.y calls this `star`
-    glob: $ => seq('*', $._var_indirob),
+    amper_sub: $ => seq($._SUB_AMPER, $._var_indirob),
+    glob: $ => seq($._GLOB_STAR, $._var_indirob),
+    glob_slot_expression: $ => choice(
+      seq($.glob, '{', $._hash_key, '}'),
+      prec.left(TERMPREC.ARROW, seq($._term, '->', '*', '{', $._hash_key, '}')),
+    ),
 
     _indirob: $ => choice(
       $._bareword,

@@ -2808,6 +2808,10 @@
         },
         {
           "type": "SYMBOL",
+          "name": "glob_slot_expression"
+        },
+        {
+          "type": "SYMBOL",
           "name": "hash"
         },
         {
@@ -2837,6 +2841,10 @@
         {
           "type": "SYMBOL",
           "name": "array_deref_expression"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "arraylen_deref_expression"
         },
         {
           "type": "SYMBOL",
@@ -4032,17 +4040,35 @@
       }
     },
     "refgen_expression": {
-      "type": "SEQ",
-      "members": [
-        {
-          "type": "STRING",
-          "value": "\\"
-        },
-        {
-          "type": "SYMBOL",
-          "name": "_term"
-        }
-      ]
+      "type": "PREC_LEFT",
+      "value": 21,
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "STRING",
+            "value": "\\"
+          },
+          {
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "ALIAS",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "amper_sub"
+                },
+                "named": true,
+                "value": "function"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "_term"
+              }
+            ]
+          }
+        ]
+      }
     },
     "anonymous_array_expression": {
       "type": "SEQ",
@@ -4702,6 +4728,31 @@
         ]
       }
     },
+    "arraylen_deref_expression": {
+      "type": "PREC_LEFT",
+      "value": 24,
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "SYMBOL",
+            "name": "_term"
+          },
+          {
+            "type": "STRING",
+            "value": "->"
+          },
+          {
+            "type": "STRING",
+            "value": "$#"
+          },
+          {
+            "type": "STRING",
+            "value": "*"
+          }
+        ]
+      }
+    },
     "hash_deref_expression": {
       "type": "PREC_LEFT",
       "value": 24,
@@ -5297,6 +5348,24 @@
         }
       ]
     },
+    "_unambiguous_function": {
+      "type": "ALIAS",
+      "content": {
+        "type": "CHOICE",
+        "members": [
+          {
+            "type": "SYMBOL",
+            "name": "_bareword"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "amper_sub"
+          }
+        ]
+      },
+      "named": true,
+      "value": "function"
+    },
     "function_call_expression": {
       "type": "CHOICE",
       "members": [
@@ -5307,8 +5376,26 @@
               "type": "FIELD",
               "name": "function",
               "content": {
+                "type": "ALIAS",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "amper_sub"
+                },
+                "named": true,
+                "value": "function"
+              }
+            }
+          ]
+        },
+        {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "FIELD",
+              "name": "function",
+              "content": {
                 "type": "SYMBOL",
-                "name": "function"
+                "name": "_unambiguous_function"
               }
             },
             {
@@ -5349,7 +5436,7 @@
               "name": "function",
               "content": {
                 "type": "SYMBOL",
-                "name": "function"
+                "name": "_unambiguous_function"
               }
             },
             {
@@ -5727,6 +5814,38 @@
       "named": false,
       "value": "%"
     },
+    "_SUB_AMPER": {
+      "type": "ALIAS",
+      "content": {
+        "type": "TOKEN",
+        "content": {
+          "type": "PREC",
+          "value": 2,
+          "content": {
+            "type": "STRING",
+            "value": "&"
+          }
+        }
+      },
+      "named": false,
+      "value": "&"
+    },
+    "_GLOB_STAR": {
+      "type": "ALIAS",
+      "content": {
+        "type": "TOKEN",
+        "content": {
+          "type": "PREC",
+          "value": 2,
+          "content": {
+            "type": "STRING",
+            "value": "*"
+          }
+        }
+      },
+      "named": false,
+      "value": "*"
+    },
     "hash": {
       "type": "SEQ",
       "members": [
@@ -5779,16 +5898,88 @@
         }
       ]
     },
-    "glob": {
+    "amper_sub": {
       "type": "SEQ",
       "members": [
         {
-          "type": "STRING",
-          "value": "*"
+          "type": "SYMBOL",
+          "name": "_SUB_AMPER"
         },
         {
           "type": "SYMBOL",
           "name": "_var_indirob"
+        }
+      ]
+    },
+    "glob": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "_GLOB_STAR"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_var_indirob"
+        }
+      ]
+    },
+    "glob_slot_expression": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "glob"
+            },
+            {
+              "type": "STRING",
+              "value": "{"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "_hash_key"
+            },
+            {
+              "type": "STRING",
+              "value": "}"
+            }
+          ]
+        },
+        {
+          "type": "PREC_LEFT",
+          "value": 24,
+          "content": {
+            "type": "SEQ",
+            "members": [
+              {
+                "type": "SYMBOL",
+                "name": "_term"
+              },
+              {
+                "type": "STRING",
+                "value": "->"
+              },
+              {
+                "type": "STRING",
+                "value": "*"
+              },
+              {
+                "type": "STRING",
+                "value": "{"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "_hash_key"
+              },
+              {
+                "type": "STRING",
+                "value": "}"
+              }
+            ]
+          }
         }
       ]
     },
@@ -8889,6 +9080,10 @@
       "bareword"
     ],
     [
+      "function",
+      "function_call_expression"
+    ],
+    [
       "_term",
       "indirect_object"
     ],
@@ -9071,7 +9266,8 @@
     "_LOOPEX",
     "_PHASE_NAME",
     "_HASH_PERCENT",
-    "_bareword"
+    "_bareword",
+    "_unambiguous_function"
   ],
   "supertypes": [
     "primitive"
