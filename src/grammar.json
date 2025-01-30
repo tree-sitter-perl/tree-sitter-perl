@@ -2880,6 +2880,10 @@
         },
         {
           "type": "SYMBOL",
+          "name": "require_version_expression"
+        },
+        {
+          "type": "SYMBOL",
           "name": "func0op_call_expression"
         },
         {
@@ -4839,16 +4843,29 @@
             "value": "require"
           },
           {
-            "type": "CHOICE",
-            "members": [
-              {
-                "type": "SYMBOL",
-                "name": "_term"
-              },
-              {
-                "type": "BLANK"
-              }
-            ]
+            "type": "SYMBOL",
+            "name": "_term"
+          }
+        ]
+      }
+    },
+    "require_version_expression": {
+      "type": "PREC_LEFT",
+      "value": 16,
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "STRING",
+            "value": "require"
+          },
+          {
+            "type": "FIELD",
+            "name": "version",
+            "content": {
+              "type": "SYMBOL",
+              "name": "_version"
+            }
           }
         ]
       }

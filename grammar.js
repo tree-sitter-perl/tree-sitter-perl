@@ -513,6 +513,7 @@ module.exports = grammar({
        * UNIOP term
        */
       $.require_expression,
+      $.require_version_expression,
       /* UNIOPSUB
        * UNIOPSUB term */
       $.func0op_call_expression,
@@ -695,7 +696,9 @@ module.exports = grammar({
       prec.left(TERMPREC.ARROW, seq($._term, '->', '*', '*')),
 
     require_expression: $ =>
-      prec.left(TERMPREC.REQUIRE, seq('require', optional($._term))),
+      prec.left(TERMPREC.REQUIRE, seq('require', $._term)),
+    require_version_expression: $ =>
+      prec.left(TERMPREC.REQUIRE, seq('require', field('version', $._version))),
 
     func0op_call_expression: $ =>
       seq(field('function', $._func0op), optseq('(', ')')),
