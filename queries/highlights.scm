@@ -118,12 +118,17 @@
   (#match? @variable.builtin "^((ENV|ARGV|INC|ARGVOUT|SIG|STDIN|STDOUT|STDERR)|[_ab]|\\W|\\d+|\\^.*)$")
 )
 
+(glob) @variable.builtin
+(glob_deref_expression "*" @variable.builtin)
+(glob_slot_expression "*" @variable.builtin)
 (scalar) @variable.scalar
 (scalar_deref_expression [ "$" "*"] @variable.scalar)
 [(array) (arraylen)] @variable.array
 (array_deref_expression [ "@" "*"] @variable.array)
+(arraylen_deref_expression [ "$#" "*"] @variable.array)
 (hash) @variable.hash
 (hash_deref_expression [ "%" "*"] @variable.hash)
+(amper_deref_expression [ "&" "*" ] @function.call)
 
 (array_element_expression array:(_) @variable.array)
 (slice_expression array:(_) @variable.array)

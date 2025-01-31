@@ -381,16 +381,17 @@ $gref->**;
 ================================================================================
 require EXPR
 ================================================================================
-require 123;
-require;
+require Your::Face;
+require v5.26;
 --------------------------------------------------------------------------------
 
 (source_file
   (expression_statement
     (require_expression
-      (number)))
+      (bareword)))
   (expression_statement
-    (require_expression)))
+    (require_version_expression
+      (version))))
 
 ================================================================================
 Loopex
