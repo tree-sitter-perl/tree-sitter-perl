@@ -717,16 +717,15 @@ module.exports = grammar({
       seq($._map_grep, '(', $._NONASSOC, field('callback', $.block), field('list', $._term_rightward), ')'),
     )),
 
-    // NOTE - even though technically you need the _tricky_hashref handling here, we punt on that,
-    // b/c it's quite unlikely that someone is sorting a hashref w/ the default string
-    // sort
-    // sigh, here we go SUBNAME (bareword vers)! we'll cover this with indirobs
-    //   - if it's the only thing on the list, then it's autoquoted.
-    //   - if there's a comma, it's autoquoted
-    //   - if there isn't, then it's a SUBNAME (unless it's builting)
+    // - we support sort SUBNAME as follows - if there's a bareword and no comma, it's
+    // automatically used as the callback, as per the perl docs. the callback can be
+    // either a block, a bareword or a scalar. we don't bother with _tricky_hashref b/c
+    // its sufficiently unlikely that somone is trying to numerical sort a single
+    // hashref
+    _sort_routine: $ => choice(prec(1, alias($._bareword, $.function)), $.block, prec(1, $.scalar)),
     sort_expression: $ => prec.left(TERMPREC.LSTOP, choice(
-      seq('sort', optional(field('callback', $.block)), field('list', $._term_rightward)),
-      seq('sort', '(', $._NONASSOC, optional(field('callback', $.block)), field('list', $._term_rightward), ')'),
+      seq('sort', optional(field('callback', $._sort_routine)), field('list', $._term_rightward)),
+      seq('sort', '(', $._NONASSOC, optional(field('callback', $._sort_routine)), field('list', $._term_rightward), ')'),
     )),
 
 

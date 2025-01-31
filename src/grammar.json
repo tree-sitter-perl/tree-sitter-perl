@@ -5117,6 +5117,36 @@
         ]
       }
     },
+    "_sort_routine": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "PREC",
+          "value": 1,
+          "content": {
+            "type": "ALIAS",
+            "content": {
+              "type": "SYMBOL",
+              "name": "_bareword"
+            },
+            "named": true,
+            "value": "function"
+          }
+        },
+        {
+          "type": "SYMBOL",
+          "name": "block"
+        },
+        {
+          "type": "PREC",
+          "value": 1,
+          "content": {
+            "type": "SYMBOL",
+            "name": "scalar"
+          }
+        }
+      ]
+    },
     "sort_expression": {
       "type": "PREC_LEFT",
       "value": 4,
@@ -5138,7 +5168,7 @@
                     "name": "callback",
                     "content": {
                       "type": "SYMBOL",
-                      "name": "block"
+                      "name": "_sort_routine"
                     }
                   },
                   {
@@ -5179,7 +5209,7 @@
                     "name": "callback",
                     "content": {
                       "type": "SYMBOL",
-                      "name": "block"
+                      "name": "_sort_routine"
                     }
                   },
                   {
