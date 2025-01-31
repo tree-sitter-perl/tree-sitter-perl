@@ -329,8 +329,8 @@ module.exports = grammar({
     cstyle_for_statement: $ =>
       seq($._KW_FOR,
         '(',
-        field('initialiser', optional($._expr)), ';',
-        field('condition', optional($._expr)), ';',
+        field('initialiser', $._barestmt),
+        field('condition', $._barestmt),
         field('iterator', optional($._expr)),
         ')',
         $._loop_body

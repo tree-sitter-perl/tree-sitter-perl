@@ -379,15 +379,17 @@ for (my $i = 0; $i < 10; $i++) { 123; }
 
 (source_file
   (cstyle_for_statement
-    initialiser: (assignment_expression
-      left: (variable_declaration
-        variable: (scalar
-          (varname)))
-      right: (number))
-    condition: (relational_expression
-      left: (scalar
-        (varname))
-      right: (number))
+    initialiser: (expression_statement
+      (assignment_expression
+        left: (variable_declaration
+          variable: (scalar
+            (varname)))
+        right: (number)))
+    condition: (expression_statement
+      (relational_expression
+        left: (scalar
+          (varname))
+        right: (number)))
     iterator: (postinc_expression
       operand: (scalar
         (varname)))

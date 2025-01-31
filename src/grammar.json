@@ -1364,41 +1364,17 @@
           "type": "FIELD",
           "name": "initialiser",
           "content": {
-            "type": "CHOICE",
-            "members": [
-              {
-                "type": "SYMBOL",
-                "name": "_expr"
-              },
-              {
-                "type": "BLANK"
-              }
-            ]
+            "type": "SYMBOL",
+            "name": "_barestmt"
           }
-        },
-        {
-          "type": "STRING",
-          "value": ";"
         },
         {
           "type": "FIELD",
           "name": "condition",
           "content": {
-            "type": "CHOICE",
-            "members": [
-              {
-                "type": "SYMBOL",
-                "name": "_expr"
-              },
-              {
-                "type": "BLANK"
-              }
-            ]
+            "type": "SYMBOL",
+            "name": "_barestmt"
           }
-        },
-        {
-          "type": "STRING",
-          "value": ";"
         },
         {
           "type": "FIELD",
