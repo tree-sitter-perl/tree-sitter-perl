@@ -168,6 +168,7 @@ array elements
 $a[123];
 $aref->[123];
 $a[1][2][3];
+$a->$#*;
 --------------------------------------------------------------------------------
 
 (source_file
@@ -189,7 +190,11 @@ $a[1][2][3];
             (varname))
           index: (number))
         index: (number))
-      index: (number))))
+      index: (number)))
+  (expression_statement
+    (arraylen_deref_expression
+      (scalar
+        (varname)))))
 
 ================================================================================
 hash elements
@@ -356,3 +361,51 @@ $שלום;
   (expression_statement
     (hash
       (varname))))
+
+================================================================================
+amper subs
+================================================================================
+&function_call;
+\&function_ref;
+$amper_derefed->&*;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (function_call_expression
+      (function
+        (varname))))
+  (expression_statement
+    (refgen_expression
+      (function
+        (varname))))
+  (expression_statement
+    (amper_deref_expression
+      (scalar
+        (varname)))))
+
+================================================================================
+glob access
+================================================================================
+*foo{THING}, *foo{$dynamic_thing}, $var->*{THING}, $var->**;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (list_expression
+      (glob_slot_expression
+        (glob
+          (varname))
+        (autoquoted_bareword))
+      (glob_slot_expression
+        (glob
+          (varname))
+        (scalar
+          (varname)))
+      (glob_slot_expression
+        (scalar
+          (varname))
+        (autoquoted_bareword))
+      (glob_deref_expression
+        (scalar
+          (varname))))))
