@@ -101,6 +101,7 @@ module.exports = grammar({
     $._PHASE_NAME,
     $._HASH_PERCENT,
     $._bareword,
+    $._unambiguous_function,
   ],
   externals: $ => [
     /* ident-alikes */
@@ -110,6 +111,8 @@ module.exports = grammar({
     $._backtick_quote,
     $._search_slash_quote,
     $._no_search_slash_plz,
+    $._open_readline_bracket,
+    $._open_fileglob_bracket,
     $._PERLY_SEMICOLON,
     $._PERLY_HEREDOC,
     $._ctrl_z_hack,
@@ -159,6 +162,7 @@ module.exports = grammar({
     [$.return_expression],
     [$._listexpr, $.list_expression, $._term_rightward],
     [$.function, $.bareword],
+    [$.function, $.function_call_expression],
     [$._term, $.indirect_object],
     [$.expression_statement, $._tricky_indirob_hashref],
     [$.autoquoted_bareword],
@@ -327,8 +331,8 @@ module.exports = grammar({
     cstyle_for_statement: $ =>
       seq($._KW_FOR,
         '(',
-        field('initialiser', optional($._expr)), ';',
-        field('condition', optional($._expr)), ';',
+        field('initialiser', $._barestmt),
+        field('condition', $._barestmt),
         field('iterator', optional($._expr)),
         ')',
         $._loop_body
@@ -458,6 +462,7 @@ module.exports = grammar({
 
     _term: $ => choice(
       $.readline_expression,
+      $.fileglob_expression,
       $.assignment_expression,
       $.binary_expression,
       $.equality_expression,
@@ -482,6 +487,7 @@ module.exports = grammar({
       $.stub_expression,
       $.scalar,
       $.glob,
+      $.glob_slot_expression,
       $.hash,
       $.array,
       $.arraylen,
@@ -496,6 +502,7 @@ module.exports = grammar({
        */
       $.scalar_deref_expression,
       $.array_deref_expression,
+      $.arraylen_deref_expression,
       $.hash_deref_expression,
       $.amper_deref_expression,
       $.glob_deref_expression,
@@ -509,6 +516,7 @@ module.exports = grammar({
        * UNIOP term
        */
       $.require_expression,
+      $.require_version_expression,
       /* UNIOPSUB
        * UNIOPSUB term */
       $.func0op_call_expression,
@@ -531,9 +539,22 @@ module.exports = grammar({
       $._literal,
     ),
 
+    // this does NOT take an indirob, it only takes a single scalar. what we'll have to do
+    // is create an external token which does the lookahead to decide if what we've got
+    // is a readline or a fileglob, and both are win b/c we need it higher priority than
+    // the normal `<` which makes this guy parse as a binop
     readline_expression: $ => choice(
-      seq(field('operator', '<'), optional(alias($._indirob, $.filehandle)), field('operator', '>')),
+      seq(
+        field('operator', alias($._open_readline_bracket, '<')),
+        optional(alias(choice($.scalar, $.bareword), $.filehandle)),
+        field('operator', '>')
+      ),
       field('operator', seq('<<', token.immediate('>>'))),
+    ),
+    fileglob_expression: $ => seq(
+      field('operator', alias($._open_fileglob_bracket, '<')),
+      stringContent($, $._interpolated_string_content),
+      field('operator', alias($._quotelike_end, '>'))
     ),
     assignment_expression: $ => prec.right(TERMPREC.ASSIGNOP,
       binop(
@@ -603,7 +624,7 @@ module.exports = grammar({
       field('condition', $._term), '?', field('consequent', $._term), ':', field('alternative', $._term)
     )),
 
-    refgen_expression: $ => seq('\\', $._term), // _REFGEN
+    refgen_expression: $ => prec.left(TERMPREC.UMINUS, seq('\\', choice(alias($.amper_sub, $.function), $._term))), // _REFGEN
 
     anonymous_array_expression: $ => seq(
       '[', optional($._expr), ']'
@@ -681,6 +702,8 @@ module.exports = grammar({
       prec.left(TERMPREC.ARROW, seq($._term, '->', '$', '*')),
     array_deref_expression: $ =>
       prec.left(TERMPREC.ARROW, seq($._term, '->', '@', '*')),
+    arraylen_deref_expression: $ =>
+      prec.left(TERMPREC.ARROW, seq($._term, '->', '$#', '*')),
     hash_deref_expression: $ =>
       prec.left(TERMPREC.ARROW, seq($._term, '->', '%', '*')),
     amper_deref_expression: $ =>
@@ -689,7 +712,9 @@ module.exports = grammar({
       prec.left(TERMPREC.ARROW, seq($._term, '->', '*', '*')),
 
     require_expression: $ =>
-      prec.left(TERMPREC.REQUIRE, seq('require', optional($._term))),
+      prec.left(TERMPREC.REQUIRE, seq('require', $._term)),
+    require_version_expression: $ =>
+      prec.left(TERMPREC.REQUIRE, seq('require', field('version', $._version))),
 
     func0op_call_expression: $ =>
       seq(field('function', $._func0op), optseq('(', ')')),
@@ -708,16 +733,15 @@ module.exports = grammar({
       seq($._map_grep, '(', $._NONASSOC, field('callback', $.block), field('list', $._term_rightward), ')'),
     )),
 
-    // NOTE - even though technically you need the _tricky_hashref handling here, we punt on that,
-    // b/c it's quite unlikely that someone is sorting a hashref w/ the default string
-    // sort
-    // sigh, here we go SUBNAME (bareword vers)! we'll cover this with indirobs
-    //   - if it's the only thing on the list, then it's autoquoted.
-    //   - if there's a comma, it's autoquoted
-    //   - if there isn't, then it's a SUBNAME (unless it's builting)
+    // - we support sort SUBNAME as follows - if there's a bareword and no comma, it's
+    // automatically used as the callback, as per the perl docs. the callback can be
+    // either a block, a bareword or a scalar. we don't bother with _tricky_hashref b/c
+    // its sufficiently unlikely that somone is trying to numerical sort a single
+    // hashref
+    _sort_routine: $ => choice(prec(1, alias($._bareword, $.function)), $.block, prec(1, $.scalar)),
     sort_expression: $ => prec.left(TERMPREC.LSTOP, choice(
-      seq('sort', optional(field('callback', $.block)), field('list', $._term_rightward)),
-      seq('sort', '(', $._NONASSOC, optional(field('callback', $.block)), field('list', $._term_rightward), ')'),
+      seq('sort', optional(field('callback', $._sort_routine)), field('list', $._term_rightward)),
+      seq('sort', '(', $._NONASSOC, optional(field('callback', $._sort_routine)), field('list', $._term_rightward), ')'),
     )),
 
 
@@ -753,11 +777,13 @@ module.exports = grammar({
       // this may be kinda evil, but we use this token as a flag to not accept a search slash
       seq($.scalar, optional($._no_search_slash_plz)),
     ),
-    // the usage of NONASSOC here is to make it that any parse of a paren after a func
-    // automatically becomes a non-ambiguous function call
+    _unambiguous_function: $ => alias(choice($._bareword, $.amper_sub), $.function),
     function_call_expression: $ => choice(
-      seq(field('function', $.function), '(', $._NONASSOC, optional(field('arguments', $._expr)), ')'),
-      seq(field('function', $.function), '(', $._NONASSOC, $.indirect_object, field('arguments', $._expr), ')'),
+      seq(field('function', alias($.amper_sub, $.function))),
+      // the usage of NONASSOC here is to make it that any parse of a paren after a func
+      // automatically becomes a non-ambiguous function call
+      seq(field('function', $._unambiguous_function), '(', $._NONASSOC, optional(field('arguments', $._expr)), ')'),
+      seq(field('function', $._unambiguous_function), '(', $._NONASSOC, $.indirect_object, field('arguments', $._expr), ')'),
     ),
     _tricky_indirob_hashref: $ => seq($._PERLY_BRACE_OPEN, $._expr, $._PERLY_SEMICOLON, '}'),
     ambiguous_function_call_expression: $ =>
@@ -791,14 +817,22 @@ module.exports = grammar({
     array: $ => seq('@', $._var_indirob),
     _declare_array: $ => seq('@', $.varname),
     _signature_array: $ => seq('@', $._signature_varname),
+    // these need to have higher prec than the equivalent operator symbols
     _HASH_PERCENT: $ => alias(token(prec(2, '%')), '%'), // self-aliasing b/c token
+    _SUB_AMPER: $ => alias(token(prec(2, '&')), '&'), // self-aliasing b/c token
+    _GLOB_STAR: $ => alias(token(prec(2, '*')), '*'), // self-aliasing b/c token
+
     hash: $ => seq($._HASH_PERCENT, $._var_indirob),
     _declare_hash: $ => seq($._HASH_PERCENT, $.varname),
     _signature_hash: $ => seq($._HASH_PERCENT, $._signature_varname),
 
     arraylen: $ => seq('$#', $._var_indirob),
-    // perly.y calls this `star`
-    glob: $ => seq('*', $._var_indirob),
+    amper_sub: $ => seq($._SUB_AMPER, $._var_indirob),
+    glob: $ => seq($._GLOB_STAR, $._var_indirob),
+    glob_slot_expression: $ => choice(
+      seq($.glob, '{', $._hash_key, '}'),
+      prec.left(TERMPREC.ARROW, seq($._term, '->', '*', '{', $._hash_key, '}')),
+    ),
 
     _indirob: $ => choice(
       $._bareword,
@@ -1128,8 +1162,8 @@ module.exports = grammar({
       )
     ),
 
-    quoted_regexp_modifiers: $ => token.immediate(prec(2, /[msixpadlun]+/)),
-    match_regexp_modifiers: $ => token.immediate(prec(2, /[msixpadluncg]+/)),
+    quoted_regexp_modifiers: $ => token.immediate(prec(2, /[msixpodualn]+/)),
+    match_regexp_modifiers: $ => token.immediate(prec(2, /[msixpogcdualn]+/)),
     substitution_regexp_modifiers: $ => token.immediate(prec(2, /[msixpogcedualr]+/)),
     transliteration_modifiers: $ => token.immediate(prec(2, /[cdsr]+/)),
 

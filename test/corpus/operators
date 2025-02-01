@@ -442,7 +442,9 @@ diamond operators
 ================================================================================
 <>;
 <ARGV>;
+scalar <$sner>;
 <<>>;
+<$sner >, <*.c>;
 --------------------------------------------------------------------------------
 
 (source_file
@@ -452,7 +454,20 @@ diamond operators
     (readline_expression
       (filehandle)))
   (expression_statement
-    (readline_expression)))
+    (func1op_call_expression
+      (readline_expression
+        (filehandle
+          (varname)))))
+  (expression_statement
+    (readline_expression))
+  (expression_statement
+    (list_expression
+      (fileglob_expression
+        (string_content
+          (scalar
+            (varname))))
+      (fileglob_expression
+        (string_content)))))
 
 ================================================================================
 transliteration

@@ -232,3 +232,54 @@ sort { $a <=> $b } 1, 2, 3;
       (number)
       (number)
       (number))))
+
+================================================================================
+sort SUBNAME
+================================================================================
+sort some_routine 1, 2, 3;
+sort still_SUBNAME(1, 2, 3);
+sort +returns_list(1, 2, 3);
+sort list_returning_func, 1, 2, 3;
+sort $subref 1;
+sort $not_subref, 1;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (sort_expression
+      callback: (function)
+      list: (number)
+      list: (number)
+      list: (number)))
+  (expression_statement
+    (sort_expression
+      callback: (function)
+      list: (list_expression
+        (number)
+        (number)
+        (number))))
+  (expression_statement
+    (sort_expression
+      list: (unary_expression
+        operand: (function_call_expression
+          function: (function)
+          arguments: (list_expression
+            (number)
+            (number)
+            (number))))))
+  (expression_statement
+    (sort_expression
+      list: (bareword)
+      list: (number)
+      list: (number)
+      list: (number)))
+  (expression_statement
+    (sort_expression
+      callback: (scalar
+        (varname))
+      list: (number)))
+  (expression_statement
+    (sort_expression
+      list: (scalar
+        (varname))
+      list: (number))))

@@ -33,6 +33,8 @@ enum TokenType {
   TOKEN_BACKTICK,
   TOKEN_SEARCH_SLASH,
   NO_TOKEN_SEARCH_SLASH_PLZ,
+  TOKEN_OPEN_READLINE_BRACKET,
+  TOKEN_OPEN_FILEGLOB_BRACKET,
   PERLY_SEMICOLON,
   PERLY_HEREDOC,
   TOKEN_CTRL_Z,
@@ -516,6 +518,24 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   }
   if (lexer->eof(lexer)) return false;
 
+  if (valid_symbols[TOKEN_OPEN_FILEGLOB_BRACKET] || valid_symbols[TOKEN_OPEN_READLINE_BRACKET] || valid_symbols[PERLY_HEREDOC]) {
+      if (c == '<') {
+          ADVANCE_C;
+          MARK_END;
+          // ah, we have a heredoc; let's just go down to that section then
+          if (c == '<') goto heredoc_token_handling;
+          if (c == '$') ADVANCE_C;
+          // we now zoooom as many ident chars as we can
+          while (isidcont(c)) ADVANCE_C;
+          // if ident chars took us until the closing `>` then we're readline FILEHANDLE
+          if (c == '>') TOKEN(TOKEN_OPEN_READLINE_BRACKET);
+          // otherwise we're a fileglob operator, and we set up our string parse + be excellent
+          lexerstate_push_quote(state, '<');
+          TOKEN(TOKEN_OPEN_FILEGLOB_BRACKET);
+      }
+
+  }
+
   if (valid_symbols[TOKEN_DOLLAR_IDENT_ZW]) {
     // false on word chars, another dollar or {
     if (!isidcont(c) && !tsp_strchr("${", c)) {
@@ -909,6 +929,9 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     /* NOTE - we need this to NOT be valid_symbol guarded, b/c we need this to
      * crash errant GLR branches, see gh#92 */
     if (EQ2("<<")) {
+        // this branch is mainly for the GLR crashing; we enter here from the FILEGLOB vs
+        // READLINE handling further up. that's why there's this ugly label here
+heredoc_token_handling:
       DEBUG("checking if << is indeed a heredoc\n", 0);
       ADVANCE_C;
       MARK_END;
