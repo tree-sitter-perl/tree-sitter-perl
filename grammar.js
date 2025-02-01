@@ -111,6 +111,8 @@ module.exports = grammar({
     $._backtick_quote,
     $._search_slash_quote,
     $._no_search_slash_plz,
+    $._open_readline_bracket,
+    $._open_fileglob_bracket,
     $._PERLY_SEMICOLON,
     $._PERLY_HEREDOC,
     $._ctrl_z_hack,
@@ -460,6 +462,7 @@ module.exports = grammar({
 
     _term: $ => choice(
       $.readline_expression,
+      $.fileglob_expression,
       $.assignment_expression,
       $.binary_expression,
       $.equality_expression,
@@ -536,9 +539,22 @@ module.exports = grammar({
       $._literal,
     ),
 
+    // this does NOT take an indirob, it only takes a single scalar. what we'll have to do
+    // is create an external token which does the lookahead to decide if what we've got
+    // is a readline or a fileglob, and both are win b/c we need it higher priority than
+    // the normal `<` which makes this guy parse as a binop
     readline_expression: $ => choice(
-      seq(field('operator', '<'), optional(alias($._indirob, $.filehandle)), field('operator', '>')),
+      seq(
+        field('operator', alias($._open_readline_bracket, '<')),
+        optional(alias(choice($.scalar, $.bareword), $.filehandle)),
+        field('operator', '>')
+      ),
       field('operator', seq('<<', token.immediate('>>'))),
+    ),
+    fileglob_expression: $ => seq(
+      field('operator', alias($._open_fileglob_bracket, '<')),
+      stringContent($, $._interpolated_string_content),
+      field('operator', alias($._quotelike_end, '>'))
     ),
     assignment_expression: $ => prec.right(TERMPREC.ASSIGNOP,
       binop(

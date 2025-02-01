@@ -2675,6 +2675,10 @@
         },
         {
           "type": "SYMBOL",
+          "name": "fileglob_expression"
+        },
+        {
+          "type": "SYMBOL",
           "name": "assignment_expression"
         },
         {
@@ -2910,7 +2914,12 @@
               "type": "FIELD",
               "name": "operator",
               "content": {
-                "type": "STRING",
+                "type": "ALIAS",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "_open_readline_bracket"
+                },
+                "named": false,
                 "value": "<"
               }
             },
@@ -2920,8 +2929,17 @@
                 {
                   "type": "ALIAS",
                   "content": {
-                    "type": "SYMBOL",
-                    "name": "_indirob"
+                    "type": "CHOICE",
+                    "members": [
+                      {
+                        "type": "SYMBOL",
+                        "name": "scalar"
+                      },
+                      {
+                        "type": "SYMBOL",
+                        "name": "bareword"
+                      }
+                    ]
                   },
                   "named": true,
                   "value": "filehandle"
@@ -2959,6 +2977,50 @@
                 }
               }
             ]
+          }
+        }
+      ]
+    },
+    "fileglob_expression": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "FIELD",
+          "name": "operator",
+          "content": {
+            "type": "ALIAS",
+            "content": {
+              "type": "SYMBOL",
+              "name": "_open_fileglob_bracket"
+            },
+            "named": false,
+            "value": "<"
+          }
+        },
+        {
+          "type": "FIELD",
+          "name": "content",
+          "content": {
+            "type": "ALIAS",
+            "content": {
+              "type": "SYMBOL",
+              "name": "_interpolated_string_content"
+            },
+            "named": true,
+            "value": "string_content"
+          }
+        },
+        {
+          "type": "FIELD",
+          "name": "operator",
+          "content": {
+            "type": "ALIAS",
+            "content": {
+              "type": "SYMBOL",
+              "name": "_quotelike_end"
+            },
+            "named": false,
+            "value": ">"
           }
         }
       ]
@@ -9149,6 +9211,14 @@
     {
       "type": "SYMBOL",
       "name": "_no_search_slash_plz"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_open_readline_bracket"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_open_fileglob_bracket"
     },
     {
       "type": "SYMBOL",
