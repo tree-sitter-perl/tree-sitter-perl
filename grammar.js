@@ -87,7 +87,11 @@ const paren_list_of = rule =>
 module.exports = grammar({
   name: 'perl',
   supertypes: $ => [
-    $.primitive
+    $.primitive,
+    // $.variables, // TODO - i don't know why, but these just went crazy
+    $.postfix_deref,
+    $.subscripted,
+    $.slices,
   ],
   word: $ => $._identifier,
   inline: $ => [
@@ -163,7 +167,7 @@ module.exports = grammar({
     [$._listexpr, $.list_expression, $._term_rightward],
     [$.function, $.bareword],
     [$.function, $.function_call_expression],
-    [$._term, $.indirect_object],
+    [$._variables, $.indirect_object],
     [$.expression_statement, $._tricky_indirob_hashref],
     [$.autoquoted_bareword],
     // nameless params need extra lookahead
@@ -406,10 +410,8 @@ module.exports = grammar({
     // NOTE - we gave this negative precedence b/c it's kinda just a fallback
     list_expression: $ => prec(-1, choice($._term, $._term_rightward)),
 
-    _subscripted: $ => choice(
-      /* TODO:
-       * gelem { expr ; }
-       */
+    subscripted: $ => choice(
+      $.glob_slot_expression,
       $.array_element_expression,
       $.hash_element_expression,
       $.coderef_call_expression,
@@ -420,26 +422,35 @@ module.exports = grammar({
     // for highlighting. We raise its prec b/c in a print (print $thing{stuff}) it becomes a var
     // not an indirob
     container_variable: $ => prec(2, seq('$', $._var_indirob)),
+    glob_slot_expression: $ => choice(
+      seq($.glob, '{', $._hash_key, '}'),
+      prec.left(TERMPREC.ARROW, seq($._term, '->', '*', '{', $._hash_key, '}')),
+    ),
     array_element_expression: $ => choice(
       // perly.y matches scalar '[' expr ']' here but that would yield a scalar var node
       seq(field('array', $.container_variable), '[', field('index', $._expr), ']'),
       prec.left(TERMPREC.ARROW, seq($._term, '->', '[', field('index', $._expr), ']')),
-      seq($._subscripted, '[', field('index', $._expr), ']'),
+      seq($.subscripted, '[', field('index', $._expr), ']'),
     ),
     _hash_key: $ => choice($._brace_autoquoted, $._expr),
     hash_element_expression: $ => choice(
       // perly.y matches scalar '{' expr '}' here but that would yield a scalar var node
       seq(field('hash', $.container_variable), '{', field('key', $._hash_key), '}'),
       prec.left(TERMPREC.ARROW, seq($._term, '->', '{', field('key', $._hash_key), '}')),
-      seq($._subscripted, '{', field('key', $._hash_key), '}'),
+      seq($.subscripted, '{', field('key', $._hash_key), '}'),
     ),
     coderef_call_expression: $ => choice(
       prec.left(TERMPREC.ARROW, seq($._term, '->', '(', optional(field('arguments', $._expr)), ')')),
-      seq($._subscripted, '(', optional(field('arguments', $._expr)), ')'),
+      seq($.subscripted, '(', optional(field('arguments', $._expr)), ')'),
     ),
     anonymous_slice_expression: $ => choice(
       seq('(', optional(field('list', $._expr)), ')', '[', $._expr, ']'),
       seq(field('list', $.quoted_word_list), '[', $._expr, ']'),
+    ),
+
+    slices: $ => choice(
+      $.slice_expression,
+      $.keyval_expression,
     ),
     slice_container_variable: $ => seq('@', $._var_indirob),
     slice_expression: $ => choice(
@@ -485,27 +496,12 @@ module.exports = grammar({
       $.heredoc_token,
       $.command_heredoc_token,
       $.stub_expression,
-      $.scalar,
-      $.glob,
-      $.glob_slot_expression,
-      $.hash,
-      $.array,
-      $.arraylen,
-      $._subscripted,
-      $.slice_expression,
-      $.keyval_expression,
-      /* THING
-       * amper
-       * amper '(' ')'
-       * amper '(' expr ')'
-       * NOAMP -- wtf even is this thing?
-       */
-      $.scalar_deref_expression,
-      $.array_deref_expression,
-      $.arraylen_deref_expression,
-      $.hash_deref_expression,
-      $.amper_deref_expression,
-      $.glob_deref_expression,
+      // all the variable handlings
+      $._variables,
+      $.subscripted,
+      $.slices,
+      $.postfix_deref,
+
       $.loopex_expression,
       $.goto_expression,
       $.return_expression,
@@ -698,6 +694,14 @@ module.exports = grammar({
     // this has negative prec b/c it's only if the parens weren't eaten elsewhere
     stub_expression: $ => prec(-1, seq('(', ')')),
 
+    postfix_deref: $ => choice(
+      $.scalar_deref_expression,
+      $.array_deref_expression,
+      $.arraylen_deref_expression,
+      $.hash_deref_expression,
+      $.amper_deref_expression,
+      $.glob_deref_expression,
+    ),
     scalar_deref_expression: $ =>
       prec.left(TERMPREC.ARROW, seq($._term, '->', '$', '*')),
     array_deref_expression: $ =>
@@ -810,6 +814,13 @@ module.exports = grammar({
     )),
     method: $ => choice($._bareword, $.scalar),
 
+    _variables: $ => choice(
+      $.scalar,
+      $.array,
+      $.hash,
+      $.arraylen,
+      $.glob,
+    ),
     _signature_varname: $ => alias($._identifier, $.varname),
     scalar: $ => seq('$', $._var_indirob),
     _declare_scalar: $ => seq('$', $.varname),
@@ -827,12 +838,11 @@ module.exports = grammar({
     _signature_hash: $ => seq($._HASH_PERCENT, $._signature_varname),
 
     arraylen: $ => seq('$#', $._var_indirob),
-    amper_sub: $ => seq($._SUB_AMPER, $._var_indirob),
     glob: $ => seq($._GLOB_STAR, $._var_indirob),
-    glob_slot_expression: $ => choice(
-      seq($.glob, '{', $._hash_key, '}'),
-      prec.left(TERMPREC.ARROW, seq($._term, '->', '*', '{', $._hash_key, '}')),
-    ),
+
+    // NOTE - amper_sub does NOT go into variable, b/c it's always a function call
+    // unless it got refgen-ed
+    amper_sub: $ => seq($._SUB_AMPER, $._var_indirob),
 
     _indirob: $ => choice(
       $._bareword,

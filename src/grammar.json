@@ -1997,9 +1997,13 @@
         ]
       }
     },
-    "_subscripted": {
+    "subscripted": {
       "type": "CHOICE",
       "members": [
+        {
+          "type": "SYMBOL",
+          "name": "glob_slot_expression"
+        },
         {
           "type": "SYMBOL",
           "name": "array_element_expression"
@@ -2034,6 +2038,65 @@
           }
         ]
       }
+    },
+    "glob_slot_expression": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "glob"
+            },
+            {
+              "type": "STRING",
+              "value": "{"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "_hash_key"
+            },
+            {
+              "type": "STRING",
+              "value": "}"
+            }
+          ]
+        },
+        {
+          "type": "PREC_LEFT",
+          "value": 24,
+          "content": {
+            "type": "SEQ",
+            "members": [
+              {
+                "type": "SYMBOL",
+                "name": "_term"
+              },
+              {
+                "type": "STRING",
+                "value": "->"
+              },
+              {
+                "type": "STRING",
+                "value": "*"
+              },
+              {
+                "type": "STRING",
+                "value": "{"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "_hash_key"
+              },
+              {
+                "type": "STRING",
+                "value": "}"
+              }
+            ]
+          }
+        }
+      ]
     },
     "array_element_expression": {
       "type": "CHOICE",
@@ -2105,7 +2168,7 @@
           "members": [
             {
               "type": "SYMBOL",
-              "name": "_subscripted"
+              "name": "subscripted"
             },
             {
               "type": "STRING",
@@ -2210,7 +2273,7 @@
           "members": [
             {
               "type": "SYMBOL",
-              "name": "_subscripted"
+              "name": "subscripted"
             },
             {
               "type": "STRING",
@@ -2281,7 +2344,7 @@
           "members": [
             {
               "type": "SYMBOL",
-              "name": "_subscripted"
+              "name": "subscripted"
             },
             {
               "type": "STRING",
@@ -2379,6 +2442,19 @@
               "value": "]"
             }
           ]
+        }
+      ]
+    },
+    "slices": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "slice_expression"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "keyval_expression"
         }
       ]
     },
@@ -2780,63 +2856,19 @@
         },
         {
           "type": "SYMBOL",
-          "name": "scalar"
+          "name": "_variables"
         },
         {
           "type": "SYMBOL",
-          "name": "glob"
+          "name": "subscripted"
         },
         {
           "type": "SYMBOL",
-          "name": "glob_slot_expression"
+          "name": "slices"
         },
         {
           "type": "SYMBOL",
-          "name": "hash"
-        },
-        {
-          "type": "SYMBOL",
-          "name": "array"
-        },
-        {
-          "type": "SYMBOL",
-          "name": "arraylen"
-        },
-        {
-          "type": "SYMBOL",
-          "name": "_subscripted"
-        },
-        {
-          "type": "SYMBOL",
-          "name": "slice_expression"
-        },
-        {
-          "type": "SYMBOL",
-          "name": "keyval_expression"
-        },
-        {
-          "type": "SYMBOL",
-          "name": "scalar_deref_expression"
-        },
-        {
-          "type": "SYMBOL",
-          "name": "array_deref_expression"
-        },
-        {
-          "type": "SYMBOL",
-          "name": "arraylen_deref_expression"
-        },
-        {
-          "type": "SYMBOL",
-          "name": "hash_deref_expression"
-        },
-        {
-          "type": "SYMBOL",
-          "name": "amper_deref_expression"
-        },
-        {
-          "type": "SYMBOL",
-          "name": "glob_deref_expression"
+          "name": "postfix_deref"
         },
         {
           "type": "SYMBOL",
@@ -4720,6 +4752,35 @@
         ]
       }
     },
+    "postfix_deref": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "scalar_deref_expression"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "array_deref_expression"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "arraylen_deref_expression"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "hash_deref_expression"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "amper_deref_expression"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "glob_deref_expression"
+        }
+      ]
+    },
     "scalar_deref_expression": {
       "type": "PREC_LEFT",
       "value": 24,
@@ -5796,6 +5857,31 @@
         }
       ]
     },
+    "_variables": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "scalar"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "array"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "hash"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "arraylen"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "glob"
+        }
+      ]
+    },
     "_signature_varname": {
       "type": "ALIAS",
       "content": {
@@ -5983,19 +6069,6 @@
         }
       ]
     },
-    "amper_sub": {
-      "type": "SEQ",
-      "members": [
-        {
-          "type": "SYMBOL",
-          "name": "_SUB_AMPER"
-        },
-        {
-          "type": "SYMBOL",
-          "name": "_var_indirob"
-        }
-      ]
-    },
     "glob": {
       "type": "SEQ",
       "members": [
@@ -6009,62 +6082,16 @@
         }
       ]
     },
-    "glob_slot_expression": {
-      "type": "CHOICE",
+    "amper_sub": {
+      "type": "SEQ",
       "members": [
         {
-          "type": "SEQ",
-          "members": [
-            {
-              "type": "SYMBOL",
-              "name": "glob"
-            },
-            {
-              "type": "STRING",
-              "value": "{"
-            },
-            {
-              "type": "SYMBOL",
-              "name": "_hash_key"
-            },
-            {
-              "type": "STRING",
-              "value": "}"
-            }
-          ]
+          "type": "SYMBOL",
+          "name": "_SUB_AMPER"
         },
         {
-          "type": "PREC_LEFT",
-          "value": 24,
-          "content": {
-            "type": "SEQ",
-            "members": [
-              {
-                "type": "SYMBOL",
-                "name": "_term"
-              },
-              {
-                "type": "STRING",
-                "value": "->"
-              },
-              {
-                "type": "STRING",
-                "value": "*"
-              },
-              {
-                "type": "STRING",
-                "value": "{"
-              },
-              {
-                "type": "SYMBOL",
-                "name": "_hash_key"
-              },
-              {
-                "type": "STRING",
-                "value": "}"
-              }
-            ]
-          }
+          "type": "SYMBOL",
+          "name": "_var_indirob"
         }
       ]
     },
@@ -9169,7 +9196,7 @@
       "function_call_expression"
     ],
     [
-      "_term",
+      "_variables",
       "indirect_object"
     ],
     [
@@ -9363,6 +9390,9 @@
     "_unambiguous_function"
   ],
   "supertypes": [
-    "primitive"
+    "primitive",
+    "postfix_deref",
+    "subscripted",
+    "slices"
   ]
 }

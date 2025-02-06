@@ -118,25 +118,28 @@
   (#match? @variable.builtin "^((ENV|ARGV|INC|ARGVOUT|SIG|STDIN|STDOUT|STDERR)|[_ab]|\\W|\\d+|\\^.*)$")
 )
 
-(glob) @variable.builtin
-(glob_deref_expression "*" @variable.builtin)
-(glob_slot_expression "*" @variable.builtin)
-(scalar) @variable.scalar
-(scalar_deref_expression [ "$" "*"] @variable.scalar)
 [(array) (arraylen)] @variable.array
-(array_deref_expression [ "@" "*"] @variable.array)
-(arraylen_deref_expression [ "$#" "*"] @variable.array)
+(glob) @variable.builtin
+(scalar) @variable.scalar
 (hash) @variable.hash
-(hash_deref_expression [ "%" "*"] @variable.hash)
 (amper_deref_expression [ "&" "*" ] @function.call)
 
-(array_element_expression array:(_) @variable.array)
-(slice_expression array:(_) @variable.array)
-(keyval_expression array:(_) @variable.array)
+(glob_deref_expression "*" @variable.builtin)
+(glob_slot_expression "*" @variable.builtin)
+(scalar_deref_expression [ "$" "*"] @variable.scalar)
 
-(hash_element_expression hash:(_) @variable.hash)
-(slice_expression hash:(_) @variable.hash)
-(keyval_expression hash:(_) @variable.hash)
+(subscripted array: (_) @variable.array)
+(subscripted hash: (_) @variable.hash)
+(postfix_deref ["@" "$#" ] @variable.array "*" @variable.array)
+(postfix_deref "%" @variable.hash "*" @variable.hash)
+(slices
+  [ hash: (_) @variable.hash hashref: (_) ]
+  [ "@" "%" ]? @variable.hash )
+(slices
+  [ array: (_) @variable.array arrayref: (_) ]
+  [ "@" "%" ]? @variable.array )
+
+
 
 (comment) @comment
 
@@ -155,5 +158,4 @@
   (block
     "{" @punctuation.special
     "}" @punctuation.special))
-
 
