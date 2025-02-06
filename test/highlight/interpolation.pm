@@ -20,3 +20,9 @@
 #      ^^ punctuation.delimiter
 #        ^ punctuation.bracket
 #         ^^ string.special
+"%hi @there[1, 2] @stuff{qw/yup interped/}";
+# ^^ string
+#     ^^^ variable.array
+#           ^ number
+#                  ^^^^ variable.hash
+#                             ^^string

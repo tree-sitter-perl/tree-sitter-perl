@@ -128,16 +128,18 @@
 (glob_slot_expression "*" @variable.builtin)
 (scalar_deref_expression [ "$" "*"] @variable.scalar)
 
-(subscripted array: (_) @variable.array)
-(subscripted hash: (_) @variable.hash)
+; gotta be SUPER GENERIC so we can hit up string interp
+(_
+  [
+   array: (_) @variable.array
+   hash: (_) @variable.hash
+  ])
 (postfix_deref ["@" "$#" ] @variable.array "*" @variable.array)
 (postfix_deref "%" @variable.hash "*" @variable.hash)
 (slices
-  [ hash: (_) @variable.hash hashref: (_) ]
-  [ "@" "%" ]? @variable.hash )
+  hashref:_ [ "@" "%" ] @variable.hash )
 (slices
-  [ array: (_) @variable.array arrayref: (_) ]
-  [ "@" "%" ]? @variable.array )
+  arrayref:_  [ "@" "%" ] @variable.array )
 
 
 
