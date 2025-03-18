@@ -36,13 +36,13 @@ $href->%*;
 $arr[ 123 ];
 # <- variable.array
 # ^^ variable.array
-#   ^ punctuation.bracket
+#   ^ this.is.borked
 #     ^^^ number
 #         ^ punctuation.bracket
 $aref->[ 123 ];
 # <- variable.scalar
 #    ^^ punctuation.delimiter
-#      ^ punctuation.bracket
+#      ^ this.is.borked
 #        ^^^ number
 #            ^ punctuation.bracket
 $hash{ key };
@@ -73,6 +73,7 @@ $aref->[ 123 ]{ 456 }[ 789 ];
 #                          ^ punctuation.bracket
 @ary[1,2,3];
 #^^ variable.array
+#   ^ punctuation.bracket
 @hash{1,2,3};
 #^^^ variable.hash
 %ary[1,2,3];

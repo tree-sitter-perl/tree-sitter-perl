@@ -161,3 +161,4 @@
     "{" @punctuation.special
     "}" @punctuation.special))
 
+(subscripted "[" @this.is.borked)
