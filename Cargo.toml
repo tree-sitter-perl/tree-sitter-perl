@@ -11,7 +11,7 @@ edition = "2021"
 autoexamples = false
 
 build = "bindings/rust/build.rs"
-include = ["bindings/rust/*", "grammar.js", "queries/*", "src/*" "lib/*"]
+include = ["bindings/rust/*", "grammar.js", "queries/*", "src/*", "lib/*"]
 
 [lib]
 path = "bindings/rust/lib.rs"
