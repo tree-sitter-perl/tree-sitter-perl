@@ -8,12 +8,6 @@ package-lock.json
 *.dylib
 *.so
 *.o
-bindings/c/*.h
 src/*
 tree-sitter-perl.wasm
 log.html
-/bindings/c/
-/bindings/go/
-/bindings/node/index.d.ts
-/bindings/python/
-/bindings/swift/
