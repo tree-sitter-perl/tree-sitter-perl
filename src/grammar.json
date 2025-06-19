@@ -3599,6 +3599,17 @@
         }
       ]
     },
+    "equality_modifiers": {
+      "type": "TOKEN",
+      "content": {
+        "type": "PREC",
+        "value": 2,
+        "content": {
+          "type": "PATTERN",
+          "value": "[a-z]+"
+        }
+      }
+    },
     "equality_expression": {
       "type": "CHOICE",
       "members": [
@@ -3620,35 +3631,65 @@
                 "type": "FIELD",
                 "name": "operator",
                 "content": {
-                  "type": "CHOICE",
+                  "type": "SEQ",
                   "members": [
                     {
-                      "type": "STRING",
-                      "value": "=="
+                      "type": "CHOICE",
+                      "members": [
+                        {
+                          "type": "STRING",
+                          "value": "=="
+                        },
+                        {
+                          "type": "STRING",
+                          "value": "!="
+                        },
+                        {
+                          "type": "STRING",
+                          "value": "eq"
+                        },
+                        {
+                          "type": "STRING",
+                          "value": "==="
+                        },
+                        {
+                          "type": "STRING",
+                          "value": "equ"
+                        },
+                        {
+                          "type": "STRING",
+                          "value": "eqr"
+                        },
+                        {
+                          "type": "STRING",
+                          "value": "ne"
+                        }
+                      ]
                     },
                     {
-                      "type": "STRING",
-                      "value": "!="
-                    },
-                    {
-                      "type": "STRING",
-                      "value": "eq"
-                    },
-                    {
-                      "type": "STRING",
-                      "value": "==="
-                    },
-                    {
-                      "type": "STRING",
-                      "value": "equ"
-                    },
-                    {
-                      "type": "STRING",
-                      "value": "eqr"
-                    },
-                    {
-                      "type": "STRING",
-                      "value": "ne"
+                      "type": "CHOICE",
+                      "members": [
+                        {
+                          "type": "SEQ",
+                          "members": [
+                            {
+                              "type": "STRING",
+                              "value": ":"
+                            },
+                            {
+                              "type": "FIELD",
+                              "name": "modifiers",
+                              "content": {
+                                "type": "SYMBOL",
+                                "name": "equality_modifiers"
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "type": "BLANK"
+                        }
+                      ]
                     }
                   ]
                 }
