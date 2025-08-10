@@ -8,5 +8,6 @@ package-lock.json
 *.dylib
 *.so
 *.o
+src/*
 tree-sitter-perl.wasm
 log.html
