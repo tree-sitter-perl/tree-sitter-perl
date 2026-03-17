@@ -452,7 +452,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     }
   }
 
-  if (iswspace(c) && valid_symbols[TOKEN_NO_INTERP_WHITESPACE_ZW]) {
+  if (!is_ERROR && iswspace(c) && valid_symbols[TOKEN_NO_INTERP_WHITESPACE_ZW]) {
     TOKEN(TOKEN_NO_INTERP_WHITESPACE_ZW);
   }
   skip_ws_to_eol(lexer);
@@ -538,7 +538,10 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
 
   if (valid_symbols[TOKEN_DOLLAR_IDENT_ZW]) {
     // false on word chars, another dollar or {
-    if (!isidcont(c) && !tsp_strchr("${", c)) {
+    if (!isidcont(c) && !tsp_strchr("${", c)
+        // In error recovery, don't emit for quote chars — let the quote
+        // handling code below produce a real token instead.
+        && !(is_ERROR && tsp_strchr("\"'`", c))) {
       if (c == ':') {
         // NOTE - it's a syntax error to do $$:, so that's why we return
         // dollar_ident_zw in that case
