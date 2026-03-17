@@ -50,19 +50,19 @@ static int tsprange_contains (const void * a, const void * b) {
 
 static const struct TSPRange tsp_id_start[] = ${\render_array @idstart};
 
-bool is_tsp_id_start (int32_t codepoint) {
-  return bsearch(&codepoint, tsp_id_start, sizeof(tsp_id_start) / sizeof(tsp_id_start[0]), sizeof(tsp_id_start[0]), tsprange_contains);
+static bool is_tsp_id_start (int32_t codepoint) {
+  return tsp_bsearch(&codepoint, tsp_id_start, sizeof(tsp_id_start) / sizeof(tsp_id_start[0]), sizeof(tsp_id_start[0]), tsprange_contains);
 }
 
 static const struct TSPRange tsp_id_continue[] = ${\render_array @idcont};
 
-bool is_tsp_id_continue (int32_t codepoint) {
-  return bsearch(&codepoint, tsp_id_continue, sizeof(tsp_id_continue) / sizeof(tsp_id_continue[0]), sizeof(tsp_id_continue[0]), tsprange_contains);
+static bool is_tsp_id_continue (int32_t codepoint) {
+  return tsp_bsearch(&codepoint, tsp_id_continue, sizeof(tsp_id_continue) / sizeof(tsp_id_continue[0]), sizeof(tsp_id_continue[0]), tsprange_contains);
 }
 
 static const struct TSPRange tsp_whitespace[] = ${\render_array @whitespace};
-bool is_tsp_whitespace (int32_t codepoint) {
-  return bsearch(&codepoint, tsp_whitespace, sizeof(tsp_whitespace) / sizeof(tsp_whitespace[0]), sizeof(tsp_whitespace[0]), tsprange_contains);
+static bool is_tsp_whitespace (int32_t codepoint) {
+  return tsp_bsearch(&codepoint, tsp_whitespace, sizeof(tsp_whitespace) / sizeof(tsp_whitespace[0]), sizeof(tsp_whitespace[0]), tsprange_contains);
 }
 C
 
