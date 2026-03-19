@@ -69,6 +69,8 @@ enum TokenType {
   TOKEN_NO_INTERP_WHITESPACE_ZW,
   /* zero-width high priority token */
   TOKEN_NONASSOC,
+  /* synthetic close paren for error recovery */
+  TOKEN_RECOVER_PAREN_CLOSE,
   /* error condition is always last */
   TOKEN_ERROR
 };
@@ -505,6 +507,16 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
 
   // CTRL-Z must be here, b/c it cares about whitespace
   if (c == 26 && valid_symbols[TOKEN_CTRL_Z]) TOKEN(TOKEN_CTRL_Z);
+
+  // Close unclosed parens before inserting semicolons — the parser needs
+  // ')' before it can accept ';'.  Only fires inside function/method call
+  // argument lists (the only grammar rules that use _RECOVER_PAREN_CLOSE).
+  if (!is_ERROR && valid_symbols[TOKEN_RECOVER_PAREN_CLOSE]) {
+    if (c == '}' || c == ';' || lexer->eof(lexer)) {
+      DEBUG("Fake RECOVER_PAREN_CLOSE before '%c'\n", c);
+      TOKEN(TOKEN_RECOVER_PAREN_CLOSE);
+    }
+  }
 
   if (valid_symbols[PERLY_SEMICOLON]) {
     if (c == '}' || lexer->eof(lexer)) {
