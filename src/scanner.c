@@ -220,7 +220,7 @@ static void lexerstate_add_heredoc(LexerState *state, TSPString *delim, bool int
 }
 
 static void lexerstate_finish_heredoc(LexerState *state) {
-  state->heredoc_delim.length = 0;
+  state->heredoc_delim = (TSPString){0};
   state->heredoc_state = HEREDOC_NONE;
 }
 
@@ -383,7 +383,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   if (valid_symbols[TOKEN_HEREDOC_MIDDLE] && !is_ERROR) {
     DEBUG("Beginning heredoc contents\n", 0);
     if (state->heredoc_state != HEREDOC_CONTINUE) {
-      TSPString line;
+      TSPString line = {0};
       // read as many lines as we can
       while (!lexer->eof(lexer)) {
         tspstring_reset(&line);
@@ -660,7 +660,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     bool should_indent = false;
     bool should_interpolate = true;
 
-    TSPString delim;
+    TSPString delim = {0};
     tspstring_reset(&delim);
     if (!skipped_whitespace) {
       if (c == '~') {
