@@ -10647,6 +10647,7 @@
   {
     "type": "heredoc_content",
     "named": true,
+    "extra": true,
     "fields": {},
     "children": {
       "multiple": true,
@@ -21581,7 +21582,8 @@
   },
   {
     "type": "comment",
-    "named": true
+    "named": true,
+    "extra": true
   },
   {
     "type": "continue",
@@ -21905,7 +21907,8 @@
   },
   {
     "type": "pod",
-    "named": true
+    "named": true,
+    "extra": true
   },
   {
     "type": "pop",
@@ -21917,11 +21920,11 @@
   },
   {
     "type": "prototype",
-    "named": true
+    "named": false
   },
   {
     "type": "prototype",
-    "named": false
+    "named": true
   },
   {
     "type": "q",

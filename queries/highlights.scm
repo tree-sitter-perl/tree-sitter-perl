@@ -134,12 +134,11 @@
    array: (_) @variable.array
    hash: (_) @variable.hash
   ])
-(postfix_deref ["@" "$#" ] @variable.array "*" @variable.array)
-(postfix_deref "%" @variable.hash "*" @variable.hash)
-(slices
-  hashref:_ [ "@" "%" ] @variable.hash )
-(slices
-  arrayref:_  [ "@" "%" ] @variable.array )
+(array_deref_expression [ "@" "*"] @variable.array)
+(arraylen_deref_expression [ "$#" "*"] @variable.array)
+(hash_deref_expression [ "%" "*"] @variable.hash)
+(array_element_expression array:(_) @variable.array)
+(slice_expression array:(_) @variable.array)
 
 
 

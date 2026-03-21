@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "tree-sitter-perl"
 description = "Perl grammar for tree-sitter"
-version = "0.0.1"
+version = "1.0.0"
 keywords = ["incremental", "parsing", "tree-sitter", "perl"]
 classifiers = [
   "Intended Audience :: Developers",
@@ -19,11 +19,11 @@ license.text = "MIT"
 readme = "README.md"
 
 [project.urls]
-Homepage = "https://github.com/tree-sitter/tree-sitter-perl"
+Homepage = "https://github.com/tree-sitter-perl/tree-sitter-perl"
 
 [project.optional-dependencies]
-core = ["tree-sitter~=0.21"]
+core = ["tree-sitter~=0.24"]
 
 [tool.cibuildwheel]
-build = "cp38-*"
+build = "cp310-*"
 build-frontend = "build"

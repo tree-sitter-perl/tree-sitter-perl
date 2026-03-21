@@ -1,23 +1,27 @@
-# tree-sitter-perl-better
+# tree-sitter-perl
 
-This is Yet Another perl tree-sitter module.
+A tree-sitter grammar for Perl. Maintained at https://github.com/tree-sitter-perl/tree-sitter-perl
 
-## Using these bindings
+## Installation
 
-### In General
+### Package managers
 
-You can get the built files off of the `release` branch in this repo. If you have specific
-instructions for a particular editor, PRs are welcome. We do not store built files on master b/c it 
-makes for a very bad DX when you're developing a parser.
+```bash
+# npm
+npm install tree-sitter-perl
 
-We'll happily take PRs needed to get the bindings working in different languages, and we'll update here when they are available via the relevant package managers.
+# cargo
+cargo add tree-sitter-perl
 
+# pip
+pip install tree-sitter-perl
+```
 
 ### Neovim
 
-A version of this parser is now part of the nvim-treesitter plugin! Hurrah!
+A version of this parser is part of the nvim-treesitter plugin.
 
-If you'd like to use a version that has not yet made it into nvim-treesitter, you can install these bindings in neovim by using the following snippet.
+To use a version that has not yet made it into nvim-treesitter:
 ```lua
 local parser_config = require "nvim-treesitter.parsers".get_parser_configs()
 parser_config.perl = {
@@ -29,102 +33,68 @@ parser_config.perl = {
 }
 ```
 
-Then you just `:TSInstall perl`. You'll need to copy the queries in the `queries`
-directory of this repo into a `queries/perl` directory somewhere in your `rtp`
-(`runtimepath`).
-
-See `:h 'rtp'` for more information. Additionally `:echo &rtp` to see your
-current `runtimepath`.
+Then `:TSInstall perl`. Copy the queries from the `queries` directory into
+`queries/perl` somewhere in your `runtimepath`.
 
 ### Emacs
 
-As of [Emacs](https://www.gnu.org/software/emacs/) version 29.1, if you have
-the tree-sitter library installed, the configure script will automatically
-include it in the build.
+As of Emacs 29.1, if you have the tree-sitter library installed:
 
-Once this is done, you can install the Perl bindings
-by executing two Emacs lisp forms:
-
-```Emacs Lisp
+```emacs-lisp
 (setq treesit-language-source-alist
   '((perl . ("https://github.com/tree-sitter-perl/tree-sitter-perl" "release"))))
 (treesit-install-language-grammar 'perl)
 ```
 
-Alternatively, you can run the command interactively:
-```
-M-x treesit-install-language-grammar <RET>
-```
-Then answer the prompts accordingly.  Enter `perl` for the language, the
-repository URL is `https://github.com/tree-sitter-perl/tree-sitter-perl`
-and the branch is `release`.
+### From source
 
-An Emacs major mode which makes use of these binding ... is yet to be
-written.
+Pre-built files are on the `release` branch. We don't store generated files on
+master because the 18MB `parser.c` makes branch switching painful.
 
+## Developing
 
+### Prerequisites
 
-## Getting Started Developing
+Install the [tree-sitter CLI](https://tree-sitter.github.io/tree-sitter/creating-parsers#installation).
+Node.js v20+ is needed for `tree-sitter generate` (the grammar uses advanced
+regex features for unicode support).
 
-To get started, install the dependencies for this repo. The only thing you'll need
-installed is node v20 or above (we use more advanced regex features for the unicode
-support).
+### Building
 
 ```bash
-npm run dev-install
+tree-sitter generate   # generates src/parser.c from grammar.js
+tree-sitter test       # runs the test corpus
+cargo test             # runs the Rust binding tests
 ```
 
-That should get you set up with tree-sitter's cli locally. (npm install won't work b/c it
-needs the library to be generated to build the bindings so we can use this repo for node
-bindings).
-
-
-### Generating the Bindings
-
-In this project, the generated C source code (stored in the `src` directory) is
-.gitignored. In order to generate it, run
-
-```bash
-npx tree-sitter generate
-```
-
-You'll need to do this after any changes to the grammar.
-
-If you aren't changing the grammar.js file, then you can generate the parser using `src/grammar.json` with whatever version
-of the tree-sitter CLI you have installed (no need for node).
+If you aren't changing `grammar.js`, you can generate from the checked-in
+`src/grammar.json` with just the tree-sitter CLI (no Node needed):
 
 ```bash
 tree-sitter generate src/grammar.json
 ```
 
-### Running the tests
-
-Tests are stored in the `/test/corpus` directory, as txt files. A little reference on the
-syntax can be found [here](https://tree-sitter.github.io/tree-sitter/creating-parsers#command-test).
-
-You can run the tests with
+### Releasing
 
 ```bash
-npx tree-sitter test
+script/bump-version 0.2.0          # syncs version across package.json, Cargo.toml, pyproject.toml
+git add -A && git commit -m 'chore: bump version to 0.2.0'
+git tag v0.2.0
+git push origin master v0.2.0      # tag push triggers publish to npm, crates.io, PyPI, GitHub
 ```
 
-See the help output (`-h`) for that command for some more details on using the test
-runner.
+### Tests
 
-## Contributing
+Tests are in `test/corpus/`. Reference:
+https://tree-sitter.github.io/tree-sitter/creating-parsers#command-test
 
-If you'd like to contribute, Pull Requests are welcome! The plan is to build the grammar
-from the bottom up, from simple statements with solid code coverage, eventually building
-up to full, complex syntax.
+### Contributing
 
-You can see a reference of the grammar's DSL [here](https://tree-sitter.github.io/tree-sitter/creating-parsers#the-grammar-dsl). It's fairly straigthforward, and makes for pleasant reading. It is stored in `grammar.js` at the root of this repo.
+Pull requests welcome! The grammar is in `grammar.js`. For subtle points,
+please leave comments — the extra bytes go a long way.
 
-For subtle points in the grammar implementation, PLEASE leave comments. The extra bytes
-spent on the comments in dev will go a long way in the big picture.
+### Supporting scripts
 
-### Supporting Scripts
-
-We have a perl script which generates the correct ranges for both the C + JS sides of the
-parser. The dependencies are in the `cpanfile` in the root directory. Not necessary unless
-you are working on unicode identifiers.
-
+`unicode_ranges.pl` generates unicode ranges for the C and JS sides of the
+parser. Dependencies are in the `cpanfile`. Only needed if working on unicode
+identifiers.

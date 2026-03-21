@@ -5,7 +5,6 @@
   "main": "bindings/node",
   "types": "bindings/node",
   "scripts": {
-    "dev-install": "npm install --no-save tree-sitter-cli",
     "test": "tree-sitter generate && tree-sitter test",
     "install": "node-gyp-build",
     "prebuildify": "prebuildify --napi --strip"
@@ -14,27 +13,22 @@
     "node": ">= 20.0.0"
   },
   "author": "veesh",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
-    "node-addon-api": "^7.1.0",
-    "node-gyp-build": "^4.8.0"
+    "node-addon-api": "^8.3.0",
+    "node-gyp-build": "^4.8.4"
   },
   "peerDependencies": {
-    "tree-sitter": "^0.21.0"
+    "tree-sitter": "^0.22.0"
   },
   "peerDependenciesMeta": {
-    "tree_sitter": {
+    "tree-sitter": {
       "optional": true
     }
   },
   "devDependencies": {
-    "eslint": "^8.21.0",
-    "eslint-config-standard": "^17.0.0",
-    "eslint-plugin-import": "^2.26.0",
-    "eslint-plugin-n": "^15.2.4",
-    "eslint-plugin-promise": "^6.0.0",
-    "prebuildify": "^6.0.0",
-    "tree-sitter-cli": "^0.24.2"
+    "prebuildify": "^6.0.1",
+    "tree-sitter-cli": "^0.26.0"
   },
   "files": [
     "grammar.js",
