@@ -6,7 +6,7 @@
 //! ```
 //! let code = "";
 //! let mut parser = tree_sitter::Parser::new();
-//! let language = tree_sitter_perl::LANGUAGE;
+//! let language = ts_parser_perl::LANGUAGE;
 //! parser.set_language(&language.into()).expect("Error loading perl grammar");
 //! let tree = parser.parse(code, None).unwrap();
 //! ```

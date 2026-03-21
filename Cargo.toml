@@ -1,5 +1,5 @@
 [package]
-name = "tree-sitter-perl"
+name = "ts-parser-perl"
 description = "Perl grammar for tree-sitter"
 version = "1.0.0"
 license = "MIT"
