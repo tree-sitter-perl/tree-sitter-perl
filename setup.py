@@ -1,5 +1,6 @@
 from os.path import isdir, join
 from platform import system
+from sysconfig import get_config_var
 
 from setuptools import Extension, find_packages, setup
 from setuptools.command.build import build
@@ -18,7 +19,7 @@ class BdistWheel(bdist_wheel):
     def get_tag(self):
         python, abi, platform = super().get_tag()
         if python.startswith("cp") and not get_config_var("Py_GIL_DISABLED"):
-            python, abi = "cp38", "abi3"
+            python, abi = "cp39", "abi3"
         return python, abi, platform
 
 
