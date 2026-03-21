@@ -6,12 +6,13 @@
 //! ```
 //! let code = "";
 //! let mut parser = tree_sitter::Parser::new();
-//! parser.set_language(tree_sitter_perl::language()).expect("Error loading perl grammar");
+//! let language = tree_sitter_perl::LANGUAGE;
+//! parser.set_language(&language.into()).expect("Error loading perl grammar");
 //! let tree = parser.parse(code, None).unwrap();
 //! ```
 //!
 //! [Language]: https://docs.rs/tree-sitter/*/tree_sitter/struct.Language.html
-//! [language func]: fn.language.html
+//! [LANGUAGE]: constant.LANGUAGE.html
 //! [Parser]: https://docs.rs/tree-sitter/*/tree_sitter/struct.Parser.html
 //! [tree-sitter]: https://tree-sitter.github.io/
 
