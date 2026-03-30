@@ -11,7 +11,7 @@ A tree-sitter grammar for Perl. Maintained at https://github.com/tree-sitter-per
 npm install tree-sitter-perl
 
 # cargo
-cargo add tree-sitter-perl
+cargo add ts-parser-perl
 
 # pip
 pip install tree-sitter-perl
