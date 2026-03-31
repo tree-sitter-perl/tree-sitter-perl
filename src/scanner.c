@@ -916,7 +916,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
       // operator followed by a comment as the quote char
       if (c == '#') {
         ADVANCE_C;
-        while (lexer->get_column(lexer)) ADVANCE_C;
+        while (lexer->get_column(lexer) && !lexer->eof(lexer)) ADVANCE_C;
       }
       if (lexer->eof(lexer)) return false;
       // TODO - in theory there could be POD here that we needa skip over (EYES ROLL)
