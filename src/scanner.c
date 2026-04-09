@@ -317,19 +317,21 @@ static int peek_is_statement_keyword(TSLexer *lexer) {
     return 0;  // not a keyword
   }
 
-  // Skip whitespace after keyword (spaces/tabs, not newlines)
+  // Skip whitespace after keyword (spaces/tabs, not newlines).
+  // Use advance(true) so whitespace is NOT included in the token —
+  // if this turns out to be a fat comma, the autoquote token should
+  // cover just the word, not trailing whitespace.
   while (la == ' ' || la == '\t') {
-    lexer->advance(lexer, false);
+    lexer->advance(lexer, true);
     la = lexer->lookahead;
   }
 
-  // Fat comma => means it's a hash key, not a statement
-  if (la == '=') {
-    lexer->advance(lexer, false);
-    if (lexer->lookahead == '>') return -1;  // fat comma autoquote
-    // '=' not followed by '>' — could be 'use = ...' which is weird but
-    // we'll treat it as a keyword boundary anyway
-  }
+  // Fat comma => means it's a hash key, not a statement.
+  // Bail at '=' without advancing past it.  Caller will goto the
+  // autoquote handler's => check.  We DON'T set mark_end here — the
+  // autoquote handler label re-reads from current position and sets
+  // its own mark_end.
+  if (la == '=') return -1;
 
   // For sub/method: only a declaration if followed by an identifier (name)
   if (needs_name) {
@@ -638,10 +640,15 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
         if (valid_symbols[TOKEN_RECOVER_BRACE_CLOSE])    { state->recovery_emitted = true; TOKEN(TOKEN_RECOVER_BRACE_CLOSE); }
         if (valid_symbols[PERLY_SEMICOLON])               TOKEN(PERLY_SEMICOLON);
       }
-      if (peek == -1 && valid_symbols[TOKEN_FAT_COMMA_AUTOQUOTED]) {
-        // Fat comma after keyword — emit autoquote token.  The lexer
-        // advanced past the word to MARK_END, so the token covers it.
-        TOKEN(TOKEN_FAT_COMMA_AUTOQUOTED);
+      if (peek == -1) {
+        // Fat comma — keyword followed by '='.  Bail to the autoquote
+        // handler's => check.  Peek left us at '=' with the word
+        // consumed and whitespace skipped (as true skip).  MARK_END
+        // covers just the word.  Same goto pattern as heredoc vs
+        // diamond disambiguation.
+        MARK_END;
+        c = lexer->lookahead;
+        goto fat_comma_check;
       }
       // Peek advanced but said no — return false to reset the lexer.
       return false;
@@ -1039,6 +1046,12 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
       if (lexer->eof(lexer)) return false;
       // TODO - in theory there could be POD here that we needa skip over (EYES ROLL)
     }
+    // The keyword peek's fat comma detection gotos here when it finds a
+    // statement keyword followed by '=' on a new line.  The peek has already
+    // consumed the word + whitespace; lexer is at '='.  MARK_END was set by
+    // the peek's caller (covers the word).  Same goto pattern as heredoc vs
+    // diamond operator disambiguation.
+    fat_comma_check:
     c1 = lexer->lookahead;
     ADVANCE_C;
     if (valid_symbols[TOKEN_FAT_COMMA_AUTOQUOTED]) {

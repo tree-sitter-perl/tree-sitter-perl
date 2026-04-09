@@ -109,7 +109,7 @@ package => 1);
 
 (source_file
   (expression_statement
-    (ambiguous_function_call_expression
+    (function_call_expression
       function: (function)
       arguments: (list_expression
         (autoquoted_bareword)
