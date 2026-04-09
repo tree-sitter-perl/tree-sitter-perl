@@ -276,17 +276,20 @@ static bool skip_ws_to_eol(TSLexer *lexer) {
   }
 }
 
-// Peek at the next word after whitespace.  Returns true if it's a statement
-// keyword (package/use/no/class/role/sub NAME/method NAME) that's NOT
-// followed by => (fat comma autoquoting).  Advances the lexer for peeking
-// — caller MUST return false if this returns false (to reset the lexer).
-static bool peek_is_statement_keyword(TSLexer *lexer) {
+// Peek at the next word.  Returns:
+//   1 = statement keyword (not followed by =>)
+//   0 = not a keyword, or non-keyword word — caller should return false
+//  -1 = keyword followed by => (fat comma) — caller should emit autoquote
+// Advances the lexer — caller MUST return false if result is 0 (to reset).
+// For result -1 the lexer has advanced past the word (to MARK_END) and the
+// caller can emit TOKEN_FAT_COMMA_AUTOQUOTED directly.
+static int peek_is_statement_keyword(TSLexer *lexer) {
   int32_t la = lexer->lookahead;
 
   // Quick first-char filter: only peek for keyword-starting chars
   if (!(la == 'p' || la == 'u' || la == 'n' || la == 'c' ||
         la == 'r' || la == 's' || la == 'm'))
-    return false;
+    return 0;
 
   // Read the word (lowercase + underscore)
   char word[16];
@@ -300,7 +303,7 @@ static bool peek_is_statement_keyword(TSLexer *lexer) {
 
   // Must be a word boundary (not followed by more identifier chars)
   if ((la >= 'A' && la <= 'Z') || (la >= '0' && la <= '9') || la == '_')
-    return false;
+    return 0;
 
   // Match against statement keywords
   bool needs_name = false;
@@ -311,7 +314,7 @@ static bool peek_is_statement_keyword(TSLexer *lexer) {
   } else if (strcmp(word, "sub") == 0 || strcmp(word, "method") == 0) {
     needs_name = true;
   } else {
-    return false;  // not a keyword
+    return 0;  // not a keyword
   }
 
   // Skip whitespace after keyword (spaces/tabs, not newlines)
@@ -323,7 +326,7 @@ static bool peek_is_statement_keyword(TSLexer *lexer) {
   // Fat comma => means it's a hash key, not a statement
   if (la == '=') {
     lexer->advance(lexer, false);
-    if (lexer->lookahead == '>') return false;
+    if (lexer->lookahead == '>') return -1;  // fat comma autoquote
     // '=' not followed by '>' — could be 'use = ...' which is weird but
     // we'll treat it as a keyword boundary anyway
   }
@@ -331,10 +334,10 @@ static bool peek_is_statement_keyword(TSLexer *lexer) {
   // For sub/method: only a declaration if followed by an identifier (name)
   if (needs_name) {
     if (!((la >= 'a' && la <= 'z') || (la >= 'A' && la <= 'Z') || la == '_'))
-      return false;  // anonymous sub/method
+      return 0;  // anonymous sub/method
   }
 
-  return true;
+  return 1;
 }
 
 static void _skip_chars(TSLexer *lexer, int maxlen, const char *allow) {
@@ -625,13 +628,20 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     if (c == 'p' || c == 'u' || c == 'n' || c == 'c' ||
         c == 'r' || c == 's' || c == 'm') {
       MARK_END;
-      if (peek_is_statement_keyword(lexer)) {
+      int peek = peek_is_statement_keyword(lexer);
+      if (peek == 1) {
+        // Statement keyword — emit recovery token
         DEBUG("keyword boundary\n", 0);
         if (valid_symbols[TOKEN_RECOVER_ARROW])         { state->recovery_emitted = true; TOKEN(TOKEN_RECOVER_ARROW); }
         if (valid_symbols[TOKEN_RECOVER_PAREN_CLOSE])   { state->recovery_emitted = true; TOKEN(TOKEN_RECOVER_PAREN_CLOSE); }
         if (valid_symbols[TOKEN_RECOVER_BRACKET_CLOSE])  { state->recovery_emitted = true; TOKEN(TOKEN_RECOVER_BRACKET_CLOSE); }
         if (valid_symbols[TOKEN_RECOVER_BRACE_CLOSE])    { state->recovery_emitted = true; TOKEN(TOKEN_RECOVER_BRACE_CLOSE); }
         if (valid_symbols[PERLY_SEMICOLON])               TOKEN(PERLY_SEMICOLON);
+      }
+      if (peek == -1 && valid_symbols[TOKEN_FAT_COMMA_AUTOQUOTED]) {
+        // Fat comma after keyword — emit autoquote token.  The lexer
+        // advanced past the word to MARK_END, so the token covers it.
+        TOKEN(TOKEN_FAT_COMMA_AUTOQUOTED);
       }
       // Peek advanced but said no — return false to reset the lexer.
       return false;

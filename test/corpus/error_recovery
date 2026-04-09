@@ -103,12 +103,13 @@ package Bar;
 ================================================================================
 Keyword boundary - fat comma autoquoting preserved
 ================================================================================
-foo(package => 1);
+foo(
+package => 1);
 --------------------------------------------------------------------------------
 
 (source_file
   (expression_statement
-    (function_call_expression
+    (ambiguous_function_call_expression
       function: (function)
       arguments: (list_expression
         (autoquoted_bareword)
