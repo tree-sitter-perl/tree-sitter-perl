@@ -151,8 +151,11 @@ module.exports = grammar({
     $._no_interp_whitespace_zw,
     /* zero-width high priority token */
     $._NONASSOC,
-    /* synthetic close paren for error recovery */
+    /* synthetic tokens for error recovery */
     $._RECOVER_PAREN_CLOSE,
+    $._RECOVER_BRACKET_CLOSE,
+    $._RECOVER_BRACE_CLOSE,
+    $._RECOVER_ARROW,
     /* error condition must always be last; we don't use this in the grammar */
     $._ERROR
   ],
@@ -429,9 +432,9 @@ module.exports = grammar({
     ),
     array_element_expression: $ => choice(
       // perly.y matches scalar '[' expr ']' here but that would yield a scalar var node
-      seq(field('array', $.container_variable), '[', field('index', $._expr), ']'),
-      prec.left(TERMPREC.ARROW, seq($._term, '->', '[', field('index', $._expr), ']')),
-      seq($.subscripted, '[', field('index', $._expr), ']'),
+      seq(field('array', $.container_variable), '[', field('index', $._expr), choice(']', alias($._RECOVER_BRACKET_CLOSE, ']'))),
+      prec.left(TERMPREC.ARROW, seq($._term, '->', '[', field('index', $._expr), choice(']', alias($._RECOVER_BRACKET_CLOSE, ']')))),
+      seq($.subscripted, '[', field('index', $._expr), choice(']', alias($._RECOVER_BRACKET_CLOSE, ']'))),
     ),
     _hash_key: $ => choice($._brace_autoquoted, $._expr),
     hash_element_expression: $ => choice(
@@ -455,19 +458,19 @@ module.exports = grammar({
     ),
     slice_container_variable: $ => seq('@', $._var_indirob),
     slice_expression: $ => choice(
-      seq(field('array', $.slice_container_variable), '[', $._expr, ']'),
+      seq(field('array', $.slice_container_variable), '[', $._expr, choice(']', alias($._RECOVER_BRACKET_CLOSE, ']'))),
       seq(field('hash', $.slice_container_variable), '{', $._hash_key, '}'),
       prec.left(TERMPREC.ARROW,
-        seq(field('arrayref', $._term), '->', '@', '[', $._expr, ']')),
+        seq(field('arrayref', $._term), '->', '@', '[', $._expr, choice(']', alias($._RECOVER_BRACKET_CLOSE, ']')))),
       prec.left(TERMPREC.ARROW,
         seq(field('hashref', $._term), '->', '@', '{', $._hash_key, '}')),
     ),
     keyval_container_variable: $ => seq($._HASH_PERCENT, $._var_indirob),
     keyval_expression: $ => choice(
-      seq(field('array', $.keyval_container_variable), '[', $._expr, ']'),
+      seq(field('array', $.keyval_container_variable), '[', $._expr, choice(']', alias($._RECOVER_BRACKET_CLOSE, ']'))),
       seq(field('hash', $.keyval_container_variable), '{', $._hash_key, '}'),
       prec.left(TERMPREC.ARROW,
-        seq(field('arrayref', $._term), '->', '%', '[', $._expr, ']')),
+        seq(field('arrayref', $._term), '->', '%', '[', $._expr, choice(']', alias($._RECOVER_BRACKET_CLOSE, ']')))),
       prec.left(TERMPREC.ARROW,
         seq(field('hashref', $._term), '->', '%', '{', $._hash_key, '}')),
     ),
@@ -624,7 +627,7 @@ module.exports = grammar({
     refgen_expression: $ => prec.left(TERMPREC.UMINUS, seq('\\', choice(alias($.amper_sub, $.function), $._term))), // _REFGEN
 
     anonymous_array_expression: $ => seq(
-      '[', optional($._expr), ']'
+      '[', optional($._expr), choice(']', alias($._RECOVER_BRACKET_CLOSE, ']'))
     ),
 
     // we use the precedence here to ensure that we turn map { q'thingy" => $_ } into a hashref
@@ -813,7 +816,7 @@ module.exports = grammar({
       field('method', $.method),
       optseq('(', optional(field('arguments', $._expr)), choice(')', $._RECOVER_PAREN_CLOSE))
     )),
-    method: $ => choice($._bareword, $.scalar),
+    method: $ => choice($._bareword, $.scalar, $._RECOVER_ARROW),
 
     _variables: $ => choice(
       $.scalar,

@@ -69,8 +69,11 @@ enum TokenType {
   TOKEN_NO_INTERP_WHITESPACE_ZW,
   /* zero-width high priority token */
   TOKEN_NONASSOC,
-  /* synthetic close paren for error recovery */
+  /* synthetic tokens for error recovery */
   TOKEN_RECOVER_PAREN_CLOSE,
+  TOKEN_RECOVER_BRACKET_CLOSE,
+  TOKEN_RECOVER_BRACE_CLOSE,
+  TOKEN_RECOVER_ARROW,
   /* error condition is always last */
   TOKEN_ERROR
 };
@@ -129,6 +132,7 @@ typedef struct {
   bool heredoc_interpolates, heredoc_indents;
   enum HeredocState heredoc_state;
   TSPString heredoc_delim;
+  bool recovery_emitted;
 } LexerState;
 
 static void lexerstate_push_quote(LexerState *state, int32_t opener) {
@@ -260,17 +264,77 @@ static void skip_whitespace(TSLexer *lexer) {
   }
 }
 
-static void skip_ws_to_eol(TSLexer *lexer) {
+static bool skip_ws_to_eol(TSLexer *lexer) {
   while (1) {
     int32_t c = lexer->lookahead;
-    if (!c) return;
+    if (!c) return false;
     if (is_tsp_whitespace(c)) {
       lexer->advance(lexer, true);
-      // return after eating the newline
-      if (c == '\n') return;
+      if (c == '\n') return true;
     } else
-      return;
+      return false;
   }
+}
+
+// Peek at the next word after whitespace.  Returns true if it's a statement
+// keyword (package/use/no/class/role/sub NAME/method NAME) that's NOT
+// followed by => (fat comma autoquoting).  Advances the lexer for peeking
+// — caller MUST return false if this returns false (to reset the lexer).
+static bool peek_is_statement_keyword(TSLexer *lexer) {
+  int32_t la = lexer->lookahead;
+
+  // Quick first-char filter: only peek for keyword-starting chars
+  if (!(la == 'p' || la == 'u' || la == 'n' || la == 'c' ||
+        la == 'r' || la == 's' || la == 'm'))
+    return false;
+
+  // Read the word (lowercase + underscore)
+  char word[16];
+  int len = 0;
+  while ((la >= 'a' && la <= 'z') || la == '_') {
+    if (len < 15) word[len++] = (char)la;
+    lexer->advance(lexer, false);
+    la = lexer->lookahead;
+  }
+  word[len] = '\0';
+
+  // Must be a word boundary (not followed by more identifier chars)
+  if ((la >= 'A' && la <= 'Z') || (la >= '0' && la <= '9') || la == '_')
+    return false;
+
+  // Match against statement keywords
+  bool needs_name = false;
+  if (strcmp(word, "package") == 0 || strcmp(word, "use") == 0 ||
+      strcmp(word, "no") == 0 || strcmp(word, "class") == 0 ||
+      strcmp(word, "role") == 0) {
+    // always statement keywords
+  } else if (strcmp(word, "sub") == 0 || strcmp(word, "method") == 0) {
+    needs_name = true;
+  } else {
+    return false;  // not a keyword
+  }
+
+  // Skip whitespace after keyword (spaces/tabs, not newlines)
+  while (la == ' ' || la == '\t') {
+    lexer->advance(lexer, false);
+    la = lexer->lookahead;
+  }
+
+  // Fat comma => means it's a hash key, not a statement
+  if (la == '=') {
+    lexer->advance(lexer, false);
+    if (lexer->lookahead == '>') return false;
+    // '=' not followed by '>' — could be 'use = ...' which is weird but
+    // we'll treat it as a keyword boundary anyway
+  }
+
+  // For sub/method: only a declaration if followed by an identifier (name)
+  if (needs_name) {
+    if (!((la >= 'a' && la <= 'z') || (la >= 'A' && la <= 'Z') || la == '_'))
+      return false;  // anonymous sub/method
+  }
+
+  return true;
 }
 
 static void _skip_chars(TSLexer *lexer, int maxlen, const char *allow) {
@@ -330,6 +394,7 @@ unsigned int tree_sitter_perl_external_scanner_serialize(void *payload, char *bu
   buffer[size++] = (char)state->heredoc_state;
   memcpy(&buffer[size], &state->heredoc_delim, sizeof(TSPString));
   size += sizeof(TSPString);
+  buffer[size++] = (char)state->recovery_emitted;
 
   return size;
 }
@@ -356,6 +421,7 @@ void tree_sitter_perl_external_scanner_deserialize(void *payload, const char *bu
 
     memcpy(&state->heredoc_delim, &buffer[size], sizeof(TSPString));
     size += sizeof(TSPString);
+    state->recovery_emitted = (bool)buffer[size++];
   }
 }
 
@@ -365,6 +431,9 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
 
   bool is_ERROR = valid_symbols[TOKEN_ERROR];
   bool skipped_whitespace = false;
+  bool crossed_newline = false;
+  bool recovery_context = state->recovery_emitted;
+  state->recovery_emitted = false;
 
   int32_t c = lexer->lookahead;
 
@@ -457,7 +526,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   if (!is_ERROR && iswspace(c) && valid_symbols[TOKEN_NO_INTERP_WHITESPACE_ZW]) {
     TOKEN(TOKEN_NO_INTERP_WHITESPACE_ZW);
   }
-  skip_ws_to_eol(lexer);
+  crossed_newline = skip_ws_to_eol(lexer);
   /* heredocs override everything, so they must be here before */
   if (valid_symbols[TOKEN_HEREDOC_START]) {
     if (state->heredoc_state == HEREDOC_START && lexer->get_column(lexer) == 0) {
@@ -508,27 +577,66 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   // CTRL-Z must be here, b/c it cares about whitespace
   if (c == 26 && valid_symbols[TOKEN_CTRL_Z]) TOKEN(TOKEN_CTRL_Z);
 
-  // Close unclosed parens before inserting semicolons — the parser needs
-  // ')' before it can accept ';'.  Only fires inside function/method call
-  // argument lists (the only grammar rules that use _RECOVER_PAREN_CLOSE).
-  if (!is_ERROR && valid_symbols[TOKEN_RECOVER_PAREN_CLOSE]) {
+  // === Error recovery: close unclosed delimiters and insert semicolons ===
+  //
+  // When the scanner sees '}', ';', EOF, or a statement keyword on a new
+  // line, it emits recovery tokens to unwind open delimiters.  Each call
+  // peels one layer — the parser keeps calling until everything is closed.
+  //
+  // Priority order matters: close innermost delimiter first, then outer
+  // ones, then emit semicolon.
+
+  // Syntactic boundary: '}', ';', or EOF
+  if (!is_ERROR) {
     if (c == '}' || c == ';' || lexer->eof(lexer)) {
-      DEBUG("Fake RECOVER_PAREN_CLOSE before '%c'\n", c);
-      TOKEN(TOKEN_RECOVER_PAREN_CLOSE);
+      if (valid_symbols[TOKEN_RECOVER_ARROW])         { DEBUG("recover: arrow\n", 0);   state->recovery_emitted = true; TOKEN(TOKEN_RECOVER_ARROW); }
+      if (valid_symbols[TOKEN_RECOVER_PAREN_CLOSE])   { DEBUG("recover: paren\n", 0);   state->recovery_emitted = true; TOKEN(TOKEN_RECOVER_PAREN_CLOSE); }
+      if (valid_symbols[TOKEN_RECOVER_BRACKET_CLOSE])  { DEBUG("recover: bracket\n", 0); state->recovery_emitted = true; TOKEN(TOKEN_RECOVER_BRACKET_CLOSE); }
+      // Don't recover braces at '}' — that's the real closer
+      if (c != '}' && valid_symbols[TOKEN_RECOVER_BRACE_CLOSE]) {
+        DEBUG("recover: brace\n", 0);
+        state->recovery_emitted = true;
+        TOKEN(TOKEN_RECOVER_BRACE_CLOSE);
+      }
     }
   }
 
   if (valid_symbols[PERLY_SEMICOLON]) {
     if (c == '}' || lexer->eof(lexer)) {
-      // do a PERLY_SEMICOLON unless we're in brace autoquoting
       if (is_ERROR || !valid_symbols[TOKEN_BRACE_END_ZW]) {
         DEBUG("Fake PERLY_SEMICOLON at end-of-scope\n", 0);
-        // no advance
         TOKEN(PERLY_SEMICOLON);
       }
     }
   }
   if (lexer->eof(lexer)) return false;
+
+  // Statement keyword boundary: a statement keyword on a new line means
+  // the previous expression is done.  Also fires when a recovery token
+  // was just emitted (recovery_emitted flag) since the newline was already
+  // consumed by the previous call.
+  if ((crossed_newline || recovery_context) && !is_ERROR &&
+      (valid_symbols[TOKEN_RECOVER_ARROW] ||
+       valid_symbols[TOKEN_RECOVER_PAREN_CLOSE] ||
+       valid_symbols[TOKEN_RECOVER_BRACKET_CLOSE] ||
+       valid_symbols[TOKEN_RECOVER_BRACE_CLOSE] ||
+       valid_symbols[PERLY_SEMICOLON])) {
+    // Only enter the peek if the first char could start a keyword
+    if (c == 'p' || c == 'u' || c == 'n' || c == 'c' ||
+        c == 'r' || c == 's' || c == 'm') {
+      MARK_END;
+      if (peek_is_statement_keyword(lexer)) {
+        DEBUG("keyword boundary\n", 0);
+        if (valid_symbols[TOKEN_RECOVER_ARROW])         { state->recovery_emitted = true; TOKEN(TOKEN_RECOVER_ARROW); }
+        if (valid_symbols[TOKEN_RECOVER_PAREN_CLOSE])   { state->recovery_emitted = true; TOKEN(TOKEN_RECOVER_PAREN_CLOSE); }
+        if (valid_symbols[TOKEN_RECOVER_BRACKET_CLOSE])  { state->recovery_emitted = true; TOKEN(TOKEN_RECOVER_BRACKET_CLOSE); }
+        if (valid_symbols[TOKEN_RECOVER_BRACE_CLOSE])    { state->recovery_emitted = true; TOKEN(TOKEN_RECOVER_BRACE_CLOSE); }
+        if (valid_symbols[PERLY_SEMICOLON])               TOKEN(PERLY_SEMICOLON);
+      }
+      // Peek advanced but said no — return false to reset the lexer.
+      return false;
+    }
+  }
 
   if (valid_symbols[TOKEN_OPEN_FILEGLOB_BRACKET] || valid_symbols[TOKEN_OPEN_READLINE_BRACKET] || valid_symbols[PERLY_HEREDOC]) {
       if (c == '<') {

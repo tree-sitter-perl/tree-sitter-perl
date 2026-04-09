@@ -1,0 +1,132 @@
+================================================================================
+Keyword boundary - bareword before package
+================================================================================
+reduce
+package Bar;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (bareword))
+  (package_statement
+    name: (package)))
+
+================================================================================
+Keyword boundary - bareword before use
+================================================================================
+reduce
+use Moo;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (bareword))
+  (use_statement
+    module: (package)))
+
+================================================================================
+Keyword boundary - bareword before sub
+================================================================================
+reduce
+sub process { 1 }
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (bareword))
+  (subroutine_declaration_statement
+    name: (bareword)
+    body: (block
+      (expression_statement
+        (number)))))
+
+================================================================================
+Keyword boundary - bareword before no
+================================================================================
+reduce
+no strict;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (bareword))
+  (use_statement
+    module: (package)))
+
+================================================================================
+Keyword boundary - incomplete arrow before package
+================================================================================
+$obj->
+package Bar;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (method_call_expression
+      invocant: (scalar
+        (varname))
+      method: (method)))
+  (package_statement
+    name: (package)))
+
+================================================================================
+Keyword boundary - unclosed paren before package
+================================================================================
+foo(
+package Bar;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (function_call_expression
+      function: (function)))
+  (package_statement
+    name: (package)))
+
+================================================================================
+Keyword boundary - unclosed bracket before package
+================================================================================
+my @x = [
+package Bar;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (array
+          (varname)))
+      right: (anonymous_array_expression)))
+  (package_statement
+    name: (package)))
+
+================================================================================
+Keyword boundary - fat comma autoquoting preserved
+================================================================================
+foo(package => 1);
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (function_call_expression
+      function: (function)
+      arguments: (list_expression
+        (autoquoted_bareword)
+        (number)))))
+
+================================================================================
+Keyword boundary - postfix unless NOT broken
+================================================================================
+print "hello"
+unless $cond;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (postfix_conditional_expression
+      (ambiguous_function_call_expression
+        function: (function)
+        arguments: (interpolated_string_literal
+          content: (string_content)))
+      condition: (scalar
+        (varname)))))
