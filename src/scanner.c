@@ -598,6 +598,8 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
       if (valid_symbols[TOKEN_RECOVER_PAREN_CLOSE])   { DEBUG("recover: paren\n", 0);   state->recovery_emitted = true; TOKEN(TOKEN_RECOVER_PAREN_CLOSE); }
       if (valid_symbols[TOKEN_RECOVER_BRACKET_CLOSE])  { DEBUG("recover: bracket\n", 0); state->recovery_emitted = true; TOKEN(TOKEN_RECOVER_BRACKET_CLOSE); }
       // Don't recover braces at '}' — that's the real closer
+      // (';' is safe here: brace recovery is only valid in subscript context,
+      // where ';' is never legitimate)
       if (c != '}' && valid_symbols[TOKEN_RECOVER_BRACE_CLOSE]) {
         DEBUG("recover: brace\n", 0);
         state->recovery_emitted = true;

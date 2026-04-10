@@ -131,3 +131,60 @@ unless $cond;
           content: (string_content)))
       condition: (scalar
         (varname)))))
+
+================================================================================
+Keyword boundary - comment hides fat comma (known limitation)
+================================================================================
+[ $this->
+package # hide from cpan index
+  => # loljokes
+  Your::Face;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (anonymous_array_expression
+      (method_call_expression
+        invocant: (scalar
+          (varname))
+        method: (method))))
+  (expression_statement
+    (list_expression
+      (autoquoted_bareword)
+      (comment)
+      (comment)
+      (bareword))))
+
+================================================================================
+Keyword boundary - unclosed hash subscript before package
+================================================================================
+$hash{foo
+package Bar;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (hash_element_expression
+      hash: (container_variable
+        (varname))
+      key: (bareword)))
+  (package_statement
+    name: (package)))
+
+================================================================================
+Unclosed anonymous hash - no recovery (block/hash ambiguity)
+================================================================================
+my $h = { foo => 1,
+package Bar;
+--------------------------------------------------------------------------------
+
+(source_file
+  (ERROR
+    (variable_declaration
+      variable: (scalar
+        (varname)))
+    (autoquoted_bareword)
+    (number)
+    (ambiguous_function_call_expression
+      function: (function)
+      arguments: (bareword))))
