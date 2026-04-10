@@ -72,10 +72,13 @@ const trContent = ($, node) =>
 const aliasMany = (to, tokens) => tokens.map(t => alias(t, to))
 
 
-// Recovery-aware closers: use these instead of bare ')' or ']' so the
+// Recovery-aware closers: use these instead of bare ')', ']', '}' so the
 // scanner can inject a synthetic close when a statement keyword appears
 // on the next line.  Defined as functions so every call-site shares the
 // same grammar node (no extra states).
+// NOTE: recoverBrace is only used in subscript rules (hash_element,
+// slice, keyval) — NOT in block or anonymous_hash_expression, where
+// block/hash ambiguity via shared _PERLY_BRACE_OPEN makes it unsafe.
 const recoverParen  = ($) => choice(')', $._RECOVER_PAREN_CLOSE)
 const recoverBracket = ($) => choice(']', alias($._RECOVER_BRACKET_CLOSE, ']'))
 const recoverBrace   = ($) => choice('}', alias($._RECOVER_BRACE_CLOSE, '}'))

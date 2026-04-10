@@ -279,10 +279,8 @@ static bool skip_ws_to_eol(TSLexer *lexer) {
 // Peek at the next word.  Returns:
 //   1 = statement keyword (not followed by =>)
 //   0 = not a keyword, or non-keyword word — caller should return false
-//  -1 = keyword followed by => (fat comma) — caller should emit autoquote
+//  -1 = keyword followed by => (fat comma) — caller should goto fat_comma_check
 // Advances the lexer — caller MUST return false if result is 0 (to reset).
-// For result -1 the lexer has advanced past the word (to MARK_END) and the
-// caller can emit TOKEN_FAT_COMMA_AUTOQUOTED directly.
 static int peek_is_statement_keyword(TSLexer *lexer) {
   int32_t la = lexer->lookahead;
 
@@ -327,10 +325,8 @@ static int peek_is_statement_keyword(TSLexer *lexer) {
   }
 
   // Fat comma => means it's a hash key, not a statement.
-  // Bail at '=' without advancing past it.  Caller will goto the
-  // autoquote handler's => check.  We DON'T set mark_end here — the
-  // autoquote handler label re-reads from current position and sets
-  // its own mark_end.
+  // Bail at '=' without advancing past it.  Caller will MARK_END
+  // (covering the word) then goto fat_comma_check.
   if (la == '=') return -1;
 
   // For sub/method: only a declaration if followed by an identifier (name)
@@ -588,8 +584,8 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   // line, it emits recovery tokens to unwind open delimiters.  Each call
   // peels one layer — the parser keeps calling until everything is closed.
   //
-  // Priority order matters: close innermost delimiter first, then outer
-  // ones, then emit semicolon.
+  // The if-chain tries tokens in priority order; valid_symbols controls
+  // which one actually fires based on the parser's current state.
 
   // Syntactic boundary: '}', ';', or EOF
   if (!is_ERROR) {
