@@ -1,6 +1,7 @@
 #include "tree_sitter/array.h"
 #include "tree_sitter/parser.h"
 #include "tsp_unicode.h"
+#include "tsp_keywords.h"
 
 // grumble grumble no stdlib
 static char *tsp_strchr(register const char *s, int c) {
@@ -300,9 +301,7 @@ enum PeekResult {
 static enum PeekResult peek_is_statement_keyword(TSLexer *lexer) {
   int32_t la = lexer->lookahead;
 
-  // Quick first-char filter: only peek for keyword-starting chars
-  if (!(la == 'p' || la == 'u' || la == 'n' || la == 'c' ||
-        la == 'r' || la == 's' || la == 'm'))
+  if (KEYWORD_FIRST_CHAR_FILTER(la))
     return PEEK_NO_MATCH;
 
   // Read the word (lowercase + underscore)
@@ -319,17 +318,8 @@ static enum PeekResult peek_is_statement_keyword(TSLexer *lexer) {
   if (isidcont(la))
     return PEEK_NOT_KEYWORD;
 
-  // Match against statement keywords
   bool needs_name = false;
-  if (strcmp(word, "package") == 0 || strcmp(word, "use") == 0 ||
-      strcmp(word, "no") == 0 || strcmp(word, "class") == 0 ||
-      strcmp(word, "role") == 0) {
-    // always statement keywords
-  } else if (strcmp(word, "sub") == 0 || strcmp(word, "method") == 0) {
-    needs_name = true;
-  } else {
-    return PEEK_NOT_KEYWORD;
-  }
+  KEYWORD_MATCH(word, needs_name);
 
   // Skip whitespace after keyword (spaces/tabs, not newlines).
   // Use advance(true) so whitespace is NOT included in the token —
