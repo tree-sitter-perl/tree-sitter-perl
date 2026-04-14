@@ -438,7 +438,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   bool is_ERROR = valid_symbols[TOKEN_ERROR];
   bool skipped_whitespace = false;
   bool crossed_newline = false;
-  bool recovery_context = state->recovery_emitted;
+  bool recovery_emitted = state->recovery_emitted;
   state->recovery_emitted = false;
 
   int32_t c = lexer->lookahead;
@@ -617,7 +617,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   // the previous expression is done.  Also fires when a recovery token
   // was just emitted (recovery_emitted flag) since the newline was already
   // consumed by the previous call.
-  if ((crossed_newline || recovery_context) && !is_ERROR && any_recovery_valid) {
+  if ((crossed_newline || recovery_emitted) && !is_ERROR && any_recovery_valid) {
     MARK_END;  // zero-width position for recovery tokens
     enum PeekResult peek = peek_is_statement_keyword(lexer);
     if (peek == PEEK_KEYWORD) {
