@@ -304,10 +304,10 @@ static enum PeekResult peek_is_statement_keyword(TSLexer *lexer) {
   if (KEYWORD_FIRST_CHAR_FILTER(la))
     return PEEK_NO_MATCH;
 
-  // Read the word (lowercase + underscore)
+  // Read the word (lowercase ASCII only — all Perl keywords are lowercase)
   char word[16];
   int len = 0;
-  while ((la >= 'a' && la <= 'z') || la == '_') {
+  while (la >= 'a' && la <= 'z') {
     if (len < 15) word[len++] = (char)la;
     lexer->advance(lexer, false);
     la = lexer->lookahead;
