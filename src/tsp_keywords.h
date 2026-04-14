@@ -12,6 +12,10 @@
 #define KEYWORD_FIRST_CHAR_FILTER(la) \
   (!(la == 'c' || la == 'm' || la == 'n' || la == 'p' || la == 'r' || la == 's' || la == 'u'))
 
+// Word-reading loop: characters that appear in any keyword.
+#define KEYWORD_WORD_CHAR(la) \
+  (la == 'a' || la == 'b' || la == 'c' || la == 'd' || la == 'e' || la == 'g' || la == 'h' || la == 'k' || la == 'l' || la == 'm' || la == 'n' || la == 'o' || la == 'p' || la == 'r' || la == 's' || la == 't' || la == 'u')
+
 // Keyword matching: sets needs_name for keywords that require an
 // identifier to be a declaration (sub, method).  Falls through to
 // PEEK_NOT_KEYWORD for non-keywords.

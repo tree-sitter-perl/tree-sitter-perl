@@ -17,8 +17,12 @@ my @all = sort(@always, @needs_name);
 # Derive the unique first chars
 my @first_chars = sort keys %{{ map { substr($_, 0, 1) => 1 } @all }};
 
-# Build the first-char filter
+# Derive the character set used across all keywords (for the word-reading loop)
+my @word_chars = sort keys %{{ map { $_ => 1 } map { split //, $_ } @all }};
+
+# Build the C expressions
 my $first_char_test = join(' || ', map { "la == '$_'" } @first_chars);
+my $word_char_test  = join(' || ', map { "la == '$_'" } @word_chars);
 
 my $always_test = join(" || ", map { qq{strcmp(word, "$_") == 0} } @always);
 my $named_test  = join(" || ", map { qq{strcmp(word, "$_") == 0} } @needs_name);
@@ -38,6 +42,10 @@ path('./src/tsp_keywords.h')->spew(<<C);
 #define KEYWORD_FIRST_CHAR_FILTER(la) \\
   (!($first_char_test))
 
+// Word-reading loop: characters that appear in any keyword.
+#define KEYWORD_WORD_CHAR(la) \\
+  ($word_char_test)
+
 // Keyword matching: sets needs_name for keywords that require an
 // identifier to be a declaration (sub, method).  Falls through to
 // PEEK_NOT_KEYWORD for non-keywords.
@@ -54,5 +62,6 @@ C
 
 say "Generated src/tsp_keywords.h with @{[ scalar @all ]} keywords";
 say "  first chars: @first_chars";
+say "  word chars:  @word_chars";
 say "  always:      @{[ join ', ', @always ]}";
 say "  needs_name:  @{[ join ', ', @needs_name ]}";
