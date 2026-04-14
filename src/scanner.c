@@ -321,11 +321,10 @@ static enum PeekResult peek_is_statement_keyword(TSLexer *lexer) {
   bool needs_name = false;
   KEYWORD_MATCH(word, needs_name);
 
-  // Skip whitespace after keyword (spaces/tabs, not newlines).
-  // Use advance(true) so whitespace is NOT included in the token —
-  // if this turns out to be a fat comma, the autoquote token should
-  // cover just the word, not trailing whitespace.
-  while (la == ' ' || la == '\t') {
+  // Skip whitespace after keyword (including newlines — the peek resets
+  // on failure, and we need to see past newlines for fat comma detection).
+  // Use advance(true) so whitespace is NOT included in the token.
+  while (is_tsp_whitespace(la)) {
     lexer->advance(lexer, true);
     la = lexer->lookahead;
   }
