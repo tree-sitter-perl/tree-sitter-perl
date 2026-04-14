@@ -253,6 +253,16 @@ static void lexerstate_finish_heredoc(LexerState *state) {
     DEBUG("marking end of token\n", 0); \
   } while (0)
 
+// Try each recovery token in priority order.  Uses a macro because
+// TOKEN() contains `return true`.  brace_ok: skip brace recovery at '}'
+// (that's the real closer); ';' is safe (only valid in subscript context).
+#define EMIT_RECOVERY_TOKENS(brace_ok) do { \
+    if (valid_symbols[TOKEN_RECOVER_ARROW])        { state->recovery_emitted = true; TOKEN(TOKEN_RECOVER_ARROW); } \
+    if (valid_symbols[TOKEN_RECOVER_PAREN_CLOSE])  { state->recovery_emitted = true; TOKEN(TOKEN_RECOVER_PAREN_CLOSE); } \
+    if (valid_symbols[TOKEN_RECOVER_BRACKET_CLOSE]) { state->recovery_emitted = true; TOKEN(TOKEN_RECOVER_BRACKET_CLOSE); } \
+    if ((brace_ok) && valid_symbols[TOKEN_RECOVER_BRACE_CLOSE]) { state->recovery_emitted = true; TOKEN(TOKEN_RECOVER_BRACE_CLOSE); } \
+  } while(0)
+
 static void skip_whitespace(TSLexer *lexer) {
   while (1) {
     int32_t c = lexer->lookahead;
@@ -276,18 +286,24 @@ static bool skip_ws_to_eol(TSLexer *lexer) {
   }
 }
 
-// Peek at the next word.  Returns:
-//   1 = statement keyword (not followed by =>)
-//   0 = not a keyword, or non-keyword word — caller should return false
-//  -1 = keyword followed by => (fat comma) — caller should goto fat_comma_check
-// Advances the lexer — caller MUST return false if result is 0 (to reset).
-static int peek_is_statement_keyword(TSLexer *lexer) {
+// Forward declarations (defined after _skip_chars)
+static bool isidfirst(int32_t c);
+static bool isidcont(int32_t c);
+
+enum PeekResult {
+  PEEK_NO_MATCH,    // first char not a keyword starter — lexer untouched
+  PEEK_KEYWORD,     // statement keyword (not followed by =>)
+  PEEK_FAT_COMMA,   // keyword followed by => — caller should goto fat_comma_check
+  PEEK_NOT_KEYWORD, // word read but not a keyword — caller MUST return false
+};
+
+static enum PeekResult peek_is_statement_keyword(TSLexer *lexer) {
   int32_t la = lexer->lookahead;
 
   // Quick first-char filter: only peek for keyword-starting chars
   if (!(la == 'p' || la == 'u' || la == 'n' || la == 'c' ||
         la == 'r' || la == 's' || la == 'm'))
-    return 0;
+    return PEEK_NO_MATCH;
 
   // Read the word (lowercase + underscore)
   char word[16];
@@ -300,8 +316,8 @@ static int peek_is_statement_keyword(TSLexer *lexer) {
   word[len] = '\0';
 
   // Must be a word boundary (not followed by more identifier chars)
-  if ((la >= 'A' && la <= 'Z') || (la >= '0' && la <= '9') || la == '_')
-    return 0;
+  if (isidcont(la))
+    return PEEK_NOT_KEYWORD;
 
   // Match against statement keywords
   bool needs_name = false;
@@ -312,7 +328,7 @@ static int peek_is_statement_keyword(TSLexer *lexer) {
   } else if (strcmp(word, "sub") == 0 || strcmp(word, "method") == 0) {
     needs_name = true;
   } else {
-    return 0;  // not a keyword
+    return PEEK_NOT_KEYWORD;
   }
 
   // Skip whitespace after keyword (spaces/tabs, not newlines).
@@ -327,15 +343,15 @@ static int peek_is_statement_keyword(TSLexer *lexer) {
   // Fat comma => means it's a hash key, not a statement.
   // Bail at '=' without advancing past it.  Caller will MARK_END
   // (covering the word) then goto fat_comma_check.
-  if (la == '=') return -1;
+  if (la == '=') return PEEK_FAT_COMMA;
 
   // For sub/method: only a declaration if followed by an identifier (name)
   if (needs_name) {
-    if (!((la >= 'a' && la <= 'z') || (la >= 'A' && la <= 'Z') || la == '_'))
-      return 0;  // anonymous sub/method
+    if (!isidfirst(la))
+      return PEEK_NOT_KEYWORD;  // anonymous sub/method
   }
 
-  return 1;
+  return PEEK_KEYWORD;
 }
 
 static void _skip_chars(TSLexer *lexer, int maxlen, const char *allow) {
@@ -584,23 +600,17 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   // line, it emits recovery tokens to unwind open delimiters.  Each call
   // peels one layer — the parser keeps calling until everything is closed.
   //
-  // The if-chain tries tokens in priority order; valid_symbols controls
-  // which one actually fires based on the parser's current state.
+  bool any_recovery_valid =
+    valid_symbols[TOKEN_RECOVER_ARROW] ||
+    valid_symbols[TOKEN_RECOVER_PAREN_CLOSE] ||
+    valid_symbols[TOKEN_RECOVER_BRACKET_CLOSE] ||
+    valid_symbols[TOKEN_RECOVER_BRACE_CLOSE] ||
+    valid_symbols[PERLY_SEMICOLON];
 
   // Syntactic boundary: '}', ';', or EOF
   if (!is_ERROR) {
     if (c == '}' || c == ';' || lexer->eof(lexer)) {
-      if (valid_symbols[TOKEN_RECOVER_ARROW])         { DEBUG("recover: arrow\n", 0);   state->recovery_emitted = true; TOKEN(TOKEN_RECOVER_ARROW); }
-      if (valid_symbols[TOKEN_RECOVER_PAREN_CLOSE])   { DEBUG("recover: paren\n", 0);   state->recovery_emitted = true; TOKEN(TOKEN_RECOVER_PAREN_CLOSE); }
-      if (valid_symbols[TOKEN_RECOVER_BRACKET_CLOSE])  { DEBUG("recover: bracket\n", 0); state->recovery_emitted = true; TOKEN(TOKEN_RECOVER_BRACKET_CLOSE); }
-      // Don't recover braces at '}' — that's the real closer
-      // (';' is safe here: brace recovery is only valid in subscript context,
-      // where ';' is never legitimate)
-      if (c != '}' && valid_symbols[TOKEN_RECOVER_BRACE_CLOSE]) {
-        DEBUG("recover: brace\n", 0);
-        state->recovery_emitted = true;
-        TOKEN(TOKEN_RECOVER_BRACE_CLOSE);
-      }
+      EMIT_RECOVERY_TOKENS(c != '}');
     }
   }
 
@@ -618,39 +628,28 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   // the previous expression is done.  Also fires when a recovery token
   // was just emitted (recovery_emitted flag) since the newline was already
   // consumed by the previous call.
-  if ((crossed_newline || recovery_context) && !is_ERROR &&
-      (valid_symbols[TOKEN_RECOVER_ARROW] ||
-       valid_symbols[TOKEN_RECOVER_PAREN_CLOSE] ||
-       valid_symbols[TOKEN_RECOVER_BRACKET_CLOSE] ||
-       valid_symbols[TOKEN_RECOVER_BRACE_CLOSE] ||
-       valid_symbols[PERLY_SEMICOLON])) {
-    // Only enter the peek if the first char could start a keyword
-    if (c == 'p' || c == 'u' || c == 'n' || c == 'c' ||
-        c == 'r' || c == 's' || c == 'm') {
-      MARK_END;
-      int peek = peek_is_statement_keyword(lexer);
-      if (peek == 1) {
-        // Statement keyword — emit recovery token
-        DEBUG("keyword boundary\n", 0);
-        if (valid_symbols[TOKEN_RECOVER_ARROW])         { state->recovery_emitted = true; TOKEN(TOKEN_RECOVER_ARROW); }
-        if (valid_symbols[TOKEN_RECOVER_PAREN_CLOSE])   { state->recovery_emitted = true; TOKEN(TOKEN_RECOVER_PAREN_CLOSE); }
-        if (valid_symbols[TOKEN_RECOVER_BRACKET_CLOSE])  { state->recovery_emitted = true; TOKEN(TOKEN_RECOVER_BRACKET_CLOSE); }
-        if (valid_symbols[TOKEN_RECOVER_BRACE_CLOSE])    { state->recovery_emitted = true; TOKEN(TOKEN_RECOVER_BRACE_CLOSE); }
-        if (valid_symbols[PERLY_SEMICOLON])               TOKEN(PERLY_SEMICOLON);
-      }
-      if (peek == -1) {
-        // Fat comma — keyword followed by '='.  Bail to the autoquote
-        // handler's => check.  Peek left us at '=' with the word
-        // consumed and whitespace skipped (as true skip).  MARK_END
-        // covers just the word.  Same goto pattern as heredoc vs
-        // diamond disambiguation.
-        MARK_END;
-        c = lexer->lookahead;
-        goto fat_comma_check;
-      }
-      // Peek advanced but said no — return false to reset the lexer.
-      return false;
+  if ((crossed_newline || recovery_context) && !is_ERROR && any_recovery_valid) {
+    MARK_END;  // zero-width position for recovery tokens
+    enum PeekResult peek = peek_is_statement_keyword(lexer);
+    if (peek == PEEK_KEYWORD) {
+      DEBUG("keyword boundary\n", 0);
+      EMIT_RECOVERY_TOKENS(true);
+      // PERLY_SEMICOLON is always the last recovery token in the chain;
+      // no need to set recovery_emitted since nothing follows it.
+      if (valid_symbols[PERLY_SEMICOLON]) TOKEN(PERLY_SEMICOLON);
     }
+    if (peek == PEEK_FAT_COMMA) {
+      // Fat comma — keyword followed by '='.  Bail to the autoquote
+      // handler's => check.  Peek left us at '=' with the word
+      // consumed and whitespace skipped (as true skip).  MARK_END
+      // covers just the word.  Same goto pattern as heredoc vs
+      // diamond disambiguation.
+      MARK_END;
+      c = lexer->lookahead;
+      goto fat_comma_check;
+    }
+    if (peek == PEEK_NOT_KEYWORD)
+      return false;
   }
 
   if (valid_symbols[TOKEN_OPEN_FILEGLOB_BRACKET] || valid_symbols[TOKEN_OPEN_READLINE_BRACKET] || valid_symbols[PERLY_HEREDOC]) {

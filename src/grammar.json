@@ -2405,8 +2405,22 @@
                 ]
               },
               {
-                "type": "STRING",
-                "value": ")"
+                "type": "CHOICE",
+                "members": [
+                  {
+                    "type": "STRING",
+                    "value": ")"
+                  },
+                  {
+                    "type": "ALIAS",
+                    "content": {
+                      "type": "SYMBOL",
+                      "name": "_RECOVER_PAREN_CLOSE"
+                    },
+                    "named": false,
+                    "value": ")"
+                  }
+                ]
               }
             ]
           }
@@ -2439,8 +2453,22 @@
               ]
             },
             {
-              "type": "STRING",
-              "value": ")"
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "STRING",
+                  "value": ")"
+                },
+                {
+                  "type": "ALIAS",
+                  "content": {
+                    "type": "SYMBOL",
+                    "name": "_RECOVER_PAREN_CLOSE"
+                  },
+                  "named": false,
+                  "value": ")"
+                }
+              ]
             }
           ]
         }
@@ -5774,8 +5802,13 @@
                   "value": ")"
                 },
                 {
-                  "type": "SYMBOL",
-                  "name": "_RECOVER_PAREN_CLOSE"
+                  "type": "ALIAS",
+                  "content": {
+                    "type": "SYMBOL",
+                    "name": "_RECOVER_PAREN_CLOSE"
+                  },
+                  "named": false,
+                  "value": ")"
                 }
               ]
             }
@@ -5820,8 +5853,13 @@
                   "value": ")"
                 },
                 {
-                  "type": "SYMBOL",
-                  "name": "_RECOVER_PAREN_CLOSE"
+                  "type": "ALIAS",
+                  "content": {
+                    "type": "SYMBOL",
+                    "name": "_RECOVER_PAREN_CLOSE"
+                  },
+                  "named": false,
+                  "value": ")"
                 }
               ]
             }
@@ -6054,8 +6092,13 @@
                         "value": ")"
                       },
                       {
-                        "type": "SYMBOL",
-                        "name": "_RECOVER_PAREN_CLOSE"
+                        "type": "ALIAS",
+                        "content": {
+                          "type": "SYMBOL",
+                          "name": "_RECOVER_PAREN_CLOSE"
+                        },
+                        "named": false,
+                        "value": ")"
                       }
                     ]
                   }

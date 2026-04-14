@@ -79,7 +79,7 @@ const aliasMany = (to, tokens) => tokens.map(t => alias(t, to))
 // NOTE: recoverBrace is only used in subscript rules (hash_element,
 // slice, keyval) — NOT in block or anonymous_hash_expression, where
 // block/hash ambiguity via shared _PERLY_BRACE_OPEN makes it unsafe.
-const recoverParen  = ($) => choice(')', $._RECOVER_PAREN_CLOSE)
+const recoverParen  = ($) => choice(')', alias($._RECOVER_PAREN_CLOSE, ')'))
 const recoverBracket = ($) => choice(']', alias($._RECOVER_BRACKET_CLOSE, ']'))
 const recoverBrace   = ($) => choice('}', alias($._RECOVER_BRACE_CLOSE, '}'))
 
@@ -455,8 +455,8 @@ module.exports = grammar({
       seq($.subscripted, '{', field('key', $._hash_key), recoverBrace($)),
     ),
     coderef_call_expression: $ => choice(
-      prec.left(TERMPREC.ARROW, seq($._term, '->', '(', optional(field('arguments', $._expr)), ')')),
-      seq($.subscripted, '(', optional(field('arguments', $._expr)), ')'),
+      prec.left(TERMPREC.ARROW, seq($._term, '->', '(', optional(field('arguments', $._expr)), recoverParen($))),
+      seq($.subscripted, '(', optional(field('arguments', $._expr)), recoverParen($)),
     ),
     anonymous_slice_expression: $ => choice(
       seq('(', optional(field('list', $._expr)), ')', '[', $._expr, ']'),

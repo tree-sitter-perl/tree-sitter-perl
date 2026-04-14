@@ -173,18 +173,23 @@ package Bar;
 
 ================================================================================
 Unclosed anonymous hash - no recovery (block/hash ambiguity)
+:error
 ================================================================================
 my $h = { foo => 1,
 package Bar;
 --------------------------------------------------------------------------------
 
+================================================================================
+Keyword boundary - nested unclosed paren and bracket
+================================================================================
+foo([
+package Bar;
+--------------------------------------------------------------------------------
+
 (source_file
-  (ERROR
-    (variable_declaration
-      variable: (scalar
-        (varname)))
-    (autoquoted_bareword)
-    (number)
-    (ambiguous_function_call_expression
+  (expression_statement
+    (function_call_expression
       function: (function)
-      arguments: (bareword))))
+      arguments: (anonymous_array_expression)))
+  (package_statement
+    name: (package)))
