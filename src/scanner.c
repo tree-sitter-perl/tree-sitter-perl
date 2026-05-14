@@ -617,7 +617,14 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   // the previous expression is done.  Also fires when a recovery token
   // was just emitted (recovery_emitted flag) since the newline was already
   // consumed by the previous call.
-  if ((crossed_newline || recovery_emitted) && !is_ERROR && any_recovery_valid) {
+  // Gate on the first-char filter so we don't call MARK_END (and freeze
+  // the token end at the keyword-start position) when the lookahead can't
+  // possibly start a keyword.  Without this, a later TOKEN() emission
+  // (e.g. TOKEN_APOSTROPHE/TOKEN_DOUBLE_QUOTE which do ADVANCE_C+TOKEN
+  // and never re-mark) inherits the stale mark and reports a zero-width
+  // open-quote, which derails the string body.
+  if ((crossed_newline || recovery_emitted) && !is_ERROR && any_recovery_valid &&
+      !KEYWORD_FIRST_CHAR_FILTER(c)) {
     MARK_END;  // zero-width position for recovery tokens
     enum PeekResult peek = peek_is_statement_keyword(lexer);
     if (peek == PEEK_KEYWORD) {
