@@ -193,3 +193,56 @@ package Bar;
       arguments: (anonymous_array_expression)))
   (package_statement
     name: (package)))
+
+================================================================================
+Keyword boundary - method call with string-keyed fat comma on next line
+================================================================================
+$x->foo(
+    'a' => 1
+);
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (method_call_expression
+      invocant: (scalar
+        (varname))
+      method: (method)
+      arguments: (list_expression
+        (string_literal
+          content: (string_content))
+        (number)))))
+
+================================================================================
+Keyword boundary - method call with double-quoted string on next line
+================================================================================
+$x->foo(
+"hi"
+);
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (method_call_expression
+      invocant: (scalar
+        (varname))
+      method: (method)
+      arguments: (interpolated_string_literal
+        content: (string_content)))))
+
+================================================================================
+Keyword boundary - method call with backtick command on next line
+================================================================================
+$x->foo(
+`ls`
+);
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (method_call_expression
+      invocant: (scalar
+        (varname))
+      method: (method)
+      arguments: (command_string
+        content: (string_content)))))
