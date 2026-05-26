@@ -52,7 +52,7 @@ jobs:
       - uses: tree-sitter/setup-action/cli@v2
       - run: tree-sitter generate src/grammar.json
       - run: npm install --ignore-scripts
-      - run: npm publish --provenance --access public
+      - run: npm publish
 
   crates:
     name: Publish Rust package
