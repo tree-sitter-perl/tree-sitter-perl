@@ -1,0 +1,36 @@
+name: Keyword table
+
+# The intuit_more keyword trie (src/tsp_intuit_keywords.h) is generated from
+# generate_intuit_keywords.pl.  This job guards against the committed header
+# drifting from the generator.  It only runs when the generator, its output,
+# or the perl deps change -- so it stays a cheap, parallel sibling to the main
+# CI matrix rather than paying a perl/cpan setup on every push.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - generate_intuit_keywords.pl
+      - src/tsp_intuit_keywords.h
+      - cpanfile
+  push:
+    branches:
+      - master
+    paths:
+      - generate_intuit_keywords.pl
+      - src/tsp_intuit_keywords.h
+      - cpanfile
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shogo82148/actions-setup-perl@v1
+        with:
+          perl-version: "5.38"
+          install-modules-with: cpm
+      - name: Regenerate and verify no drift
+        run: |
+          perl generate_intuit_keywords.pl
+          git diff --exit-code src/tsp_intuit_keywords.h
