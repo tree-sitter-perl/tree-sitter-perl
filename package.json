@@ -4,6 +4,10 @@
   "description": "A tree-sitter parser, for Perl!",
   "main": "bindings/node",
   "types": "bindings/node",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tree-sitter-perl/tree-sitter-perl.git"
+  },
   "scripts": {
     "test": "tree-sitter generate && tree-sitter test",
     "install": "node-gyp-build",
