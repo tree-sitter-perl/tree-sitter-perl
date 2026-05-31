@@ -28,3 +28,8 @@ jobs:
       - uses: tree-sitter/setup-action/cli@v2
       - run: tree-sitter generate
       - run: tree-sitter test
+      - name: C unit tests (regex heuristic)
+        if: runner.os != 'Windows'
+        run: |
+          cc -std=c11 -Wall -Werror -I src test/c/test_intuit_more.c -o tsp_ctest
+          ./tsp_ctest
