@@ -12,6 +12,8 @@ src/*
 !src/bsearch.h
 !src/tsp_unicode.h
 !src/tsp_keywords.h
+!src/tsp_intuit_more.h
+!src/tsp_intuit_keywords.h
 !src/grammar.json
 tree-sitter-perl.wasm
 log.html
