@@ -8554,6 +8554,24 @@
             "name": "_dollar_in_regexp"
           },
           {
+            "type": "ALIAS",
+            "content": {
+              "type": "SYMBOL",
+              "name": "_regexp_open_bracket"
+            },
+            "named": false,
+            "value": "["
+          },
+          {
+            "type": "ALIAS",
+            "content": {
+              "type": "SYMBOL",
+              "name": "_regexp_open_brace"
+            },
+            "named": false,
+            "value": "{"
+          },
+          {
             "type": "SYMBOL",
             "name": "_interpolation_fallbacks"
           },
@@ -9569,6 +9587,14 @@
     {
       "type": "SYMBOL",
       "name": "_dollar_in_regexp"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_regexp_open_bracket"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_regexp_open_brace"
     },
     {
       "type": "SYMBOL",
