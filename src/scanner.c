@@ -2,6 +2,7 @@
 #include "tree_sitter/parser.h"
 #include "tsp_unicode.h"
 #include "tsp_keywords.h"
+#include "tsp_intuit_more.h"
 
 // grumble grumble no stdlib
 static char *tsp_strchr(register const char *s, int c) {
@@ -50,6 +51,8 @@ enum TokenType {
   TOKEN_ESCAPE_SEQUENCE,
   TOKEN_ESCAPED_DELIMITER,
   TOKEN_DOLLAR_IN_REGEXP,
+  TOKEN_REGEXP_OPEN_BRACKET,
+  TOKEN_REGEXP_OPEN_BRACE,
   TOKEN_POD,
   TOKEN_GOBBLED_CONTENT,
   TOKEN_ATTRIBUTE_VALUE_BEGIN,
@@ -728,6 +731,43 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
         TOKEN(TOKEN_DOLLAR_IN_REGEXP);
     }
 
+    return false;
+  }
+
+  /* A '[' or '{' in a pattern is ambiguous: it can begin a subscript on the
+   * preceding variable (/$foo[0]/, /$foo{k}/) or a character class /
+   * quantifier (/[abc]/, /a{2,3}/).  We replicate perl's S_intuit_more
+   * heuristic (tsp_intuit_more) to decide.  When it's a class/quantifier we
+   * emit a literal opener (aliased back to '[' / '{' in the grammar); when
+   * it's a subscript we decline so the grammar's token.immediate('[' / '{')
+   * takes over. */
+  if ((valid_symbols[TOKEN_REGEXP_OPEN_BRACKET] && c == '[') ||
+      (valid_symbols[TOKEN_REGEXP_OPEN_BRACE] && c == '{')) {
+    int32_t open = c;
+    int32_t close = (open == '[') ? ']' : '}';
+
+    char buf[256];
+    int n = 0;
+    buf[n++] = (char)open;
+
+    ADVANCE_C;   /* consume the opener... */
+    MARK_END;    /* ...the emitted token is exactly that one char */
+
+    /* Read ahead to gather the construct for the heuristic, stopping once we
+     * have buffered the matching close (so intuit_more can find it) or we run
+     * out of room / input.  These advances past MARK_END are pure lookahead;
+     * the token stays one char wide.  Non-ASCII collapses to a placeholder
+     * since the heuristic is ASCII-only by design (a best-effort gap). */
+    while (n < (int)sizeof(buf) && c != 0 && !lexer->eof(lexer)) {
+      buf[n++] = (c < 0x80) ? (char)c : (char)0x7f;
+      if (c == close) break;
+      ADVANCE_C;
+    }
+
+    if (!tsp_intuit_more(buf, n)) {
+      TOKEN(open == '[' ? TOKEN_REGEXP_OPEN_BRACKET : TOKEN_REGEXP_OPEN_BRACE);
+    }
+    /* subscript: let the grammar's immediate '[' / '{' win */
     return false;
   }
 
