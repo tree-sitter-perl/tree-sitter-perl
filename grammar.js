@@ -592,13 +592,19 @@ module.exports = grammar({
     assignment_expression: $ => prec.right(TERMPREC.ASSIGNOP,
       binop(
         choice( // _ASSIGNOP
-          '=', '**=',
+          // The compound-assigns starting with a sigil char (`*` `%` `&`) need
+          // higher lexer prec than the `*`/`%`/`&` sigils (`_GLOB_STAR`/
+          // `_HASH_PERCENT`/`_SUB_AMPER`, all prec 2) so that after a bareword in
+          // term position (`FOO **= 1`, `FOO %= 1`, `FOO &= 1`, …) the operator
+          // wins on longest-match instead of the leading sigil char being eaten
+          // as a `*glob`/`%hash`/`&sub` sigil (which orphaned the tail into ERROR).
+          '=', token(prec(2, '**=')),
           '+=', '-=', '.=',
-          '*=', '/=', '%=', 'x=',
-          '&=', '|=', '^=',
+          token(prec(2, '*=')), '/=', token(prec(2, '%=')), 'x=',
+          token(prec(2, '&=')), '|=', '^=',
           // TODO: Also &.= |.= ^.= when enabled
           '<<=', '>>=',
-          '&&=', '||=', '//=',
+          token(prec(2, '&&=')), '||=', '//=',
         ),
         $._term
       )
@@ -607,9 +613,15 @@ module.exports = grammar({
     binary_expression: $ => {
       const table = [
         [prec.right, binop.nonassoc, choice('..', '...'), TERMPREC.DOTDOT], // _DOTDOT
-        [prec.right, binop, '**', TERMPREC.POWOP], // _POWOP
+        // `**` needs higher lexer prec than the `*` glob sigil (`_GLOB_STAR`,
+        // prec 2) so `FOO ** 2` after a bareword isn't mis-lexed as a `*glob`.
+        [prec.right, binop, token(prec(2, '**')), TERMPREC.POWOP], // _POWOP
         [prec.left, binop, choice('||', '//', '^^'), TERMPREC.OROR], // _OROR_DORDOR
-        [prec.left, binop, '&&', TERMPREC.ANDAND], // _ANDAND
+        // `&&` needs higher lexer prec than the `&` sub sigil (`_SUB_AMPER`,
+        // prec 2) so that after a bareword in term position (`FOO && 1`) the
+        // logical-and operator wins instead of the leading `&` being eaten as
+        // a sub-call sigil (which orphaned the trailing `& 1` into an ERROR).
+        [prec.left, binop, token(prec(2, '&&')), TERMPREC.ANDAND], // _ANDAND
         [prec.left, binop, choice('|', '^'), TERMPREC.BITOROP], // _BITORDOP
         [prec.left, binop, '&', TERMPREC.BITANDOP], // _BITANDOP
         [prec.left, binop, choice('<<', '>>'), TERMPREC.SHIFTOP], // _SHIFTOP
