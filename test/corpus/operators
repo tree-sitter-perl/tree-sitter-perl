@@ -304,6 +304,37 @@ EXPR < EXPR - list/non assoc
       (number))))
 
 ================================================================================
+bareword/sub term < EXPR is relational, not readline (gh#210)
+================================================================================
+die if CONST < 0;
+CONST < $y;
+CONST <= 0;
+CONST <FH>;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (postfix_conditional_expression
+      (bareword)
+      condition: (relational_expression
+        left: (bareword)
+        right: (number))))
+  (expression_statement
+    (relational_expression
+      left: (bareword)
+      right: (scalar
+        (varname))))
+  (expression_statement
+    (relational_expression
+      left: (bareword)
+      right: (number)))
+  (expression_statement
+    (ambiguous_function_call_expression
+      function: (function)
+      arguments: (readline_expression
+        (filehandle)))))
+
+================================================================================
 EXPR << EXPR
 ================================================================================
 1 << 2;
