@@ -107,6 +107,20 @@ module.exports = grammar({
   ],
   word: $ => $._identifier,
   inline: $ => [
+    $._var_indirob,
+    $._semicolon,
+    $._fullstmt,
+    $._else,
+    $._conditionals,
+    $._quotelike_end,
+    $._quotelike_begin,
+    $._declared_vars,
+    $._interpolations,
+    $._nonvar_interpolation_fallbacks,
+    $._apostrophe,
+    $._brace_autoquoted,
+    $._version,
+    $._loops,
     $._func0op,
     $._func1op,
     $._map_grep,
@@ -325,9 +339,7 @@ module.exports = grammar({
       subExtensions(),
       'sub',
       field('name', $.bareword),
-      optseq(':', optional(field('attributes', $.attrlist))),
-      optional(choice($.prototype, $.signature)),
-      field('body', $.block),
+      $._anon_sub_tail,
     ),
 
     method_declaration_statement: $ => seq(
@@ -335,9 +347,7 @@ module.exports = grammar({
       subExtensions(),
       'method',
       field('name', $.bareword),
-      optseq(':', optional(field('attributes', $.attrlist))),
-      optional(choice($.prototype, $.signature)),
-      field('body', $.block),
+      $._anon_sub_tail,
     ),
 
     // perly.y's grammar just considers a phaser to be a `sub` with a special
@@ -440,53 +450,60 @@ module.exports = grammar({
     // for highlighting. We raise its prec b/c in a print (print $thing{stuff}) it becomes a var
     // not an indirob
     container_variable: $ => prec(2, seq('$', $._var_indirob)),
+    _glob_slot_subscript: $ => seq('{', $._hash_key, '}'),
     glob_slot_expression: $ => choice(
-      seq($.glob, '{', $._hash_key, '}'),
-      prec.left(TERMPREC.ARROW, seq($._term, '->', '*', '{', $._hash_key, '}')),
+      seq($.glob, $._glob_slot_subscript),
+      prec.left(TERMPREC.ARROW, seq($._term, '->', '*', $._glob_slot_subscript)),
     ),
+    _index_subscript: $ => seq('[', field('index', $._expr), recoverBracket($)),
+    _key_subscript: $ => seq('{', field('key', $._hash_key), recoverBrace($)),
+    _args_subscript: $ => seq('(', optional(field('arguments', $._expr)), recoverParen($)),
     array_element_expression: $ => choice(
       // perly.y matches scalar '[' expr ']' here but that would yield a scalar var node
-      seq(field('array', $.container_variable), '[', field('index', $._expr), recoverBracket($)),
-      prec.left(TERMPREC.ARROW, seq($._term, '->', '[', field('index', $._expr), recoverBracket($))),
-      seq($.subscripted, '[', field('index', $._expr), recoverBracket($)),
+      seq(field('array', $.container_variable), $._index_subscript),
+      prec.left(TERMPREC.ARROW, seq($._term, '->', $._index_subscript)),
+      seq($.subscripted, $._index_subscript),
     ),
     _hash_key: $ => choice($._brace_autoquoted, $._expr),
     hash_element_expression: $ => choice(
       // perly.y matches scalar '{' expr '}' here but that would yield a scalar var node
-      seq(field('hash', $.container_variable), '{', field('key', $._hash_key), recoverBrace($)),
-      prec.left(TERMPREC.ARROW, seq($._term, '->', '{', field('key', $._hash_key), recoverBrace($))),
-      seq($.subscripted, '{', field('key', $._hash_key), recoverBrace($)),
+      seq(field('hash', $.container_variable), $._key_subscript),
+      prec.left(TERMPREC.ARROW, seq($._term, '->', $._key_subscript)),
+      seq($.subscripted, $._key_subscript),
     ),
     coderef_call_expression: $ => choice(
-      prec.left(TERMPREC.ARROW, seq($._term, '->', '(', optional(field('arguments', $._expr)), recoverParen($))),
-      seq($.subscripted, '(', optional(field('arguments', $._expr)), recoverParen($)),
+      prec.left(TERMPREC.ARROW, seq($._term, '->', $._args_subscript)),
+      seq($.subscripted, $._args_subscript),
     ),
+    _anon_slice_subscript: $ => seq('[', $._expr, ']'),
     anonymous_slice_expression: $ => choice(
-      seq('(', optional(field('list', $._expr)), ')', '[', $._expr, ']'),
-      seq(field('list', $.quoted_word_list), '[', $._expr, ']'),
+      seq('(', optional(field('list', $._expr)), ')', $._anon_slice_subscript),
+      seq(field('list', $.quoted_word_list), $._anon_slice_subscript),
     ),
 
     slices: $ => choice(
       $.slice_expression,
       $.keyval_expression,
     ),
+    _slice_index_subscript: $ => seq('[', $._expr, recoverBracket($)),
+    _slice_key_subscript: $ => seq('{', $._hash_key, recoverBrace($)),
     slice_container_variable: $ => seq('@', $._var_indirob),
     slice_expression: $ => choice(
-      seq(field('array', $.slice_container_variable), '[', $._expr, recoverBracket($)),
-      seq(field('hash', $.slice_container_variable), '{', $._hash_key, recoverBrace($)),
+      seq(field('array', $.slice_container_variable), $._slice_index_subscript),
+      seq(field('hash', $.slice_container_variable), $._slice_key_subscript),
       prec.left(TERMPREC.ARROW,
-        seq(field('arrayref', $._term), '->', '@', '[', $._expr, recoverBracket($))),
+        seq(field('arrayref', $._term), '->', '@', $._slice_index_subscript)),
       prec.left(TERMPREC.ARROW,
-        seq(field('hashref', $._term), '->', '@', '{', $._hash_key, recoverBrace($))),
+        seq(field('hashref', $._term), '->', '@', $._slice_key_subscript)),
     ),
     keyval_container_variable: $ => seq($._HASH_PERCENT, $._var_indirob),
     keyval_expression: $ => choice(
-      seq(field('array', $.keyval_container_variable), '[', $._expr, recoverBracket($)),
-      seq(field('hash', $.keyval_container_variable), '{', $._hash_key, recoverBrace($)),
+      seq(field('array', $.keyval_container_variable), $._slice_index_subscript),
+      seq(field('hash', $.keyval_container_variable), $._slice_key_subscript),
       prec.left(TERMPREC.ARROW,
-        seq(field('arrayref', $._term), '->', '%', '[', $._expr, recoverBracket($))),
+        seq(field('arrayref', $._term), '->', '%', $._slice_index_subscript)),
       prec.left(TERMPREC.ARROW,
-        seq(field('hashref', $._term), '->', '%', '{', $._hash_key, recoverBrace($))),
+        seq(field('hashref', $._term), '->', '%', $._slice_key_subscript)),
     ),
 
     _term: $ => choice(
@@ -664,20 +681,22 @@ module.exports = grammar({
       seq($._PERLY_BRACE_OPEN, alias($._tricky_list, $.list_expression), '}'),
     ),
 
-    anonymous_subroutine_expression: $ => seq(
-      subExtensions(),
-      'sub',
+    _anon_sub_tail: $ => seq(
       optseq(':', optional(field('attributes', $.attrlist))),
       optional(choice($.prototype, $.signature)),
       field('body', $.block),
     ),
 
+    anonymous_subroutine_expression: $ => seq(
+      subExtensions(),
+      'sub',
+      $._anon_sub_tail,
+    ),
+
     anonymous_method_expression: $ => seq(
       subExtensions(),
       'method',
-      optseq(':', optional(field('attributes', $.attrlist))),
-      optional(choice($.prototype, $.signature)),
-      field('body', $.block),
+      $._anon_sub_tail,
     ),
 
     // do FILENAME is more of an eval, so we parse it as eval_expression w/ a filename
@@ -835,7 +854,7 @@ module.exports = grammar({
       '->',
       optional('&'),
       field('method', $.method),
-      optseq('(', optional(field('arguments', $._expr)), recoverParen($))
+      optional($._args_subscript)
     )),
     method: $ => choice($._bareword, $.scalar, $._RECOVER_ARROW),
 
