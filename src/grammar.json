@@ -1447,6 +1447,44 @@
           "type": "SEQ",
           "members": [
             {
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "CHOICE",
+                  "members": [
+                    {
+                      "type": "STRING",
+                      "value": "my"
+                    },
+                    {
+                      "type": "STRING",
+                      "value": "state"
+                    },
+                    {
+                      "type": "STRING",
+                      "value": "our"
+                    }
+                  ]
+                },
+                {
+                  "type": "BLANK"
+                }
+              ]
+            },
+            {
+              "type": "FIELD",
+              "name": "variable",
+              "content": {
+                "type": "SYMBOL",
+                "name": "refalias_variable"
+              }
+            }
+          ]
+        },
+        {
+          "type": "SEQ",
+          "members": [
+            {
               "type": "STRING",
               "value": "my"
             },
@@ -4784,6 +4822,19 @@
         }
       ]
     },
+    "refalias_variable": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "\\"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_declared_vars"
+        }
+      ]
+    },
     "variable_declaration": {
       "type": "PREC_LEFT",
       "value": 8,
@@ -4820,6 +4871,14 @@
                 "content": {
                   "type": "SYMBOL",
                   "name": "_declared_vars"
+                }
+              },
+              {
+                "type": "FIELD",
+                "name": "variable",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "refalias_variable"
                 }
               },
               {
@@ -4893,6 +4952,10 @@
                       {
                         "type": "SYMBOL",
                         "name": "_declared_vars"
+                      },
+                      {
+                        "type": "SYMBOL",
+                        "name": "refalias_variable"
                       }
                     ]
                   },
@@ -4921,6 +4984,10 @@
                 {
                   "type": "SYMBOL",
                   "name": "_declared_vars"
+                },
+                {
+                  "type": "SYMBOL",
+                  "name": "refalias_variable"
                 }
               ]
             },
@@ -9449,7 +9516,7 @@
   "extras": [
     {
       "type": "PATTERN",
-      "value": "\\p{White_Space}|\\\\\\r?\\n"
+      "value": "\\p{White_Space}"
     },
     {
       "type": "SYMBOL",

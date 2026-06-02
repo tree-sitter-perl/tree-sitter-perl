@@ -336,6 +336,56 @@ foreach my ($k, $v) (%hash) { 456; }
         (number)))))
 
 ================================================================================
+for SCOPE refalias VAR (LIST) BLOCK (gh#218)
+================================================================================
+for \$s (1) { }
+for \@a ([1]) { }
+for \%h ({}) { }
+--------------------------------------------------------------------------------
+
+(source_file
+  (for_statement
+    (refalias_variable
+      (scalar
+        (varname)))
+    (number)
+    (block))
+  (for_statement
+    (refalias_variable
+      (array
+        (varname)))
+    (anonymous_array_expression
+      (number))
+    (block))
+  (for_statement
+    (refalias_variable
+      (hash
+        (varname)))
+    (anonymous_hash_expression)
+    (block)))
+
+================================================================================
+refalias declaration list (gh#218)
+================================================================================
+my (\$x, \@y, \%z) = ();
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      (variable_declaration
+        (refalias_variable
+          (scalar
+            (varname)))
+        (refalias_variable
+          (array
+            (varname)))
+        (refalias_variable
+          (hash
+            (varname))))
+      (stub_expression))))
+
+================================================================================
 continue BLOCK
 ================================================================================
 while ($power_level > 9000) { $power_level-- } continue { say 'HOW CAN IT BE?' }

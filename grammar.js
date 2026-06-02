@@ -173,7 +173,7 @@ module.exports = grammar({
     $._ERROR
   ],
   extras: $ => [
-    /\p{White_Space}|\\\r?\n/,
+    /\p{White_Space}/,
     $.comment,
     $.pod,
     $.heredoc_content,
@@ -362,6 +362,7 @@ module.exports = grammar({
       ),
     _for_initializer: $ => choice(
       seq(optional(choice('my', 'state', 'our')), field('variable', $.scalar)),
+      seq(optional(choice('my', 'state', 'our')), field('variable', $.refalias_variable)),
       seq('my', field('variables', paren_list_of($.scalar))),
     ),
     for_statement: $ =>
@@ -689,11 +690,20 @@ module.exports = grammar({
       alias($._declare_hash, $.hash),
     ),
 
+    // refaliasing: `\$x`, `\@a`, `\%h` as a declaration or for-loop iterator.
+    // NB: this only lexes because the bogus `\\\r?\n` line-continuation `extra`
+    // was removed above -- with it present, the leading `\` was consumed as
+    // ignorable whitespace in the states right after `my`/`for` instead of
+    // shifting as the refgen backslash. Perl has no line continuation, so the
+    // `extra` was wrong anyway (see the extras change).
+    refalias_variable: $ => seq('\\', $._declared_vars),
+
     variable_declaration: $ => prec.left(TERMPREC.QUESTION_MARK + 1,
       seq(
         choice('my', 'state', 'our', 'field'),
         choice(
           field('variable', $._declared_vars),
+          field('variable', $.refalias_variable),
           field('variables', $._decl_variable_list)),
         optseq(':', optional(field('attributes', $.attrlist))))
     ),
@@ -701,7 +711,8 @@ module.exports = grammar({
     _decl_variable_list: $ => paren_list_of(
       choice(
         $.undef_expression,
-        $._declared_vars
+        $._declared_vars,
+        $.refalias_variable
       )
     ),
 
