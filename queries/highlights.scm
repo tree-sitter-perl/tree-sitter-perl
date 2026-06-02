@@ -39,7 +39,7 @@
 "\\" @operator
 
 [
-  "or" "xor" "and"
+  "or" "xor" "and" "not"
   "eq" "ne" "cmp" "lt" "le" "ge" "gt"
   "isa"
 ] @keyword.operator
