@@ -691,6 +691,24 @@ module.exports = grammar({
     ),
 
     // refaliasing: `\$x`, `\@a`, `\%h` as a declaration or for-loop iterator.
+    //
+    // This is its own visible node (not just a `refgen_expression`) on purpose:
+    // a `\`-var after `my`/`state`/`our` or in a for-iterator can *only* be a
+    // refalias, so the distinct node is a real syntactic category, not a
+    // semantic overlay -- and refaliasing has different binding semantics that
+    // downstream consumers should see. (In `\$x = ...` assignment the `\` is a
+    // genuine refgen lvalue, exactly as Perl parses it, so that case stays a
+    // `refgen_expression`; refalias-there is positional. The node boundary
+    // tracks where the grammar actually disambiguates.)
+    //
+    // It's also listed as a *separate* choice arm at each use site rather than
+    // folded into `_declared_vars`. Folding is behaviorally identical (those
+    // sites are the only consumers of `_declared_vars`) but measurably larger
+    // (~+8 parser states -- the `choice(plain, refalias)` shape that re-contains
+    // the plain forms shares states worse than the flat per-site choices) and
+    // would need a separate `_plain_decl` rule to keep the `\` from nesting into
+    // `\\$x`. Not worth it for cosmetic DRY-ness.
+    //
     // NB: this only lexes because the bogus `\\\r?\n` line-continuation `extra`
     // was removed above -- with it present, the leading `\` was consumed as
     // ignorable whitespace in the states right after `my`/`for` instead of
