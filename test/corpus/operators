@@ -616,6 +616,37 @@ FOO &= 1;
       right: (number))))
 
 ================================================================================
+bareword/sub term ** *= %= are operators, not glob/hash sigils (gh#230 family)
+================================================================================
+my $x = FOO ** 2;
+FOO *= 2;
+FOO %= 2;
+FOO **= 2;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      right: (binary_expression
+        left: (bareword)
+        right: (number))))
+  (expression_statement
+    (assignment_expression
+      left: (bareword)
+      right: (number)))
+  (expression_statement
+    (assignment_expression
+      left: (bareword)
+      right: (number)))
+  (expression_statement
+    (assignment_expression
+      left: (bareword)
+      right: (number))))
+
+================================================================================
 real amper-sub uses and bitwise & still parse (regression guard for gh#230 fix)
 ================================================================================
 &foo;
