@@ -79,9 +79,9 @@ const aliasMany = (to, tokens) => tokens.map(t => alias(t, to))
 // NOTE: recoverBrace is only used in subscript rules (hash_element,
 // slice, keyval) — NOT in block or anonymous_hash_expression, where
 // block/hash ambiguity via shared _PERLY_BRACE_OPEN makes it unsafe.
-const recoverParen  = ($) => choice(')', alias($._RECOVER_PAREN_CLOSE, ')'))
+const recoverParen = ($) => choice(')', alias($._RECOVER_PAREN_CLOSE, ')'))
 const recoverBracket = ($) => choice(']', alias($._RECOVER_BRACKET_CLOSE, ']'))
-const recoverBrace   = ($) => choice('}', alias($._RECOVER_BRACE_CLOSE, '}'))
+const recoverBrace = ($) => choice('}', alias($._RECOVER_BRACE_CLOSE, '}'))
 
 // little helper just to keep things DRY
 const subExtensions = () => repeat(choice('extended', 'async'))
@@ -701,19 +701,8 @@ module.exports = grammar({
     // `refgen_expression`; refalias-there is positional. The node boundary
     // tracks where the grammar actually disambiguates.)
     //
-    // It's also listed as a *separate* choice arm at each use site rather than
-    // folded into `_declared_vars`. Folding is behaviorally identical (those
-    // sites are the only consumers of `_declared_vars`) but measurably larger
-    // (~+8 parser states -- the `choice(plain, refalias)` shape that re-contains
-    // the plain forms shares states worse than the flat per-site choices) and
-    // would need a separate `_plain_decl` rule to keep the `\` from nesting into
-    // `\\$x`. Not worth it for cosmetic DRY-ness.
-    //
-    // NB: this only lexes because the bogus `\\\r?\n` line-continuation `extra`
-    // was removed above -- with it present, the leading `\` was consumed as
-    // ignorable whitespace in the states right after `my`/`for` instead of
-    // shifting as the refgen backslash. Perl has no line continuation, so the
-    // `extra` was wrong anyway (see the extras change).
+    // it's not folded under other _declared_vars b/c you need to guard against REVERSE
+    // SOLIDUS RECUSRION
     refalias_variable: $ => seq('\\', $._declared_vars),
 
     variable_declaration: $ => prec.left(TERMPREC.QUESTION_MARK + 1,
