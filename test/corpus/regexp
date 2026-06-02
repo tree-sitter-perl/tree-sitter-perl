@@ -237,3 +237,59 @@ s/[\s]+/replaced/g;
         (escape_sequence))
       (replacement)
       (substitution_regexp_modifiers))))
+
+================================================================================
+substitution with bracketing delimiters (replacement pair may differ)
+================================================================================
+s{foo}{bar};
+s{foo}[bar];
+s(foo)<bar>;
+s{foo}/bar/;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (substitution_regexp
+      (regexp_content)
+      (replacement)))
+  (expression_statement
+    (substitution_regexp
+      (regexp_content)
+      (replacement)))
+  (expression_statement
+    (substitution_regexp
+      (regexp_content)
+      (replacement)))
+  (expression_statement
+    (substitution_regexp
+      (regexp_content)
+      (replacement))))
+
+================================================================================
+substitution replacement delimited independently of pattern
+================================================================================
+s{foo}[ba}r];
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (substitution_regexp
+      (regexp_content)
+      (replacement))))
+
+================================================================================
+transliteration with bracketing delimiters
+================================================================================
+tr{abc}[xyz];
+y[abc]{xyz};
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (transliteration_expression
+      (transliteration_content)
+      (replacement)))
+  (expression_statement
+    (transliteration_expression
+      (transliteration_content)
+      (replacement))))

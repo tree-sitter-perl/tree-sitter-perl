@@ -894,6 +894,17 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     }
     MARK_END;
 
+    // In a paired multi-part quote (s{}{}, tr[][], ...), the replacement pair
+    // opens a fresh quote whose delimiter may differ from the pattern's. The
+    // pattern's quote is still on top of the stack (middle_close consumes its
+    // closer but doesn't pop it), so its closer would wrongly stay active while
+    // we scan the replacement. Now that the second pair is opening, retire it.
+    // MIDDLE_SKIP being a valid symbol here means we're at the middle choice
+    // point (between pattern and replacement) rather than an initial begin.
+    if (valid_symbols[TOKEN_QUOTELIKE_MIDDLE_SKIP] && state->quotes.size) {
+      lexerstate_pop_quote(state, state->quotes.size);
+    }
+
     lexerstate_push_quote(state, delim);
     // TODO - fill in this debug print here?
     // DEBUG("Generic QSTRING open='%c' close='%c'\n", state->delim_open,
