@@ -80,9 +80,9 @@ const aliasMany = (to, tokens) => tokens.map(t => alias(t, to))
 // NOTE: recoverBrace is only used in subscript rules (hash_element,
 // slice, keyval) — NOT in block or anonymous_hash_expression, where
 // block/hash ambiguity via shared _PERLY_BRACE_OPEN makes it unsafe.
-const recoverParen  = ($) => choice(')', alias($._RECOVER_PAREN_CLOSE, ')'))
+const recoverParen = ($) => choice(')', alias($._RECOVER_PAREN_CLOSE, ')'))
 const recoverBracket = ($) => choice(']', alias($._RECOVER_BRACKET_CLOSE, ']'))
-const recoverBrace   = ($) => choice('}', alias($._RECOVER_BRACE_CLOSE, '}'))
+const recoverBrace = ($) => choice('}', alias($._RECOVER_BRACE_CLOSE, '}'))
 
 // little helper just to keep things DRY
 const subExtensions = () => repeat(choice('extended', 'async'))
@@ -188,7 +188,7 @@ module.exports = grammar({
     $._ERROR
   ],
   extras: $ => [
-    /\p{White_Space}|\\\r?\n/,
+    /\p{White_Space}/,
     $.comment,
     $.pod,
     $.heredoc_content,
@@ -373,6 +373,7 @@ module.exports = grammar({
       ),
     _for_initializer: $ => choice(
       seq(optional(choice('my', 'state', 'our')), field('variable', $.scalar)),
+      seq(optional(choice('my', 'state', 'our')), field('variable', $.refalias_variable)),
       seq('my', field('variables', paren_list_of($.scalar))),
     ),
     for_statement: $ =>
@@ -716,11 +717,27 @@ module.exports = grammar({
       alias($._declare_hash, $.hash),
     ),
 
+    // refaliasing: `\$x`, `\@a`, `\%h` as a declaration or for-loop iterator.
+    //
+    // This is its own visible node (not just a `refgen_expression`) on purpose:
+    // a `\`-var after `my`/`state`/`our` or in a for-iterator can *only* be a
+    // refalias, so the distinct node is a real syntactic category, not a
+    // semantic overlay -- and refaliasing has different binding semantics that
+    // downstream consumers should see. (In `\$x = ...` assignment the `\` is a
+    // genuine refgen lvalue, exactly as Perl parses it, so that case stays a
+    // `refgen_expression`; refalias-there is positional. The node boundary
+    // tracks where the grammar actually disambiguates.)
+    //
+    // it's not folded under other _declared_vars b/c you need to guard against REVERSE
+    // SOLIDUS RECUSRION
+    refalias_variable: $ => seq('\\', $._declared_vars),
+
     variable_declaration: $ => prec.left(TERMPREC.QUESTION_MARK + 1,
       seq(
         choice('my', 'state', 'our', 'field'),
         choice(
           field('variable', $._declared_vars),
+          field('variable', $.refalias_variable),
           field('variables', $._decl_variable_list)),
         optseq(':', optional(field('attributes', $.attrlist))))
     ),
@@ -728,7 +745,8 @@ module.exports = grammar({
     _decl_variable_list: $ => paren_list_of(
       choice(
         $.undef_expression,
-        $._declared_vars
+        $._declared_vars,
+        $.refalias_variable
       )
     ),
 
