@@ -324,9 +324,7 @@ module.exports = grammar({
       subExtensions(),
       'sub',
       field('name', $.bareword),
-      optseq(':', optional(field('attributes', $.attrlist))),
-      optional(choice($.prototype, $.signature)),
-      field('body', $.block),
+      $._anon_sub_tail,
     ),
 
     method_declaration_statement: $ => seq(
@@ -334,9 +332,7 @@ module.exports = grammar({
       subExtensions(),
       'method',
       field('name', $.bareword),
-      optseq(':', optional(field('attributes', $.attrlist))),
-      optional(choice($.prototype, $.signature)),
-      field('body', $.block),
+      $._anon_sub_tail,
     ),
 
     // perly.y's grammar just considers a phaser to be a `sub` with a special
@@ -656,20 +652,22 @@ module.exports = grammar({
       seq($._PERLY_BRACE_OPEN, alias($._tricky_list, $.list_expression), '}'),
     ),
 
-    anonymous_subroutine_expression: $ => seq(
-      subExtensions(),
-      'sub',
+    _anon_sub_tail: $ => seq(
       optseq(':', optional(field('attributes', $.attrlist))),
       optional(choice($.prototype, $.signature)),
       field('body', $.block),
     ),
 
+    anonymous_subroutine_expression: $ => seq(
+      subExtensions(),
+      'sub',
+      $._anon_sub_tail,
+    ),
+
     anonymous_method_expression: $ => seq(
       subExtensions(),
       'method',
-      optseq(':', optional(field('attributes', $.attrlist))),
-      optional(choice($.prototype, $.signature)),
-      field('body', $.block),
+      $._anon_sub_tail,
     ),
 
     // do FILENAME is more of an eval, so we parse it as eval_expression w/ a filename
