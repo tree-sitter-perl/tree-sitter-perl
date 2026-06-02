@@ -84,11 +84,6 @@
     ]
   },
   {
-    "type": ">",
-    "named": false,
-    "fields": {}
-  },
-  {
     "type": "ambiguous_function_call_expression",
     "named": true,
     "fields": {
