@@ -40,6 +40,64 @@ xor and ^^
       (number))))
 
 ================================================================================
+not EXPR
+================================================================================
+not $x;
+my $y = not $x;
+return 1 if not $ok;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (logical_not_expression
+      operand: (scalar
+        (varname))))
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      right: (logical_not_expression
+        operand: (scalar
+          (varname)))))
+  (expression_statement
+    (postfix_conditional_expression
+      (return_expression
+        (number))
+      condition: (logical_not_expression
+        operand: (scalar
+          (varname))))))
+
+================================================================================
+not precedence vs and/or and comma
+================================================================================
+not $a and $b;
+not 1 or 2;
+not $a, $b;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (lowprec_logical_expression
+      left: (logical_not_expression
+        operand: (scalar
+          (varname)))
+      right: (scalar
+        (varname))))
+  (expression_statement
+    (lowprec_logical_expression
+      left: (logical_not_expression
+        operand: (number))
+      right: (number)))
+  (expression_statement
+    (logical_not_expression
+      operand: (list_expression
+        (scalar
+          (varname))
+        (scalar
+          (varname))))))
+
+================================================================================
 EXPR, EXPR
 ================================================================================
 1, 2, 3;

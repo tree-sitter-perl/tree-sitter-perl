@@ -6,6 +6,8 @@
 #    ^ number
 1 and 2;
 # ^ keyword.operator
+not 1;
+# <- keyword.operator
 12 eq 34;
 #  ^ keyword.operator
 12 eq 34 eq 45;

@@ -10,29 +10,30 @@ const TERMPREC = {
   LOOPEX: 1,
   OROP: 2,
   ANDOP: 3,
-  LSTOP: 4,
-  COMMA: 5,
-  ASSIGNOP: 6,
-  QUESTION_MARK: 7,
-  DOTDOT: 8,
-  OROR: 9,
-  ANDAND: 10,
-  BITOROP: 11,
-  BITANDOP: 12,
-  CHEQOP: 13,
-  CHRELOP: 14,
-  UNOP: 15,
-  REQUIRE: 16,
-  SHIFTOP: 17,
-  ADDOP: 18,
-  MULOP: 19,
-  MATCHOP: 20,
-  UMINUS: 21,
-  POWOP: 22,
-  PREINC: 23,
-  POSTINC: 23,
-  ARROW: 24,
-  PAREN: 25,
+  NOTOP: 4,
+  LSTOP: 5,
+  COMMA: 6,
+  ASSIGNOP: 7,
+  QUESTION_MARK: 8,
+  DOTDOT: 9,
+  OROR: 10,
+  ANDAND: 11,
+  BITOROP: 12,
+  BITANDOP: 13,
+  CHEQOP: 14,
+  CHRELOP: 15,
+  UNOP: 16,
+  REQUIRE: 17,
+  SHIFTOP: 18,
+  ADDOP: 19,
+  MULOP: 20,
+  MATCHOP: 21,
+  UMINUS: 22,
+  POWOP: 23,
+  PREINC: 24,
+  POSTINC: 24,
+  ARROW: 25,
+  PAREN: 26,
 }
 
 const unop_pre = (op, term) =>
@@ -523,8 +524,9 @@ module.exports = grammar({
       $.goto_expression,
       $.return_expression,
       $.undef_expression,
-      /* NOTOP listexpr
-       * UNIOP
+      /* NOTOP listexpr */
+      $.logical_not_expression,
+      /* UNIOP
        * UNIOP block
        * UNIOP term
        */
@@ -628,6 +630,12 @@ module.exports = grammar({
       prec(TERMPREC.UMINUS, unop_pre('~', $._term)), // TODO: also ~. when enabled
       prec(TERMPREC.UMINUS, unop_pre('!', $._term)),
     ),
+    // perly.y models this as `term: NOTOP listexpr`, so unlike `and`/`or`/`xor`
+    // (which live in lowprec_logical_expression at the _expr level) `not` is a
+    // _term and may appear e.g. on the RHS of an assignment. Its operand is a
+    // listexpr, so it binds looser than the comma but tighter than and/or.
+    logical_not_expression: $ =>
+      prec.right(TERMPREC.NOTOP, unop_pre('not', $._listexpr)),
     preinc_expression: $ =>
       prec(TERMPREC.PREINC, unop_pre(choice('++', '--'), $._term)),
     postinc_expression: $ =>
