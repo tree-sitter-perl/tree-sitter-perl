@@ -1,0 +1,111 @@
+# CLAUDE.md
+
+Working notes for developing this grammar. Perl is famously context-sensitive
+("only `perl` can parse Perl"), so a lot of the real work lives in the external
+scanner, and there are several homegrown tricks worth knowing before you touch
+things.
+
+## Toolchain / local dev
+
+- **Use the cargo-installed `tree-sitter` CLI** (`~/.cargo/bin/tree-sitter`,
+  0.26.x), not `npx tree-sitter` / the `node_modules` binary. The bundled
+  prebuilt CLI needs GLIBC 2.39 and won't run on older linux boxes; the cargo build
+  does. (`package.json`'s `test` script shells out to whatever `tree-sitter` is
+  on PATH — just make sure that's the cargo one.)
+- Regenerate + test: `tree-sitter generate && tree-sitter test`.
+- **Scanner-recompile gotcha:** `tree-sitter parse`/`test` do **not** reliably
+  recompile the external scanner when only `src/scanner.c` changes (they check
+  `grammar.js`/`parser.c` freshness, not `scanner.c`). Pass `-r`/`--rebuild` to
+  force it, or you'll chase ghosts from a stale `~/.cache/tree-sitter/lib/perl.so`.
+- **Parallel worktrees clobber each other:** the compiled parser is cached at
+  `~/.cache/tree-sitter/lib/perl.so` keyed by grammar *name* (`perl`), so
+  concurrent builds in different worktrees fight over one file. Give each its
+  own lib dir:
+
+  ```sh
+  TREE_SITTER_LIBDIR=/tmp/tslib-$(basename "$PWD") tree-sitter test -r
+  ```
+
+  The per-worktree `LIBDIR` is the part that buys isolation; `-r` guarantees the
+  scanner is fresh. (`-r` alone doesn't fix parallelism — two rebuilds still race
+  on the shared `.so`.)
+
+## Parser size
+
+- The meaningful size/complexity metric is **`LARGE_STATE_COUNT`** (and
+  `STATE_COUNT`) at the top of `src/parser.c` — *not* `parser.c` byte size, which
+  is dominated by large embedded unicode tables. Large states each carry a full
+  lookahead-table row; small states use a compact representation, so
+  `LARGE_STATE_COUNT` is what drives table size.
+- Per-rule breakdown: `tree-sitter generate --report-states-for-rule -`. Caveat:
+  those per-rule counts are *overlapping participation* counts (rules sharing the
+  same left-recursive machinery all "cost" similar large numbers), not separable
+  piles. Only genuinely *duplicated structure* is worth factoring — and you factor
+  it via `alias()` over a shared hidden rule so the emitted node names/fields stay
+  identical.
+- **`supertypes:` are schema-only.** They affect `node-types.json` (the public
+  node taxonomy) but have **zero** effect on the parse table / state count. Don't
+  reach for them as a size lever.
+
+## Scanner overview (`src/scanner.c`)
+
+The external scanner handles the lexing the LR grammar can't do context-free:
+quote-likes, heredocs, regex/interpolation, readline/fileglob, and error recovery.
+State is serialized/deserialized on every incremental edit — keep `serialize`
+and `deserialize` in lockstep and within the buffer size, or incremental parsing
+silently corrupts.
+
+`LexerState` holds:
+
+- **A quote stack** — `Array(TSPQuote)`, each `{open, close, count}`. Handles
+  nested/paired quote-likes (`q()`, `qq{}`, `m[]`, `s{}{}`, …). `close_for_open`
+  maps the four bracket pairs; `count` tracks nesting depth so balanced inner
+  delimiters don't close the quote early. The stack is searched from the top so
+  nested same-type quotes escape top-down.
+  - Multi-part quotes (`s///`, `tr///`) use `_quotelike_middle` = close-first-part,
+    then either `_quotelike_middle_skip` (non-paired delimiter: the one delimiter
+    is reused) or `_quotelike_begin` (paired: the replacement opens a *fresh*,
+    possibly different delimiter, and the finished first pair is popped off the
+    stack so its closer can't leak into the replacement).
+- **A FIFO heredoc queue** (cap 4) — multiple heredocs introduced on one line
+  (`print <<A, <<B;`) are consumed in order, each entry carrying its own
+  delimiter + interpolate + indent flags.
+
+Other scanner responsibilities:
+
+- **Readline vs. fileglob vs. less-than:** `<...>` after a term is intuited as a
+  readline (`<FH>`, `<$fh>`, `<>`) or fileglob (`<*.c>`). Before committing to the
+  fileglob token the scanner looks ahead for a closing `>` before a statement
+  boundary; if there isn't one, it bails so a bare `<` lexes as the less-than
+  operator (this is why `CONST < 0` works).
+- **Error recovery:** synthetic close tokens (`_RECOVER_PAREN/BRACKET/BRACE_CLOSE`)
+  let the scanner inject a missing closer when a statement keyword shows up on the
+  next line, and it can insert semicolons — so an unterminated line still yields a
+  usable tree instead of one giant ERROR.
+
+## Homegrown grammar tricks (`grammar.js`)
+
+- **`TERMPREC`** — an integer precedence ladder mirroring perl's `perly.y`. Each
+  tier maps to a `prec`/`prec.left`/`prec.right` level. (this is strictly simpler than
+  tree-sitter's builtin and supported partial ordering - we tried)
+- **Non-associative operators** (`binop.nonassoc`): a zero-width external
+  `_NONASSOC` followed by an `_ERROR` token forces tree-sitter down an error branch
+  for illegal chains (e.g. `1 <=> 2 <=> 3`). The duplicated operator in the tail is
+  load-bearing — don't "simplify" it away.
+- **Recover-aware closers** (`recoverParen` / `recoverBracket` / `recoverBrace`):
+  helper functions so every subscript/call site shares one grammar node (no extra
+  states) and plugs into the scanner's recovery closers above.
+- **Zero-width lookahead externals** (`_brace_end_zw`, `_dollar_ident_zw`,
+  `_no_interp_whitespace_zw`, `_NONASSOC`): disambiguation markers that consume no
+  input — e.g. `$hash{q}` (brace-end vs. a `q//` quote) and interpolation
+  boundaries.
+- **Autoquote tokens** (`_fat_comma_autoquoted`, `_brace_autoquoted`): barewords
+  that auto-stringify before `=>` or inside hash subscripts.
+- **State golfing via `alias()`:** the cheapest real state reductions come from
+  factoring a repeated shape (subscript bodies `[..]`/`{..}`/`(..)`, the shared
+  sub/method attribute+signature+body tail) into one hidden rule, then `alias()`-ing
+  it back to each distinct output node name. This shares parser states while keeping
+  every emitted node type/field byte-identical. The expression precedence tower and
+  the postfix-deref cluster, by contrast, are already at their behavior-preserving
+  floor — their large-state cost is intrinsic to Perl's precedence + the nonassoc
+  trick.
