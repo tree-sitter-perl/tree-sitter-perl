@@ -9,7 +9,7 @@ things.
 
 - **Use the cargo-installed `tree-sitter` CLI** (`~/.cargo/bin/tree-sitter`,
   0.26.x), not `npx tree-sitter` / the `node_modules` binary. The bundled
-  prebuilt CLI needs GLIBC 2.39 and won't run on the dev box; the cargo build
+  prebuilt CLI needs GLIBC 2.39 and won't run on older linux boxes; the cargo build
   does. (`package.json`'s `test` script shells out to whatever `tree-sitter` is
   on PATH — just make sure that's the cargo one.)
 - Regenerate + test: `tree-sitter generate && tree-sitter test`.
@@ -86,9 +86,8 @@ Other scanner responsibilities:
 ## Homegrown grammar tricks (`grammar.js`)
 
 - **`TERMPREC`** — an integer precedence ladder mirroring perl's `perly.y`. Each
-  tier maps to a `prec`/`prec.left`/`prec.right` level. (There's a parked branch
-  converting this to tree-sitter named `precedences:` — behavior-identical, but it
-  was a slight state *increase*, so it's a readability call, not a size win.)
+  tier maps to a `prec`/`prec.left`/`prec.right` level. (this is strictly simpler than
+  tree-sitter's builtin and supported partial ordering - we tried)
 - **Non-associative operators** (`binop.nonassoc`): a zero-width external
   `_NONASSOC` followed by an `_ERROR` token forces tree-sitter down an error branch
   for illegal chains (e.g. `1 <=> 2 <=> 3`). The duplicated operator in the tail is
