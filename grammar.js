@@ -832,7 +832,7 @@ module.exports = grammar({
       '->',
       optional('&'),
       field('method', $.method),
-      optseq('(', optional(field('arguments', $._expr)), recoverParen($))
+      optional($._args_subscript)
     )),
     method: $ => choice($._bareword, $.scalar, $._RECOVER_ARROW),
 

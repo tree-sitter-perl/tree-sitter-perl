@@ -5837,47 +5837,8 @@
             "type": "CHOICE",
             "members": [
               {
-                "type": "SEQ",
-                "members": [
-                  {
-                    "type": "STRING",
-                    "value": "("
-                  },
-                  {
-                    "type": "CHOICE",
-                    "members": [
-                      {
-                        "type": "FIELD",
-                        "name": "arguments",
-                        "content": {
-                          "type": "SYMBOL",
-                          "name": "_expr"
-                        }
-                      },
-                      {
-                        "type": "BLANK"
-                      }
-                    ]
-                  },
-                  {
-                    "type": "CHOICE",
-                    "members": [
-                      {
-                        "type": "STRING",
-                        "value": ")"
-                      },
-                      {
-                        "type": "ALIAS",
-                        "content": {
-                          "type": "SYMBOL",
-                          "name": "_RECOVER_PAREN_CLOSE"
-                        },
-                        "named": false,
-                        "value": ")"
-                      }
-                    ]
-                  }
-                ]
+                "type": "SYMBOL",
+                "name": "_args_subscript"
               },
               {
                 "type": "BLANK"
