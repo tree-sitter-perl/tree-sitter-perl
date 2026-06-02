@@ -2447,6 +2447,68 @@
         }
       ]
     },
+    "_slice_index_subscript": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "["
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_expr"
+        },
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "STRING",
+              "value": "]"
+            },
+            {
+              "type": "ALIAS",
+              "content": {
+                "type": "SYMBOL",
+                "name": "_RECOVER_BRACKET_CLOSE"
+              },
+              "named": false,
+              "value": "]"
+            }
+          ]
+        }
+      ]
+    },
+    "_slice_key_subscript": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "{"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_hash_key"
+        },
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "STRING",
+              "value": "}"
+            },
+            {
+              "type": "ALIAS",
+              "content": {
+                "type": "SYMBOL",
+                "name": "_RECOVER_BRACE_CLOSE"
+              },
+              "named": false,
+              "value": "}"
+            }
+          ]
+        }
+      ]
+    },
     "slice_container_variable": {
       "type": "SEQ",
       "members": [
@@ -2475,30 +2537,8 @@
               }
             },
             {
-              "type": "STRING",
-              "value": "["
-            },
-            {
               "type": "SYMBOL",
-              "name": "_expr"
-            },
-            {
-              "type": "CHOICE",
-              "members": [
-                {
-                  "type": "STRING",
-                  "value": "]"
-                },
-                {
-                  "type": "ALIAS",
-                  "content": {
-                    "type": "SYMBOL",
-                    "name": "_RECOVER_BRACKET_CLOSE"
-                  },
-                  "named": false,
-                  "value": "]"
-                }
-              ]
+              "name": "_slice_index_subscript"
             }
           ]
         },
@@ -2514,30 +2554,8 @@
               }
             },
             {
-              "type": "STRING",
-              "value": "{"
-            },
-            {
               "type": "SYMBOL",
-              "name": "_hash_key"
-            },
-            {
-              "type": "CHOICE",
-              "members": [
-                {
-                  "type": "STRING",
-                  "value": "}"
-                },
-                {
-                  "type": "ALIAS",
-                  "content": {
-                    "type": "SYMBOL",
-                    "name": "_RECOVER_BRACE_CLOSE"
-                  },
-                  "named": false,
-                  "value": "}"
-                }
-              ]
+              "name": "_slice_key_subscript"
             }
           ]
         },
@@ -2564,30 +2582,8 @@
                 "value": "@"
               },
               {
-                "type": "STRING",
-                "value": "["
-              },
-              {
                 "type": "SYMBOL",
-                "name": "_expr"
-              },
-              {
-                "type": "CHOICE",
-                "members": [
-                  {
-                    "type": "STRING",
-                    "value": "]"
-                  },
-                  {
-                    "type": "ALIAS",
-                    "content": {
-                      "type": "SYMBOL",
-                      "name": "_RECOVER_BRACKET_CLOSE"
-                    },
-                    "named": false,
-                    "value": "]"
-                  }
-                ]
+                "name": "_slice_index_subscript"
               }
             ]
           }
@@ -2615,30 +2611,8 @@
                 "value": "@"
               },
               {
-                "type": "STRING",
-                "value": "{"
-              },
-              {
                 "type": "SYMBOL",
-                "name": "_hash_key"
-              },
-              {
-                "type": "CHOICE",
-                "members": [
-                  {
-                    "type": "STRING",
-                    "value": "}"
-                  },
-                  {
-                    "type": "ALIAS",
-                    "content": {
-                      "type": "SYMBOL",
-                      "name": "_RECOVER_BRACE_CLOSE"
-                    },
-                    "named": false,
-                    "value": "}"
-                  }
-                ]
+                "name": "_slice_key_subscript"
               }
             ]
           }
@@ -2673,30 +2647,8 @@
               }
             },
             {
-              "type": "STRING",
-              "value": "["
-            },
-            {
               "type": "SYMBOL",
-              "name": "_expr"
-            },
-            {
-              "type": "CHOICE",
-              "members": [
-                {
-                  "type": "STRING",
-                  "value": "]"
-                },
-                {
-                  "type": "ALIAS",
-                  "content": {
-                    "type": "SYMBOL",
-                    "name": "_RECOVER_BRACKET_CLOSE"
-                  },
-                  "named": false,
-                  "value": "]"
-                }
-              ]
+              "name": "_slice_index_subscript"
             }
           ]
         },
@@ -2712,30 +2664,8 @@
               }
             },
             {
-              "type": "STRING",
-              "value": "{"
-            },
-            {
               "type": "SYMBOL",
-              "name": "_hash_key"
-            },
-            {
-              "type": "CHOICE",
-              "members": [
-                {
-                  "type": "STRING",
-                  "value": "}"
-                },
-                {
-                  "type": "ALIAS",
-                  "content": {
-                    "type": "SYMBOL",
-                    "name": "_RECOVER_BRACE_CLOSE"
-                  },
-                  "named": false,
-                  "value": "}"
-                }
-              ]
+              "name": "_slice_key_subscript"
             }
           ]
         },
@@ -2762,30 +2692,8 @@
                 "value": "%"
               },
               {
-                "type": "STRING",
-                "value": "["
-              },
-              {
                 "type": "SYMBOL",
-                "name": "_expr"
-              },
-              {
-                "type": "CHOICE",
-                "members": [
-                  {
-                    "type": "STRING",
-                    "value": "]"
-                  },
-                  {
-                    "type": "ALIAS",
-                    "content": {
-                      "type": "SYMBOL",
-                      "name": "_RECOVER_BRACKET_CLOSE"
-                    },
-                    "named": false,
-                    "value": "]"
-                  }
-                ]
+                "name": "_slice_index_subscript"
               }
             ]
           }
@@ -2813,30 +2721,8 @@
                 "value": "%"
               },
               {
-                "type": "STRING",
-                "value": "{"
-              },
-              {
                 "type": "SYMBOL",
-                "name": "_hash_key"
-              },
-              {
-                "type": "CHOICE",
-                "members": [
-                  {
-                    "type": "STRING",
-                    "value": "}"
-                  },
-                  {
-                    "type": "ALIAS",
-                    "content": {
-                      "type": "SYMBOL",
-                      "name": "_RECOVER_BRACE_CLOSE"
-                    },
-                    "named": false,
-                    "value": "}"
-                  }
-                ]
+                "name": "_slice_key_subscript"
               }
             ]
           }
