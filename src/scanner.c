@@ -124,9 +124,17 @@ static int32_t close_for_open(int32_t c) {
 
 typedef struct {
   int32_t open, close, count;
+  /* `body_col` is the column at which this quote's body begins (immediately
+   * after the opening delimiter).  It lets the scanner recognise a
+   * pattern-LEADING '['/'{' -- one with no variable in front of it -- where the
+   * S_intuit_more subscript heuristic has nothing to weigh and so must not be
+   * consulted.  Only meaningful when the bracket is on the body's first line
+   * with no whitespace before it; any intervening whitespace is detected
+   * separately (a subscript binds immediately, so whitespace rules it out). */
+  int32_t body_col;
 } TSPQuote;
 
-static TSPQuote tspquote_new() { return (TSPQuote){0, 0, 0}; }
+static TSPQuote tspquote_new() { return (TSPQuote){0, 0, 0, -1}; }
 
 enum HeredocState { HEREDOC_NONE, HEREDOC_START, HEREDOC_UNKNOWN, HEREDOC_CONTINUE, HEREDOC_END };
 typedef struct {
@@ -200,6 +208,26 @@ static void lexerstate_pop_quote(LexerState *state, int32_t idx) {
 static bool lexerstate_is_paired_delimiter(LexerState *state) {
   TSPQuote *q = array_back(&state->quotes);
   return !!q->open;
+}
+
+/* Record where the innermost quote's body starts (the column just after its
+ * opening delimiter), for pattern-leading bracket detection. */
+static void lexerstate_set_body_col(LexerState *state, int32_t col) {
+  if (state->quotes.size) array_back(&state->quotes)->body_col = col;
+}
+
+/* Is the bracket at `col` (with `had_whitespace` describing whether any
+ * whitespace was skipped before it) at the pattern-LEADING position of the
+ * innermost quote -- i.e. only whitespace, if anything, precedes it?  A real
+ * subscript binds immediately to its variable, so any preceding whitespace
+ * rules a subscript out; otherwise the bracket is leading iff it sits exactly
+ * at the body's start column. */
+static bool lexerstate_at_body_lead(LexerState *state, int32_t col,
+                                    bool had_whitespace) {
+  if (!state->quotes.size) return false;
+  TSPQuote *q = array_back(&state->quotes);
+  if (q->body_col < 0) return false;
+  return had_whitespace || col == q->body_col;
 }
 
 //   in order to emulate a sublex, we basically need to have a new escape type character
@@ -695,6 +723,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
 
     if (c != '/') {
       lexerstate_push_quote(state, '/');
+      lexerstate_set_body_col(state, lexer->get_column(lexer));
       TOKEN(TOKEN_SEARCH_SLASH);
     }
     /* if we didn't get a search-slash, we fall back to the main parser */
@@ -743,6 +772,19 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
    * takes over. */
   if ((valid_symbols[TOKEN_REGEXP_OPEN_BRACKET] && c == '[') ||
       (valid_symbols[TOKEN_REGEXP_OPEN_BRACE] && c == '{')) {
+    /* A pattern-LEADING '['/'{' that is the quote's own opening delimiter is a
+     * balanced nested delimiter (m{{...}}, qr{ {...} }, s{{...}}, m[[...]]),
+     * NOT a subscript: there is no preceding variable for intuit_more to weigh,
+     * and its subscript verdict here would be meaningless.  Fall through to the
+     * Q/QQ content scanner, which consumes the opener while tracking the nesting
+     * count so the matching inner close doesn't terminate the quote early.
+     * Anything beyond the leading position is genuinely ambiguous again, so the
+     * heuristic below applies as before. */
+    if (lexerstate_at_body_lead(state, lexer->get_column(lexer),
+                                skipped_whitespace) &&
+        lexerstate_is_quote_opener(state, c)) {
+      /* leave the opener for the content scanner below */
+    } else {
     int32_t open = c;
     int32_t close = (open == '[') ? ']' : '}';
 
@@ -769,6 +811,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     }
     /* subscript: let the grammar's immediate '[' / '{' win */
     return false;
+    }
   }
 
   if (valid_symbols[TOKEN_POD]) {
@@ -906,6 +949,9 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     }
 
     lexerstate_push_quote(state, delim);
+    /* The body begins at the current column (just past the opener); record it
+     * so a bracket sitting exactly here is recognised as pattern-leading. */
+    lexerstate_set_body_col(state, lexer->get_column(lexer));
     // TODO - fill in this debug print here?
     // DEBUG("Generic QSTRING open='%c' close='%c'\n", state->delim_open,
     // state->delim_close);
