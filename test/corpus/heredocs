@@ -266,3 +266,65 @@ Z
     (heredoc_end))
   (heredoc_content
     (heredoc_end)))
+
+================================================================================
+Stacked heredocs overflow (more than the cap) degrades gracefully
+================================================================================
+say <<X1, <<X2, <<X3, <<X4, <<X5, <<X6, <<X7, <<X8, <<X9;
+b1
+X1
+b2
+X2
+b3
+X3
+b4
+X4
+b5
+X5
+b6
+X6
+b7
+X7
+b8
+X8
+b9
+X9
+my $after = 42;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (ambiguous_function_call_expression
+      (function)
+      (list_expression
+        (heredoc_token)
+        (heredoc_token)
+        (heredoc_token)
+        (heredoc_token)
+        (heredoc_token)
+        (heredoc_token)
+        (heredoc_token)
+        (heredoc_token)
+        (heredoc_token))))
+  (heredoc_content
+    (heredoc_end))
+  (heredoc_content
+    (heredoc_end))
+  (heredoc_content
+    (heredoc_end))
+  (heredoc_content
+    (heredoc_end))
+  (heredoc_content
+    (heredoc_end))
+  (heredoc_content
+    (heredoc_end))
+  (heredoc_content
+    (heredoc_end))
+  (heredoc_content
+    (heredoc_end))
+  (expression_statement
+    (assignment_expression
+      (variable_declaration
+        (scalar
+          (varname)))
+      (number))))

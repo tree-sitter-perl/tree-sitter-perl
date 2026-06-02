@@ -135,7 +135,7 @@ enum HeredocState { HEREDOC_NONE, HEREDOC_START, HEREDOC_UNKNOWN, HEREDOC_CONTIN
  * carries its own delimiter and interpolate/indent flags.  The consume-FSM
  * state (heredoc_state) applies to the FRONT of the queue (the one currently
  * being consumed); when it finishes we dequeue and advance to the next. */
-#define HEREDOC_QUEUE_MAX 4
+#define HEREDOC_QUEUE_MAX 8
 typedef struct {
   TSPString delim;
   bool interpolates, indents;
@@ -237,12 +237,24 @@ static HeredocEntry *lexerstate_front_heredoc(LexerState *state) {
   return &state->heredoc_queue[0];
 }
 
-/* ENQUEUE a pending heredoc to the back of the FIFO.  If the queue is already
- * full we drop the new entry (acceptable overflow behavior: don't crash). When
- * this is the first pending heredoc, prime the consume FSM at HEREDOC_START. */
+/* ENQUEUE a pending heredoc to the back of the FIFO.  When this is the first
+ * pending heredoc, prime the consume FSM at HEREDOC_START.
+ *
+ * Overflow handling: if the queue is already full we OVERWRITE THE LAST SLOT
+ * with the new entry rather than dropping it.  The last slot then always
+ * tracks the FINAL heredoc's terminator, so the scanner stays in heredoc-mode
+ * and greedily consumes all overflow content up to that final terminator —
+ * absorbing the excess into the last body instead of leaking it into the code
+ * stream.  For >MAX heredocs on a line this means the first MAX-1 bodies parse
+ * correctly, the last body greedily swallows the remaining overflow (wrong but
+ * BOUNDED), and code after the heredoc block is unaffected (no desync).  This
+ * is graceful degradation for a pathological input. */
 static void lexerstate_add_heredoc(LexerState *state, TSPString *delim, bool interp, bool indent) {
-  if (state->heredoc_count >= HEREDOC_QUEUE_MAX) return;
-  HeredocEntry *e = &state->heredoc_queue[state->heredoc_count++];
+  HeredocEntry *e;
+  if (state->heredoc_count >= HEREDOC_QUEUE_MAX)
+    e = &state->heredoc_queue[HEREDOC_QUEUE_MAX - 1];
+  else
+    e = &state->heredoc_queue[state->heredoc_count++];
   e->delim = *delim;
   e->interpolates = interp;
   e->indents = indent;
