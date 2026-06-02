@@ -383,3 +383,34 @@ $x =~ m{$h{k}};
             hash: (container_variable
               (varname))
             key: (autoquoted_bareword)))))))
+
+================================================================================
+multi-line pattern: subscript bracket at the body's start column on a later line
+================================================================================
+$x =~ m{aaaaaa
+bbbbbb$h{k}};
+$x =~ m[aaaaaa
+bbbbbb$a[0]];
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (binary_expression
+      left: (scalar
+        (varname))
+      right: (match_regexp
+        content: (regexp_content
+          (hash_element_expression
+            hash: (container_variable
+              (varname))
+            key: (autoquoted_bareword))))))
+  (expression_statement
+    (binary_expression
+      left: (scalar
+        (varname))
+      right: (match_regexp
+        content: (regexp_content
+          (array_element_expression
+            array: (container_variable
+              (varname))
+            index: (number)))))))
