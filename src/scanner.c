@@ -721,16 +721,72 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
           if (c == '>') TOKEN(TOKEN_OPEN_READLINE_BRACKET);
           // otherwise we *might* be a fileglob operator (`<*.c>`, `<$dir/*>`).
           // But a bare `<` followed by a term (e.g. `CONST < 0`) is the
-          // relational less-than operator, not a fileglob. The two are only
-          // distinguishable by whether a closing `>` appears before the end of
-          // the statement: a real fileglob is always `<...>` on a single line.
-          // So we scan ahead (without moving the marked token end, which still
-          // covers just `<`) and only commit to a fileglob if we find a `>`. If
-          // we don't, we bail and let the grammar lex `<` as the operator.
+          // relational less-than operator, not a fileglob. We only reach this
+          // branch when an ambiguous bareword preceded the `<`, so both the
+          // glob and the relational reading are syntactically live and the
+          // scanner has to pick one.
+          //
+          // We scan ahead (without moving the marked token end, which still
+          // covers just `<`) looking for a closing `>` before the statement
+          // ends — a real glob is always `<...>` on a single line.  But "is
+          // there a `>` somewhere on this line" is too blunt: in
+          // `CONST < $x and $y > 2` the `>` belongs to a *second* relational
+          // operator, and committing to a glob `<$x and $y>` swallows it and
+          // derails the parse.
+          //
+          // The distinguishing signal is the *content*: a glob pattern
+          // (`*.c`, `$dir/*.txt`, `$sner `) never contains a Perl infix
+          // word-operator, whereas the relational false positives are exactly
+          // the expressions that do (`$x and $y`, `$a or $b`, `$a lt $b`, ...).
+          // So while scanning we watch for a whitespace-delimited operator
+          // word; if we see one, the `<...>` is a relational expression and we
+          // bail to let the grammar lex `<` as the operator.
+          //
+          // Note: this can only ever be a heuristic.  `print <$x and $y>` is a
+          // genuine glob in real Perl yet has identical content to the
+          // relational `CONST < $x and $y`; the two are distinguishable only by
+          // whether the leading bareword is a value or a list operator, which
+          // is parser state the scanner doesn't have.  We bias toward the
+          // relational reading for such (contrived) inputs.
           if (valid_symbols[TOKEN_OPEN_FILEGLOB_BRACKET]) {
-            while (c != '>' && c != '<' && c != ';' && c != '\n' && !lexer->eof(lexer))
+            // tracks the start-of-word position so we can test whitespace-
+            // delimited tokens against the infix-operator list as we go
+            char word[4];
+            unsigned wlen = 0;
+            bool at_word_start = true;  // true after whitespace / right after `<`
+            bool saw_relational_op = false;
+            while (c != '>' && c != '<' && c != ';' && c != '\n' && !lexer->eof(lexer)) {
+              if (iswspace(c)) {
+                // a freshly-finished word: check it against the operators
+                if (wlen && wlen < sizeof(word)) {
+                  word[wlen] = '\0';
+                  if (streq(word, "and") || streq(word, "or") ||
+                      streq(word, "xor") || streq(word, "not") ||
+                      streq(word, "cmp") || streq(word, "eq") ||
+                      streq(word, "ne") || streq(word, "lt") ||
+                      streq(word, "gt") || streq(word, "le") ||
+                      streq(word, "ge") || streq(word, "x")) {
+                    saw_relational_op = true;
+                    break;
+                  }
+                }
+                wlen = 0;
+                at_word_start = true;
+              } else {
+                // only accumulate alpha runs that began at a word boundary;
+                // anything else (sigils, `*`, `/`, digits, `.`) makes this not
+                // a bare operator word, so we stop collecting until the next
+                // whitespace resets us
+                if (at_word_start && iswalpha((wint_t)c) && wlen < sizeof(word) - 1)
+                  word[wlen++] = (char)c;
+                else {
+                  wlen = sizeof(word);  // poison: too long / not a clean word
+                  at_word_start = false;
+                }
+              }
               ADVANCE_C;
-            if (c == '>') {
+            }
+            if (c == '>' && !saw_relational_op) {
               lexerstate_push_quote(state, '<');
               TOKEN(TOKEN_OPEN_FILEGLOB_BRACKET);
             }

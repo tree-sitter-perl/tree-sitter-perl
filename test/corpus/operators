@@ -335,6 +335,48 @@ CONST <FH>;
         (filehandle)))))
 
 ================================================================================
+bareword term < EXPR with a later > is relational, not a fileglob (gh#210)
+================================================================================
+die if CONST < $x and $y > 2;
+warn CONST < $x or $y;
+die if CONST < $x
+ > 2;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (postfix_conditional_expression
+      (bareword)
+      condition: (lowprec_logical_expression
+        left: (relational_expression
+          left: (bareword)
+          right: (scalar
+            (varname)))
+        right: (relational_expression
+          left: (scalar
+            (varname))
+          right: (number)))))
+  (expression_statement
+    (lowprec_logical_expression
+      left: (ambiguous_function_call_expression
+        function: (function)
+        arguments: (relational_expression
+          left: (bareword)
+          right: (scalar
+            (varname))))
+      right: (scalar
+        (varname))))
+  (expression_statement
+    (postfix_conditional_expression
+      (bareword)
+      condition: (relational_expression
+        left: (relational_expression
+          left: (bareword)
+          right: (scalar
+            (varname)))
+        right: (number)))))
+
+================================================================================
 EXPR << EXPR
 ================================================================================
 1 << 2;
