@@ -106,6 +106,11 @@ module.exports = grammar({
   ],
   word: $ => $._identifier,
   inline: $ => [
+    $._var_indirob,
+    $._semicolon,
+    $._fullstmt,
+    $._else,
+    $._conditionals,
     $._func0op,
     $._func1op,
     $._map_grep,
