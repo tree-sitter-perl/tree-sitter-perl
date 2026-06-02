@@ -443,22 +443,25 @@ module.exports = grammar({
       seq($.glob, '{', $._hash_key, '}'),
       prec.left(TERMPREC.ARROW, seq($._term, '->', '*', '{', $._hash_key, '}')),
     ),
+    _index_subscript: $ => seq('[', field('index', $._expr), recoverBracket($)),
+    _key_subscript: $ => seq('{', field('key', $._hash_key), recoverBrace($)),
+    _args_subscript: $ => seq('(', optional(field('arguments', $._expr)), recoverParen($)),
     array_element_expression: $ => choice(
       // perly.y matches scalar '[' expr ']' here but that would yield a scalar var node
-      seq(field('array', $.container_variable), '[', field('index', $._expr), recoverBracket($)),
-      prec.left(TERMPREC.ARROW, seq($._term, '->', '[', field('index', $._expr), recoverBracket($))),
-      seq($.subscripted, '[', field('index', $._expr), recoverBracket($)),
+      seq(field('array', $.container_variable), $._index_subscript),
+      prec.left(TERMPREC.ARROW, seq($._term, '->', $._index_subscript)),
+      seq($.subscripted, $._index_subscript),
     ),
     _hash_key: $ => choice($._brace_autoquoted, $._expr),
     hash_element_expression: $ => choice(
       // perly.y matches scalar '{' expr '}' here but that would yield a scalar var node
-      seq(field('hash', $.container_variable), '{', field('key', $._hash_key), recoverBrace($)),
-      prec.left(TERMPREC.ARROW, seq($._term, '->', '{', field('key', $._hash_key), recoverBrace($))),
-      seq($.subscripted, '{', field('key', $._hash_key), recoverBrace($)),
+      seq(field('hash', $.container_variable), $._key_subscript),
+      prec.left(TERMPREC.ARROW, seq($._term, '->', $._key_subscript)),
+      seq($.subscripted, $._key_subscript),
     ),
     coderef_call_expression: $ => choice(
-      prec.left(TERMPREC.ARROW, seq($._term, '->', '(', optional(field('arguments', $._expr)), recoverParen($))),
-      seq($.subscripted, '(', optional(field('arguments', $._expr)), recoverParen($)),
+      prec.left(TERMPREC.ARROW, seq($._term, '->', $._args_subscript)),
+      seq($.subscripted, $._args_subscript),
     ),
     anonymous_slice_expression: $ => choice(
       seq('(', optional(field('list', $._expr)), ')', '[', $._expr, ']'),
