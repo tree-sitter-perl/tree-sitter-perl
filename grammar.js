@@ -464,9 +464,10 @@ module.exports = grammar({
       prec.left(TERMPREC.ARROW, seq($._term, '->', $._args_subscript)),
       seq($.subscripted, $._args_subscript),
     ),
+    _anon_slice_subscript: $ => seq('[', $._expr, ']'),
     anonymous_slice_expression: $ => choice(
-      seq('(', optional(field('list', $._expr)), ')', '[', $._expr, ']'),
-      seq(field('list', $.quoted_word_list), '[', $._expr, ']'),
+      seq('(', optional(field('list', $._expr)), ')', $._anon_slice_subscript),
+      seq(field('list', $.quoted_word_list), $._anon_slice_subscript),
     ),
 
     slices: $ => choice(

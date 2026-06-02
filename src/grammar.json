@@ -2364,6 +2364,23 @@
         }
       ]
     },
+    "_anon_slice_subscript": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "["
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_expr"
+        },
+        {
+          "type": "STRING",
+          "value": "]"
+        }
+      ]
+    },
     "anonymous_slice_expression": {
       "type": "CHOICE",
       "members": [
@@ -2395,16 +2412,8 @@
               "value": ")"
             },
             {
-              "type": "STRING",
-              "value": "["
-            },
-            {
               "type": "SYMBOL",
-              "name": "_expr"
-            },
-            {
-              "type": "STRING",
-              "value": "]"
+              "name": "_anon_slice_subscript"
             }
           ]
         },
@@ -2420,16 +2429,8 @@
               }
             },
             {
-              "type": "STRING",
-              "value": "["
-            },
-            {
               "type": "SYMBOL",
-              "name": "_expr"
-            },
-            {
-              "type": "STRING",
-              "value": "]"
+              "name": "_anon_slice_subscript"
             }
           ]
         }
