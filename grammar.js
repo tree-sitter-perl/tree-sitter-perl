@@ -439,9 +439,10 @@ module.exports = grammar({
     // for highlighting. We raise its prec b/c in a print (print $thing{stuff}) it becomes a var
     // not an indirob
     container_variable: $ => prec(2, seq('$', $._var_indirob)),
+    _glob_slot_subscript: $ => seq('{', $._hash_key, '}'),
     glob_slot_expression: $ => choice(
-      seq($.glob, '{', $._hash_key, '}'),
-      prec.left(TERMPREC.ARROW, seq($._term, '->', '*', '{', $._hash_key, '}')),
+      seq($.glob, $._glob_slot_subscript),
+      prec.left(TERMPREC.ARROW, seq($._term, '->', '*', $._glob_slot_subscript)),
     ),
     _index_subscript: $ => seq('[', field('index', $._expr), recoverBracket($)),
     _key_subscript: $ => seq('{', field('key', $._hash_key), recoverBrace($)),

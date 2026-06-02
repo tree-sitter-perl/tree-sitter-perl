@@ -2027,6 +2027,23 @@
         ]
       }
     },
+    "_glob_slot_subscript": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "{"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_hash_key"
+        },
+        {
+          "type": "STRING",
+          "value": "}"
+        }
+      ]
+    },
     "glob_slot_expression": {
       "type": "CHOICE",
       "members": [
@@ -2038,16 +2055,8 @@
               "name": "glob"
             },
             {
-              "type": "STRING",
-              "value": "{"
-            },
-            {
               "type": "SYMBOL",
-              "name": "_hash_key"
-            },
-            {
-              "type": "STRING",
-              "value": "}"
+              "name": "_glob_slot_subscript"
             }
           ]
         },
@@ -2070,16 +2079,8 @@
                 "value": "*"
               },
               {
-                "type": "STRING",
-                "value": "{"
-              },
-              {
                 "type": "SYMBOL",
-                "name": "_hash_key"
-              },
-              {
-                "type": "STRING",
-                "value": "}"
+                "name": "_glob_slot_subscript"
               }
             ]
           }
