@@ -3,6 +3,7 @@
 #include "tsp_unicode.h"
 #include "tsp_keywords.h"
 #include "tsp_intuit_more.h"
+#include "tsp_intuit_readline.h"
 
 // grumble grumble no stdlib
 static char *tsp_strchr(register const char *s, int c) {
@@ -27,6 +28,11 @@ static char *tsp_strchr(register const char *s, int c) {
 #define streq(a, b) (strcmp(a, b) == 0)
 
 #include <wctype.h>
+
+/* Cap on bytes of `<...>` content buffered for the fileglob-vs-relational
+ * content heuristic (tsp_intuit_readline.h).  Globs/readline targets are short
+ * paths; longer content is overwhelmingly relational, so a fixed cap is fine. */
+#define FILEGLOB_BUF 256
 
 enum TokenType {
   /* non-ident tokens */
@@ -714,79 +720,48 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
           MARK_END;
           // ah, we have a heredoc; let's just go down to that section then
           if (c == '<') goto heredoc_token_handling;
-          if (c == '$') ADVANCE_C;
-          // we now zoooom as many ident chars as we can
-          while (isidcont(c)) ADVANCE_C;
-          // if ident chars took us until the closing `>` then we're readline FILEHANDLE
-          if (c == '>') TOKEN(TOKEN_OPEN_READLINE_BRACKET);
-          // otherwise we *might* be a fileglob operator (`<*.c>`, `<$dir/*>`).
-          // But a bare `<` followed by a term (e.g. `CONST < 0`) is the
-          // relational less-than operator, not a fileglob. We only reach this
-          // branch when an ambiguous bareword preceded the `<`, so both the
-          // glob and the relational reading are syntactically live and the
-          // scanner has to pick one.
+          // Gather the content between `<` and the closing `>` into a buffer
+          // (without moving the marked token end, which still covers just `<`),
+          // capping at FILEGLOB_BUF bytes.  We stop at the closing `>`, or at a
+          // `<` / `;` / newline / EOF — none of which can occur inside a real
+          // single-line glob/readline, so hitting one means there is no closing
+          // `>` for *this* `<` and it is the relational operator.
+          char fgbuf[FILEGLOB_BUF];
+          size_t fglen = 0;
+          while (c != '>' && c != '<' && c != ';' && c != '\n' &&
+                 !lexer->eof(lexer)) {
+            if (fglen < sizeof(fgbuf)) fgbuf[fglen++] = (char)c;
+            ADVANCE_C;
+          }
+          // If the content ran up to a closing `>`, we *might* be a readline
+          // (pure filehandle) or a fileglob (glob pattern).  A bare `<`
+          // followed by a relational expression (`CONST < 0`, `CONST < $a > $b`)
+          // is the less-than operator instead.  We only reach this branch when
+          // an ambiguous bareword preceded the `<`, so both readings are
+          // syntactically live and the scanner has to pick one.
           //
-          // We scan ahead (without moving the marked token end, which still
-          // covers just `<`) looking for a closing `>` before the statement
-          // ends — a real glob is always `<...>` on a single line.  But "is
-          // there a `>` somewhere on this line" is too blunt: in
-          // `CONST < $x and $y > 2` the `>` belongs to a *second* relational
-          // operator, and committing to a glob `<$x and $y>` swallows it and
-          // derails the parse.
-          //
-          // The distinguishing signal is the *content*: a glob pattern
-          // (`*.c`, `$dir/*.txt`, `$sner `) never contains a Perl infix
-          // word-operator, whereas the relational false positives are exactly
-          // the expressions that do (`$x and $y`, `$a or $b`, `$a lt $b`, ...).
-          // So while scanning we watch for a whitespace-delimited operator
-          // word; if we see one, the `<...>` is a relational expression and we
-          // bail to let the grammar lex `<` as the operator.
-          //
-          // Note: this can only ever be a heuristic.  `print <$x and $y>` is a
-          // genuine glob in real Perl yet has identical content to the
-          // relational `CONST < $x and $y`; the two are distinguishable only by
-          // whether the leading bareword is a value or a list operator, which
-          // is parser state the scanner doesn't have.  We bias toward the
-          // relational reading for such (contrived) inputs.
-          if (valid_symbols[TOKEN_OPEN_FILEGLOB_BRACKET]) {
-            // tracks the start-of-word position so we can test whitespace-
-            // delimited tokens against the infix-operator list as we go
-            char word[4];
-            unsigned wlen = 0;
-            bool at_word_start = true;  // true after whitespace / right after `<`
-            bool saw_relational_op = false;
-            while (c != '>' && c != '<' && c != ';' && c != '\n' && !lexer->eof(lexer)) {
-              if (iswspace(c)) {
-                // a freshly-finished word: check it against the operators
-                if (wlen && wlen < sizeof(word)) {
-                  word[wlen] = '\0';
-                  if (streq(word, "and") || streq(word, "or") ||
-                      streq(word, "xor") || streq(word, "not") ||
-                      streq(word, "cmp") || streq(word, "eq") ||
-                      streq(word, "ne") || streq(word, "lt") ||
-                      streq(word, "gt") || streq(word, "le") ||
-                      streq(word, "ge") || streq(word, "x")) {
-                    saw_relational_op = true;
-                    break;
-                  }
-                }
-                wlen = 0;
-                at_word_start = true;
-              } else {
-                // only accumulate alpha runs that began at a word boundary;
-                // anything else (sigils, `*`, `/`, digits, `.`) makes this not
-                // a bare operator word, so we stop collecting until the next
-                // whitespace resets us
-                if (at_word_start && iswalpha((wint_t)c) && wlen < sizeof(word) - 1)
-                  word[wlen++] = (char)c;
-                else {
-                  wlen = sizeof(word);  // poison: too long / not a clean word
-                  at_word_start = false;
-                }
-              }
-              ADVANCE_C;
+          // perl decides this purely by parser state (PL_expect: a value vs. a
+          // list-op in front of the `<`), which the scanner cannot see, so this
+          // is necessarily a content heuristic.  tsp_is_fileglob() implements
+          // "glob-shape positive recognition": commit to a glob/readline only if
+          // the content positively looks like a filehandle name or glob pattern;
+          // otherwise bail to the relational operator.  See
+          // tsp_intuit_readline.h for the full rationale and known limitation.
+          fprintf(stderr, "FGDBG c=%c fglen=%zu buf=[%.*s]\n", (char)c, fglen, (int)fglen, fgbuf);
+          if (c == '>' && tsp_is_fileglob(fgbuf, fglen)) {
+            // A TIGHT filehandle name (optional `$`, word/`::`/`'` only, no
+            // surrounding whitespace) or the empty diamond `<>` is a readline,
+            // matching perl: `<$fh>` / `<STDIN>` / `<>` read a handle, while
+            // `<$sner >` (trailing space) is a one-element glob.  Anything else
+            // accepted by tsp_is_fileglob is a fileglob pattern.
+            bool tight_name = fglen > 0 &&
+                              !tsp_rl_isspace((unsigned char)fgbuf[fglen - 1]) &&
+                              tsp_rl_is_filehandle(fgbuf, fglen);
+            if (valid_symbols[TOKEN_OPEN_READLINE_BRACKET] &&
+                (fglen == 0 || tight_name)) {
+              TOKEN(TOKEN_OPEN_READLINE_BRACKET);
             }
-            if (c == '>' && !saw_relational_op) {
+            if (valid_symbols[TOKEN_OPEN_FILEGLOB_BRACKET]) {
               lexerstate_push_quote(state, '<');
               TOKEN(TOKEN_OPEN_FILEGLOB_BRACKET);
             }
