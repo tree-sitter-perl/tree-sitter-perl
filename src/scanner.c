@@ -719,25 +719,9 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
           while (isidcont(c)) ADVANCE_C;
           // if ident chars took us until the closing `>` then we're readline FILEHANDLE
           if (c == '>') TOKEN(TOKEN_OPEN_READLINE_BRACKET);
-          // otherwise we *might* be a fileglob operator (`<*.c>`, `<$dir/*>`).
-          // But a bare `<` followed by a term (e.g. `CONST < 0`) is the
-          // relational less-than operator, not a fileglob. The two are only
-          // distinguishable by whether a closing `>` appears before the end of
-          // the statement: a real fileglob is always `<...>` on a single line.
-          // So we scan ahead (without moving the marked token end, which still
-          // covers just `<`) and only commit to a fileglob if we find a `>`. If
-          // we don't, we bail and let the grammar lex `<` as the operator.
-          if (valid_symbols[TOKEN_OPEN_FILEGLOB_BRACKET]) {
-            while (c != '>' && c != '<' && c != ';' && c != '\n' && !lexer->eof(lexer))
-              ADVANCE_C;
-            if (c == '>') {
-              lexerstate_push_quote(state, '<');
-              TOKEN(TOKEN_OPEN_FILEGLOB_BRACKET);
-            }
-          }
-          // not a readline, not a fileglob — let `<` fall through to the
-          // grammar as the relational operator.
-          return false;
+          // otherwise we're a fileglob operator, and we set up our string parse + be excellent
+          lexerstate_push_quote(state, '<');
+          TOKEN(TOKEN_OPEN_FILEGLOB_BRACKET);
       }
 
   }
