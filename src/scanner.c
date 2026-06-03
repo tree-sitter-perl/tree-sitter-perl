@@ -3,6 +3,7 @@
 #include "tsp_unicode.h"
 #include "tsp_keywords.h"
 #include "tsp_intuit_more.h"
+#include "tsp_intuit_readline.h"
 
 // grumble grumble no stdlib
 static char *tsp_strchr(register const char *s, int c) {
@@ -749,44 +750,19 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
           // is parser state the scanner doesn't have.  We bias toward the
           // relational reading for such (contrived) inputs.
           if (valid_symbols[TOKEN_OPEN_FILEGLOB_BRACKET]) {
-            // tracks the start-of-word position so we can test whitespace-
-            // delimited tokens against the infix-operator list as we go
-            char word[4];
-            unsigned wlen = 0;
-            bool at_word_start = true;  // true after whitespace / right after `<`
-            bool saw_relational_op = false;
+            // Gather the content bytes between `<` and the terminator into a
+            // fixed buffer, then hand them to the content heuristic in
+            // tsp_intuit_readline.h, which decides fileglob vs. relational `<`.
+            // The marked token end still covers just `<`, so bailing leaves the
+            // grammar free to lex `<` as the operator.
+            char fg_buf[256];
+            size_t fg_len = 0;
             while (c != '>' && c != '<' && c != ';' && c != '\n' && !lexer->eof(lexer)) {
-              if (iswspace(c)) {
-                // a freshly-finished word: check it against the operators
-                if (wlen && wlen < sizeof(word)) {
-                  word[wlen] = '\0';
-                  if (streq(word, "and") || streq(word, "or") ||
-                      streq(word, "xor") || streq(word, "not") ||
-                      streq(word, "cmp") || streq(word, "eq") ||
-                      streq(word, "ne") || streq(word, "lt") ||
-                      streq(word, "gt") || streq(word, "le") ||
-                      streq(word, "ge") || streq(word, "x")) {
-                    saw_relational_op = true;
-                    break;
-                  }
-                }
-                wlen = 0;
-                at_word_start = true;
-              } else {
-                // only accumulate alpha runs that began at a word boundary;
-                // anything else (sigils, `*`, `/`, digits, `.`) makes this not
-                // a bare operator word, so we stop collecting until the next
-                // whitespace resets us
-                if (at_word_start && iswalpha((wint_t)c) && wlen < sizeof(word) - 1)
-                  word[wlen++] = (char)c;
-                else {
-                  wlen = sizeof(word);  // poison: too long / not a clean word
-                  at_word_start = false;
-                }
-              }
+              if (fg_len < sizeof(fg_buf))
+                fg_buf[fg_len++] = (char)c;
               ADVANCE_C;
             }
-            if (c == '>' && !saw_relational_op) {
+            if (c == '>' && tsp_is_fileglob(fg_buf, fg_len)) {
               lexerstate_push_quote(state, '<');
               TOKEN(TOKEN_OPEN_FILEGLOB_BRACKET);
             }

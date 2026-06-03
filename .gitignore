@@ -17,3 +17,4 @@ src/*
 !src/grammar.json
 tree-sitter-perl.wasm
 log.html
+!src/tsp_intuit_readline.h
