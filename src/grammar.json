@@ -6818,6 +6818,22 @@
         {
           "type": "SYMBOL",
           "name": "transliteration_expression"
+        },
+        {
+          "type": "ALIAS",
+          "content": {
+            "type": "TOKEN",
+            "content": {
+              "type": "PREC",
+              "value": 1,
+              "content": {
+                "type": "PATTERN",
+                "value": "v[0-9]+(?:\\.[0-9]+)+"
+              }
+            }
+          },
+          "named": true,
+          "value": "version"
         }
       ]
     },
@@ -8644,7 +8660,7 @@
       "type": "TOKEN",
       "content": {
         "type": "PREC",
-        "value": 1,
+        "value": 2,
         "content": {
           "type": "PATTERN",
           "value": "v[0-9]+(?:\\.[0-9]+)*"

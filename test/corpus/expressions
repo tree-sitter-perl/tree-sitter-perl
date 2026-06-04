@@ -504,3 +504,27 @@ return 1, 2, 3 or die("never reached");
         (function)
         (interpolated_string_literal
           (string_content))))))
+
+================================================================================
+v-string literal in expression position (GR-1)
+================================================================================
+my $ok = $^V lt v5.6.0;
+my $v = v1.2.3;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      (variable_declaration
+        (scalar
+          (varname)))
+      (relational_expression
+        (scalar
+          (varname))
+        (version))))
+  (expression_statement
+    (assignment_expression
+      (variable_declaration
+        (scalar
+          (varname)))
+      (version))))

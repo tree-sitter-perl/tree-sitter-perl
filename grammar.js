@@ -1023,6 +1023,12 @@ module.exports = grammar({
       $.match_regexp,
       $.substitution_regexp,
       $.transliteration_expression,
+      // v-strings in expression position require at least one dot.  A bare `vN`
+      // is ambiguous — perl parses it as a function call when a `sub vN` is in
+      // scope, else as a v-string — so we leave the single-token form a bareword
+      // and only claim the unambiguous dotted form (`v5.6.0`), which can't be a
+      // call.  `use`/`package`/`require` keep the permissive `version` token.
+      alias(token(prec(1, /v[0-9]+(?:\.[0-9]+)+/)), $.version),
     ),
 
     // we cast these into imaginary tokens to be quote chars with handedness
@@ -1317,8 +1323,12 @@ module.exports = grammar({
 
     package: $ => $._bareword,
     _version: $ => prec(1, choice($.number, $.version)),
-    // we have to up the lexical prec here to prevent v5 from being read as a bareword
-    version: $ => token(prec(1, /v[0-9]+(?:\.[0-9]+)*/)),
+    // Lexical prec 2 (> the dotted v-string token in `_literal`, prec 1): in
+    // use/package/require contexts both tokens can match a dotted version, and
+    // this permissive form must win so `require v5.26` stays a
+    // require_version_expression.  The raised prec also keeps `v5` from lexing
+    // as a bareword.
+    version: $ => token(prec(2, /v[0-9]+(?:\.[0-9]+)*/)),
 
     _conditionals: $ => choice('if', 'unless'),
     _loops: $ => choice('while', 'until'),
