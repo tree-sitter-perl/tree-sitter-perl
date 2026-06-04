@@ -360,3 +360,33 @@ Deeply nested interpolation does not overflow serialize buffer (X1)
 ================================================================================
 my $z = qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{x}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}};
 --------------------------------------------------------------------------------
+
+================================================================================
+Punctuation-variable block interpolation ${@} vs array deref ${@foo} (G7)
+================================================================================
+my $a = "x ${@} y";
+my $b = "z ${@foo} w";
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      (variable_declaration
+        (scalar
+          (varname)))
+      (interpolated_string_literal
+        (string_content
+          (scalar
+            (varname))))))
+  (expression_statement
+    (assignment_expression
+      (variable_declaration
+        (scalar
+          (varname)))
+      (interpolated_string_literal
+        (string_content
+          (scalar
+            (block
+              (expression_statement
+                (array
+                  (varname))))))))))

@@ -1171,6 +1171,23 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     }
     return false;
   }
+  // A lone non-identifier punctuation variable inside ${...} — ${@}, ${!},
+  // ${%}, ${$}, ${"} … — names the punctuation variable $@/$!/…, NOT a
+  // sigil/operator. The main lexer would otherwise pick the sigil/operator token
+  // (and for @ / % that token swallows the closing brace, decapitating the rest
+  // of the file). Recognize it here with the same '}'-lookahead the bareword
+  // path uses: one var char immediately followed (modulo whitespace) by '}' is
+  // the autoquoted name. Identifiers, digits and ^carets are handled by the
+  // grammar's other varname alternatives; '{' would begin a block, '#' a comment.
+  if (valid_symbols[TOKEN_BRACE_AUTOQUOTED] && !isidfirst(c) &&
+      c > ' ' && c != '}' && c != '{' && c != '^' && c != '#' &&
+      !(c >= '0' && c <= '9')) {
+    ADVANCE_C;
+    MARK_END;
+    while (is_tsp_whitespace(c)) ADVANCE_C;
+    if (c == '}') TOKEN(TOKEN_BRACE_AUTOQUOTED);
+    return false;
+  }
   if (isidfirst(c) &&
       (valid_symbols[TOKEN_FAT_COMMA_AUTOQUOTED] || valid_symbols[TOKEN_BRACE_AUTOQUOTED])) {
     // we zip until the end of the identifier; then we do a lookeahed to see if it's autoquoted
