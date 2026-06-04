@@ -7504,6 +7504,10 @@
         },
         {
           "type": "SYMBOL",
+          "name": "arraylen"
+        },
+        {
+          "type": "SYMBOL",
           "name": "array"
         },
         {

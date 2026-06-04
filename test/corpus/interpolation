@@ -336,6 +336,25 @@ print "$test{'value'}";
               (string_content))))))))
 
 ================================================================================
+Array last-index ($#name) interpolation (gh#230 / G1)
+================================================================================
+my $x = "last is $#_, also $#array here";
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      (variable_declaration
+        (scalar
+          (varname)))
+      (interpolated_string_literal
+        (string_content
+          (arraylen
+            (varname))
+          (arraylen
+            (varname)))))))
+
+================================================================================
 Deeply nested interpolation does not overflow serialize buffer (X1)
 :error
 ================================================================================

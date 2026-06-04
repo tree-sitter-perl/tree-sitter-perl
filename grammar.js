@@ -1094,6 +1094,7 @@ module.exports = grammar({
     _array_deref_interpolation: $ => prec.left(TERMPREC.ARROW, seq(field('arrayref', $.scalar), $._interp_arrow, token.immediate('@*'))),
     _interpolations: $ => choice(
       $.scalar,
+      $.arraylen,
       $.array,
       alias($._scalar_deref_interpolation, $.scalar_deref_expression),
       alias($._array_deref_interpolation, $.array_deref_expression),
