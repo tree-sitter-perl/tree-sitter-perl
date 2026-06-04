@@ -4634,61 +4634,90 @@
           "value": "("
         },
         {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "_decl_variable_list_body"
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
+        },
+        {
+          "type": "STRING",
+          "value": ")"
+        }
+      ]
+    },
+    "_decl_variable_list_body": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "_decl_variable_list_element"
+        },
+        {
           "type": "REPEAT",
           "content": {
             "type": "SEQ",
             "members": [
               {
+                "type": "STRING",
+                "value": ","
+              },
+              {
                 "type": "CHOICE",
                 "members": [
                   {
-                    "type": "CHOICE",
-                    "members": [
-                      {
-                        "type": "SYMBOL",
-                        "name": "undef_expression"
-                      },
-                      {
-                        "type": "SYMBOL",
-                        "name": "_declared_vars"
-                      },
-                      {
-                        "type": "SYMBOL",
-                        "name": "refalias_variable"
-                      }
-                    ]
+                    "type": "SYMBOL",
+                    "name": "_decl_variable_list_element"
                   },
                   {
                     "type": "BLANK"
                   }
                 ]
-              },
-              {
-                "type": "STRING",
-                "value": ","
               }
             ]
           }
+        }
+      ]
+    },
+    "_decl_variable_list_element": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "undef_expression"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_declared_vars"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "refalias_variable"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "variable_group"
+        }
+      ]
+    },
+    "variable_group": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "("
         },
         {
           "type": "CHOICE",
           "members": [
             {
-              "type": "CHOICE",
-              "members": [
-                {
-                  "type": "SYMBOL",
-                  "name": "undef_expression"
-                },
-                {
-                  "type": "SYMBOL",
-                  "name": "_declared_vars"
-                },
-                {
-                  "type": "SYMBOL",
-                  "name": "refalias_variable"
-                }
-              ]
+              "type": "SYMBOL",
+              "name": "_decl_variable_list_body"
             },
             {
               "type": "BLANK"

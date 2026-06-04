@@ -759,13 +759,29 @@ module.exports = grammar({
         optseq(':', optional(field('attributes', $.attrlist))))
     ),
 
-    _decl_variable_list: $ => paren_list_of(
-      choice(
-        $.undef_expression,
-        $._declared_vars,
-        $.refalias_variable
-      )
+    _decl_variable_list: $ => seq('(', optional($._decl_variable_list_body), ')'),
+
+    // The body intentionally avoids `paren_list_of`'s leading-`optional(rule)`
+    // shape: that admits an empty leading element, which collides with a nested
+    // `(` group opener and makes tree-sitter drop the group shift. Requiring the
+    // first element (while still allowing empty/trailing slots after a comma)
+    // keeps the nested-group `(` unambiguous.
+    _decl_variable_list_body: $ => seq(
+      $._decl_variable_list_element,
+      repeat(seq(',', optional($._decl_variable_list_element)))
     ),
+
+    _decl_variable_list_element: $ => choice(
+      $.undef_expression,
+      $._declared_vars,
+      $.refalias_variable,
+      // a nested parenthesized group: perl flattens `my ($a, ($b, $c))` to
+      // `my ($a, $b, $c)`, so structurally the inner `( ... )` is just another
+      // (recursive) variable list.
+      $.variable_group
+    ),
+
+    variable_group: $ => seq('(', optional($._decl_variable_list_body), ')'),
 
     localization_expression: $ =>
       prec(TERMPREC.UNOP, seq(choice('local', 'dynamically'), $._term)),
