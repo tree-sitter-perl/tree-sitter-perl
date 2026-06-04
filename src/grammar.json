@@ -2826,6 +2826,15 @@
           "name": "sort_expression"
         },
         {
+          "type": "ALIAS",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_builtin_filehandle"
+          },
+          "named": true,
+          "value": "filehandle"
+        },
+        {
           "type": "SYMBOL",
           "name": "bareword"
         },
@@ -5451,6 +5460,15 @@
       "type": "CHOICE",
       "members": [
         {
+          "type": "ALIAS",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_builtin_filehandle"
+          },
+          "named": true,
+          "value": "filehandle"
+        },
+        {
           "type": "SYMBOL",
           "name": "block"
         },
@@ -5474,6 +5492,23 @@
               ]
             }
           ]
+        }
+      ]
+    },
+    "_builtin_filehandle": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "STDIN"
+        },
+        {
+          "type": "STRING",
+          "value": "STDOUT"
+        },
+        {
+          "type": "STRING",
+          "value": "STDERR"
         }
       ]
     },
@@ -9224,6 +9259,10 @@
     ],
     [
       "_variables",
+      "indirect_object"
+    ],
+    [
+      "_term",
       "indirect_object"
     ],
     [

@@ -363,3 +363,34 @@ print({ $sner{boppers} } 'herro');
               (autoquoted_bareword)))))
       (string_literal
         (string_content)))))
+
+================================================================================
+Bareword filehandle in indirect-object slot - standard handles only (G4)
+================================================================================
+print STDERR "oops";
+binmode STDOUT, ":utf8";
+print FH @list;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (ambiguous_function_call_expression
+      (function)
+      (indirect_object
+        (filehandle))
+      (interpolated_string_literal
+        (string_content))))
+  (expression_statement
+    (ambiguous_function_call_expression
+      (function)
+      (list_expression
+        (filehandle)
+        (interpolated_string_literal
+          (string_content)))))
+  (expression_statement
+    (ambiguous_function_call_expression
+      (function)
+      (ambiguous_function_call_expression
+        (function)
+        (array
+          (varname))))))

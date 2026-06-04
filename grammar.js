@@ -202,6 +202,10 @@ module.exports = grammar({
     [$.function, $.bareword],
     [$.function, $.function_call_expression],
     [$._variables, $.indirect_object],
+    // a builtin filehandle after a list-op is ambiguous between the indirect
+    // object slot (`print STDERR LIST`) and a plain term argument
+    // (`binmode STDOUT, MODE`); GLR resolves on the following comma/term.
+    [$._term, $.indirect_object],
     [$.expression_statement, $._tricky_indirob_hashref],
     [$.autoquoted_bareword],
     // nameless params need extra lookahead
@@ -557,6 +561,7 @@ module.exports = grammar({
       $.map_grep_expression,
       $.sort_expression,
       /* PMFUNC */
+      alias($._builtin_filehandle, $.filehandle),
       $.bareword,
       $.autoquoted_bareword,
       $._listop,
@@ -849,12 +854,18 @@ module.exports = grammar({
     ),
 
     indirect_object: $ => choice(
-      // we intentionally don't do bareword filehandles b/c we can't possibly do it right
-      // since we can't know what subs have been defined
+      // We punt on *arbitrary* bareword filehandles (can't know what subs are
+      // defined), but the standard predefined handles are a safe closed set —
+      // nobody sanely defines `sub STDOUT` — so we accept those.
+      alias($._builtin_filehandle, $.filehandle),
       $.block,
       // this may be kinda evil, but we use this token as a flag to not accept a search slash
       seq($.scalar, optional($._no_search_slash_plz)),
     ),
+    // Perl's predefined filehandles. A closed set, so recognizing them as
+    // filehandles (in the indirect-object slot and as filetest/func1 operands)
+    // can't collide with a user sub. Non-standard bareword handles are punted.
+    _builtin_filehandle: $ => choice('STDIN', 'STDOUT', 'STDERR'),
     _unambiguous_function: $ => alias(choice($._bareword, $.amper_sub), $.function),
     function_call_expression: $ => choice(
       seq(field('function', alias($.amper_sub, $.function))),
