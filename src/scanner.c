@@ -937,7 +937,13 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
           ADVANCE_C;
         }
       }
-      if (delim.length > 0) {
+      // We stop the loop above either at the closing quote or at EOF.  Only
+      // commit a heredoc if we actually found the closer; an EMPTY delimiter
+      // (`<<''` / `<<""`) is legal — perl terminates its body at the next blank
+      // line, which the body matcher already handles (an empty delim compares
+      // equal to an empty line).  Keying off the closer rather than a non-empty
+      // delim is also more correct: it won't mis-fire on EOF-without-closer.
+      if (c == delim_open) {
         // gotta eat that delimiter
         ADVANCE_C;
         // gotta null terminate up in here

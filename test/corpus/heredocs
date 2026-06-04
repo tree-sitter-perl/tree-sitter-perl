@@ -328,3 +328,55 @@ my $after = 42;
         (scalar
           (varname)))
       (number))))
+
+================================================================================
+Empty-delimiter heredoc <<'' (body ends at blank line, non-interpolating) (G3)
+================================================================================
+my $a = <<'';
+plain body
+
+my $z = 1;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      right: (heredoc_token)))
+  (heredoc_content
+    (heredoc_end))
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      right: (number))))
+
+================================================================================
+Empty-delimiter heredoc <<"" (body ends at blank line, interpolating) (G5)
+================================================================================
+my $b = <<"";
+interp $z body
+
+my $w = 2;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      right: (heredoc_token)))
+  (heredoc_content
+    (scalar
+      (varname))
+    (heredoc_end))
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      right: (number))))
