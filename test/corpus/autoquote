@@ -189,17 +189,17 @@ autoquoting lowprec (list-expr)
   (expression_statement
     (lowprec_logical_expression
       (number)
-      (bareword)))
+      (function)))
   (expression_statement
     (lowprec_logical_expression
       (list_expression
         (number))
-      (bareword)))
+      (function)))
   (expression_statement
     (list_expression
       (number)
       (autoquoted_bareword)
-      (bareword))))
+      (function))))
 
 ================================================================================
 autoquoting lowprec (ambiguous_func)
@@ -213,28 +213,28 @@ die 1, or => die;
 (source_file
   (expression_statement
     (lowprec_logical_expression
-      (bareword)
-      (bareword)))
+      (function)
+      (function)))
   (expression_statement
     (ambiguous_function_call_expression
       (function)
       (list_expression
         (autoquoted_bareword)
-        (bareword))))
+        (function))))
   (expression_statement
     (lowprec_logical_expression
       (ambiguous_function_call_expression
         (function)
         (list_expression
           (number)))
-      (bareword)))
+      (function)))
   (expression_statement
     (ambiguous_function_call_expression
       (function)
       (list_expression
         (number)
         (autoquoted_bareword)
-        (bareword)))))
+        (function)))))
 
 ================================================================================
 autoquoting else blocks

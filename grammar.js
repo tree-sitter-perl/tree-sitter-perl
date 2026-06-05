@@ -563,6 +563,11 @@ module.exports = grammar({
       /* PMFUNC */
       alias($._builtin_filehandle, $.filehandle),
       $.bareword,
+      // builtin list-op words used as a bare term (e.g. `die if …`, `print;`)
+      // need a standalone reading too, since they're otherwise only reachable
+      // through the list-op function-call branches. They're unambiguously
+      // builtins, so emit `function`, not `bareword`.
+      alias($._listop_keyword, $.function),
       $.autoquoted_bareword,
       $._listop,
 
@@ -882,7 +887,7 @@ module.exports = grammar({
     // filehandles (in the indirect-object slot and as filetest/func1 operands)
     // can't collide with a user sub. Non-standard bareword handles are punted.
     _builtin_filehandle: $ => choice('STDIN', 'STDOUT', 'STDERR'),
-    _unambiguous_function: $ => alias(choice($._bareword, $.amper_sub), $.function),
+    _unambiguous_function: $ => alias(choice($._bareword, $._listop_keyword, $.amper_sub), $.function),
     function_call_expression: $ => choice(
       seq(field('function', alias($.amper_sub, $.function))),
       // the usage of NONASSOC here is to make it that any parse of a paren after a func
@@ -895,14 +900,43 @@ module.exports = grammar({
       // we need the right precedence here so we can read ahead for the hash/sub disambiguation
       prec.right(TERMPREC.LSTOP,
         choice(
-          seq(field('function', $.function), field('arguments', $._listexpr)),
+          // The no-paren list-op form. Builtin LIST operators (print, split,
+          // join, …) keep regex-after-bareword behavior (`split /,/`, `print
+          // /x/`). For generic/userland barewords we apply PPI's heuristic: a
+          // following `/` is division by default, NOT a regex. The
+          // `_no_search_slash_plz` marker suppresses the search-slash token so
+          // `FOO / 1.05` lexes the `/` as division (the bareword then falls
+          // through to a plain term in a binary_expression). This sacrifices
+          // `myfunc /x/` (becomes division), but `myfunc(/x/)` is unaffected
+          // (parens make it unambiguous).
+          seq(field('function', alias($._listop_keyword, $.function)), field('arguments', $._listexpr)),
+          seq(field('function', $.function), optional($._no_search_slash_plz), field('arguments', $._listexpr)),
           seq(field('function', $.function), $.indirect_object, field('arguments', $._listexpr)),
+          seq(field('function', alias($._listop_keyword, $.function)), $.indirect_object, field('arguments', $._listexpr)),
           // we handle this_takes_a_block { thing; other_thing }; here. we don't wanna accept an indirob of scalar tho
           seq(field('function', $.function), alias($.block, $.indirect_object)),
           // we handle cases like takes_a_hash { 1 => 2 }; by having this special case
           seq(field('function', $.function), field('arguments', alias($._tricky_indirob_hashref, $.anonymous_hash_expression)), optseq($._PERLY_COMMA, field('arguments', $._listexpr)))
         )
       ),
+    // Builtin LIST operators that keep regex-after-bareword behavior. This is the
+    // `@function.builtin` list-op set from queries/highlights.scm, minus words
+    // that already have dedicated grammar handling (return → return_expression,
+    // sort → sort_expression) which would otherwise create unresolved conflicts.
+    _listop_keyword: $ => choice(
+      'accept', 'atan2', 'bind', 'binmode', 'bless', 'crypt', 'chmod', 'chown',
+      'connect', 'die', 'dbmopen', 'exec', 'fcntl', 'flock', 'getpriority',
+      'getprotobynumber', 'gethostbyaddr', 'getnetbyaddr', 'getservbyname',
+      'getservbyport', 'getsockopt', 'glob', 'index', 'ioctl', 'join', 'kill',
+      'link', 'listen', 'mkdir', 'msgctl', 'msgget', 'msgrcv', 'msgsend',
+      'opendir', 'print', 'printf', 'push', 'pack', 'pipe', 'rename', 'rindex',
+      'read', 'recv', 'reverse', 'say', 'select', 'seek', 'semctl', 'semget',
+      'semop', 'send', 'setpgrp', 'setpriority', 'seekdir', 'setsockopt',
+      'shmctl', 'shmread', 'shmwrite', 'shutdown', 'socket', 'socketpair',
+      'split', 'sprintf', 'splice', 'substr', 'system', 'symlink', 'syscall',
+      'sysopen', 'sysseek', 'sysread', 'syswrite', 'tie', 'truncate', 'unlink',
+      'unpack', 'utime', 'unshift', 'vec', 'warn', 'waitpid', 'formline', 'open'
+    ),
     // we only parse a function if it won't be an indirob
     function: $ => $._bareword,
 
