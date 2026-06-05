@@ -716,7 +716,7 @@ FOO &foo;
   (expression_statement
     (function_call_expression
       function: (function
-        (varname
+        (code_deref_expression
           (block
             (expression_statement
               (scalar

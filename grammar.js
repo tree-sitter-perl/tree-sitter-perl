@@ -977,7 +977,19 @@ module.exports = grammar({
 
     // NOTE - amper_sub does NOT go into variable, b/c it's always a function call
     // unless it got refgen-ed
-    amper_sub: $ => seq($._SUB_AMPER, $._var_indirob),
+    amper_sub: $ => seq($._SUB_AMPER, choice(
+      // &foo / &$ref / &$punct — the name (or scalar) slot of a sub call
+      alias($._amper_indirob, $.varname),
+      // &{name} — a braced bareword autoquotes to a sub name (perl calls sub `name`)
+      $._var_indirob_autoquote,
+      // &{ EXPR } — a real code-dereference of whatever EXPR yields (a coderef in
+      // a scalar, a symbolic name from a string, or a code block). A distinct node
+      // lets consumers tell this from "call the sub literally named NAME".
+      alias($._code_deref, $.code_deref_expression),
+    )),
+    // _indirob minus the block arm; the braced-block case becomes code_deref
+    _amper_indirob: $ => choice($._bareword, $._ident_special, $.scalar),
+    _code_deref: $ => $.block,
 
     _indirob: $ => choice(
       $._bareword,

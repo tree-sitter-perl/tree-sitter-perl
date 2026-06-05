@@ -6562,10 +6562,54 @@
           "name": "_SUB_AMPER"
         },
         {
-          "type": "SYMBOL",
-          "name": "_var_indirob"
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "ALIAS",
+              "content": {
+                "type": "SYMBOL",
+                "name": "_amper_indirob"
+              },
+              "named": true,
+              "value": "varname"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "_var_indirob_autoquote"
+            },
+            {
+              "type": "ALIAS",
+              "content": {
+                "type": "SYMBOL",
+                "name": "_code_deref"
+              },
+              "named": true,
+              "value": "code_deref_expression"
+            }
+          ]
         }
       ]
+    },
+    "_amper_indirob": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "_bareword"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_ident_special"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "scalar"
+        }
+      ]
+    },
+    "_code_deref": {
+      "type": "SYMBOL",
+      "name": "block"
     },
     "_indirob": {
       "type": "CHOICE",
