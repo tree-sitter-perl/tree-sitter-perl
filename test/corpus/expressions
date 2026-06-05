@@ -590,3 +590,48 @@ my $d = \&{name};
       (refgen_expression
         (function
           (varname))))))
+
+================================================================================
+Glob dereference *{ EXPR } (symbol-table aliasing) (GR-3 glob LHS)
+================================================================================
+*{"Foo::$sym"} = \&{"$pkg::$sym"};
+*{$x}{CODE};
+*foo = 1;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      (glob
+        (glob_deref_expression
+          (block
+            (expression_statement
+              (interpolated_string_literal
+                (string_content
+                  (scalar
+                    (varname))))))))
+      (refgen_expression
+        (function
+          (code_deref_expression
+            (block
+              (expression_statement
+                (interpolated_string_literal
+                  (string_content
+                    (scalar
+                      (varname))
+                    (scalar
+                      (varname)))))))))))
+  (expression_statement
+    (glob_slot_expression
+      (glob
+        (glob_deref_expression
+          (block
+            (expression_statement
+              (scalar
+                (varname))))))
+      (autoquoted_bareword)))
+  (expression_statement
+    (assignment_expression
+      (glob
+        (varname))
+      (number))))

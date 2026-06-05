@@ -6549,8 +6549,31 @@
           "name": "_GLOB_STAR"
         },
         {
-          "type": "SYMBOL",
-          "name": "_var_indirob"
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "ALIAS",
+              "content": {
+                "type": "SYMBOL",
+                "name": "_amper_indirob"
+              },
+              "named": true,
+              "value": "varname"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "_var_indirob_autoquote"
+            },
+            {
+              "type": "ALIAS",
+              "content": {
+                "type": "SYMBOL",
+                "name": "_code_deref"
+              },
+              "named": true,
+              "value": "glob_deref_expression"
+            }
+          ]
         }
       ]
     },

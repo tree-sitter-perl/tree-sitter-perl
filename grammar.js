@@ -973,7 +973,15 @@ module.exports = grammar({
     _signature_hash: $ => seq($._HASH_PERCENT, $._signature_varname),
 
     arraylen: $ => seq('$#', $._var_indirob),
-    glob: $ => seq($._GLOB_STAR, $._var_indirob),
+    // Like amper_sub: a braced-block glob target (`*{$x}`, `*{"Foo::$s"}`,
+    // `*{ EXPR }`) is a glob dereference of whatever EXPR yields, not the glob's
+    // literal name — so emit the target as a deref instead of burying it in
+    // varname. `*foo` / `*$ref` / `*{name}` keep their varname reading.
+    glob: $ => seq($._GLOB_STAR, choice(
+      alias($._amper_indirob, $.varname),
+      $._var_indirob_autoquote,
+      alias($._code_deref, $.glob_deref_expression),
+    )),
 
     // NOTE - amper_sub does NOT go into variable, b/c it's always a function call
     // unless it got refgen-ed
