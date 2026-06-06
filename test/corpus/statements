@@ -4,11 +4,14 @@ use VERSION;
 use 5.014;
 use v5;
 use v5.14;
+use 5.14.0;
 --------------------------------------------------------------------------------
 
 (source_file
   (use_version_statement
     (number))
+  (use_version_statement
+    (version))
   (use_version_statement
     (version))
   (use_version_statement
