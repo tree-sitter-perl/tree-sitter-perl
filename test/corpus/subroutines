@@ -391,3 +391,29 @@ $sner->&over_9000
       (scalar
         (varname))
       (method))))
+
+================================================================================
+Forward declarations (no body)
+================================================================================
+sub new;
+sub area ($self);
+sub config :lvalue;
+method m;
+--------------------------------------------------------------------------------
+
+(source_file
+  (subroutine_declaration_statement
+    (bareword))
+  (subroutine_declaration_statement
+    (bareword)
+    (signature
+      (mandatory_parameter
+        (scalar
+          (varname)))))
+  (subroutine_declaration_statement
+    (bareword)
+    (attrlist
+      (attribute
+        (attribute_name))))
+  (method_declaration_statement
+    (bareword)))
