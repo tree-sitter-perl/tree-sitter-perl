@@ -293,3 +293,124 @@ y[abc]{xyz};
     (transliteration_expression
       (transliteration_content)
       (replacement))))
+
+================================================================================
+regex pattern-leading brace is a literal delimiter group, not a subscript
+================================================================================
+$x =~ m{{nested}};
+$x =~ m{ {n} };
+$x =~ qr{ {n} };
+$x =~ m[[x]];
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (binary_expression
+      left: (scalar
+        (varname))
+      right: (match_regexp
+        content: (regexp_content))))
+  (expression_statement
+    (binary_expression
+      left: (scalar
+        (varname))
+      right: (match_regexp
+        content: (regexp_content))))
+  (expression_statement
+    (binary_expression
+      left: (scalar
+        (varname))
+      right: (quoted_regexp
+        content: (regexp_content))))
+  (expression_statement
+    (binary_expression
+      left: (scalar
+        (varname))
+      right: (match_regexp
+        content: (regexp_content)))))
+
+================================================================================
+substitution with pattern-leading brace in pattern and replacement
+================================================================================
+$x =~ s{{{{a}}}}{b};
+$x =~ s{ {a} }{ {b} };
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (binary_expression
+      left: (scalar
+        (varname))
+      right: (substitution_regexp
+        content: (regexp_content)
+        (replacement))))
+  (expression_statement
+    (binary_expression
+      left: (scalar
+        (varname))
+      right: (substitution_regexp
+        content: (regexp_content)
+        (replacement)))))
+
+================================================================================
+regex bracket disambiguation still applies after content (#217 guard)
+================================================================================
+$x =~ m{[abc]};
+$x =~ m{a{2,3}};
+$x =~ m{$h{k}};
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (binary_expression
+      left: (scalar
+        (varname))
+      right: (match_regexp
+        content: (regexp_content))))
+  (expression_statement
+    (binary_expression
+      left: (scalar
+        (varname))
+      right: (match_regexp
+        content: (regexp_content))))
+  (expression_statement
+    (binary_expression
+      left: (scalar
+        (varname))
+      right: (match_regexp
+        content: (regexp_content
+          (hash_element_expression
+            hash: (container_variable
+              (varname))
+            key: (autoquoted_bareword)))))))
+
+================================================================================
+multi-line pattern: subscript bracket at the body's start column on a later line
+================================================================================
+$x =~ m{aaaaaa
+bbbbbb$h{k}};
+$x =~ m[aaaaaa
+bbbbbb$a[0]];
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (binary_expression
+      left: (scalar
+        (varname))
+      right: (match_regexp
+        content: (regexp_content
+          (hash_element_expression
+            hash: (container_variable
+              (varname))
+            key: (autoquoted_bareword))))))
+  (expression_statement
+    (binary_expression
+      left: (scalar
+        (varname))
+      right: (match_regexp
+        content: (regexp_content
+          (array_element_expression
+            array: (container_variable
+              (varname))
+            index: (number)))))))

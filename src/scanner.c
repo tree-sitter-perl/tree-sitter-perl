@@ -3,6 +3,7 @@
 #include "tsp_unicode.h"
 #include "tsp_keywords.h"
 #include "tsp_intuit_more.h"
+#include "tsp_intuit_readline.h"
 
 // grumble grumble no stdlib
 static char *tsp_strchr(register const char *s, int c) {
@@ -124,9 +125,25 @@ static int32_t close_for_open(int32_t c) {
 
 typedef struct {
   int32_t open, close, count;
+  /* Recognises a pattern-LEADING '['/'{' -- the quote's own opening delimiter
+   * appearing (after optional whitespace) as the literal first element of the
+   * body (m{{...}}, qr{ {...} }, s{{...}}, m[[...]]) -- where the S_intuit_more
+   * subscript heuristic (tsp_intuit_more) has no preceding variable to weigh and
+   * so must not be consulted.
+   *
+   * Decided ONCE by a bounded lookahead at the opening delimiter (see the open
+   * handler), where the lexer sits exactly at the body start: if the first
+   * non-space body char is the delimiter again, the body leads with a literal
+   * group.  Looking at the actual first char sidesteps both problems of the
+   * earlier column+flag scheme -- columns repeat across lines, and the scanner
+   * can't see grammar-lexed interpolation -- because we never have to ask "has
+   * content been seen?": we just check what the first char *is*.
+   *
+   * Set at the opener, consumed (cleared) by that first bracket. */
+  bool body_leads_with_delim;
 } TSPQuote;
 
-static TSPQuote tspquote_new() { return (TSPQuote){0, 0, 0}; }
+static TSPQuote tspquote_new() { return (TSPQuote){0, 0, 0, false}; }
 
 enum HeredocState { HEREDOC_NONE, HEREDOC_START, HEREDOC_UNKNOWN, HEREDOC_CONTINUE, HEREDOC_END };
 
@@ -212,6 +229,20 @@ static void lexerstate_pop_quote(LexerState *state, int32_t idx) {
 static bool lexerstate_is_paired_delimiter(LexerState *state) {
   TSPQuote *q = array_back(&state->quotes);
   return !!q->open;
+}
+
+/* Is `c` the innermost quote's pattern-leading bracket -- the delimiter-matching
+ * '['/'{' the open-handler lookahead flagged as the body's first literal element?
+ * One-shot: clears the flag so a later same-delimiter bracket is treated as
+ * ordinary (subscript/class) content. */
+static bool lexerstate_take_body_lead(LexerState *state, int32_t c) {
+  if (!state->quotes.size) return false;
+  TSPQuote *q = array_back(&state->quotes);
+  if (q->body_leads_with_delim && c == q->open) {
+    q->body_leads_with_delim = false;
+    return true;
+  }
+  return false;
 }
 
 //   in order to emulate a sublex, we basically need to have a new escape type character
@@ -740,25 +771,49 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
           MARK_END;
           // ah, we have a heredoc; let's just go down to that section then
           if (c == '<') goto heredoc_token_handling;
-          if (c == '$') ADVANCE_C;
+          // Gather the `<...>` body as we go, starting right after `<`, so the
+          // fileglob content heuristic below sees the WHOLE body -- including
+          // the `$ident` prefix the readline probe consumes here (otherwise a
+          // `<$sner >` glob would reach the heuristic with content " ").
+          char content[256];
+          size_t clen = 0;
+          if (c == '$') { content[clen++] = '$'; ADVANCE_C; }
           // we now zoooom as many ident chars as we can
-          while (isidcont(c)) ADVANCE_C;
+          while (isidcont(c)) {
+            if (clen < sizeof(content)) content[clen++] = (c < 0x80) ? (char)c : (char)0x7f;
+            ADVANCE_C;
+          }
           // if ident chars took us until the closing `>` then we're readline FILEHANDLE
           if (c == '>') TOKEN(TOKEN_OPEN_READLINE_BRACKET);
-          // otherwise we *might* be a fileglob operator (`<*.c>`, `<$dir/*>`).
-          // But a bare `<` followed by a term (e.g. `CONST < 0`) is the
-          // relational less-than operator, not a fileglob. The two are only
-          // distinguishable by whether a closing `>` appears before the end of
-          // the statement: a real fileglob is always `<...>` on a single line.
-          // So we scan ahead (without moving the marked token end, which still
-          // covers just `<`) and only commit to a fileglob if we find a `>`. If
-          // we don't, we bail and let the grammar lex `<` as the operator.
+          // Otherwise `<...>` is either a fileglob (`<*.c>`) or the relational
+          // `<` operator (`CONST < 0`); both are live after an ambiguous
+          // bareword.  Gather the body and the bytes after the `>` (pure
+          // lookahead past MARK_END, so the token stays the one-char `<`;
+          // non-ASCII -> 0x7f), then let tsp_is_fileglob() decide -- see
+          // tsp_intuit_readline.h.
           if (valid_symbols[TOKEN_OPEN_FILEGLOB_BRACKET]) {
-            while (c != '>' && c != '<' && c != ';' && c != '\n' && !lexer->eof(lexer))
+            // `content`/`clen` already hold the `$ident` prefix from above.
+            // Stop at a statement boundary so we don't chase a `>` onto the
+            // next line.
+            while (c != '>' && c != '<' && c != ';' && c != '\n' &&
+                   !lexer->eof(lexer)) {
+              if (clen < sizeof(content))
+                content[clen++] = (c < 0x80) ? (char)c : (char)0x7f;
               ADVANCE_C;
+            }
+
             if (c == '>') {
-              lexerstate_push_quote(state, '<');
-              TOKEN(TOKEN_OPEN_FILEGLOB_BRACKET);
+              ADVANCE_C;  // step past the closing `>` (still pure lookahead)
+              char after[256];
+              size_t alen = 0;
+              while (alen < sizeof(after) && c != '\n' && !lexer->eof(lexer)) {
+                after[alen++] = (c < 0x80) ? (char)c : (char)0x7f;
+                ADVANCE_C;
+              }
+              if (tsp_is_fileglob(content, clen, after, alen)) {
+                lexerstate_push_quote(state, '<');
+                TOKEN(TOKEN_OPEN_FILEGLOB_BRACKET);
+              }
             }
           }
           // not a readline, not a fileglob — let `<` fall through to the
@@ -842,6 +897,18 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
    * takes over. */
   if ((valid_symbols[TOKEN_REGEXP_OPEN_BRACKET] && c == '[') ||
       (valid_symbols[TOKEN_REGEXP_OPEN_BRACE] && c == '{')) {
+    /* A pattern-LEADING '['/'{' that is the quote's own opening delimiter is a
+     * balanced nested delimiter (m{{...}}, qr{ {...} }, s{{...}}, m[[...]]),
+     * NOT a subscript: there is no preceding variable for intuit_more to weigh,
+     * and its subscript verdict here would be meaningless.  Fall through to the
+     * Q/QQ content scanner, which consumes the opener while tracking the nesting
+     * count so the matching inner close doesn't terminate the quote early.
+     * Anything beyond the leading position is genuinely ambiguous again, so the
+     * heuristic below applies as before. */
+    bool leading = lexerstate_take_body_lead(state, c);
+    if (leading) {
+      /* leave the opener for the content scanner below */
+    } else {
     int32_t open = c;
     int32_t close = (open == '[') ? ']' : '}';
 
@@ -868,6 +935,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     }
     /* subscript: let the grammar's immediate '[' / '{' win */
     return false;
+    }
   }
 
   if (valid_symbols[TOKEN_POD]) {
@@ -1011,9 +1079,16 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     }
 
     lexerstate_push_quote(state, delim);
-    // TODO - fill in this debug print here?
-    // DEBUG("Generic QSTRING open='%c' close='%c'\n", state->delim_open,
-    // state->delim_close);
+    /* Pattern-leading bracket lookahead (see TSPQuote.body_leads_with_delim):
+     * for a paired delimiter, peek past any leading whitespace -- if the body's
+     * first real char is the delimiter again (m{{...}}, qr{ {...} }, m[[...]]),
+     * it's a literal leading group, not a subscript.  This is pure lookahead:
+     * MARK_END already covers just the opener, so these advances don't extend
+     * the emitted token and the body is re-scanned from the opener's end. */
+    if (close_for_open(delim)) {
+      while (is_tsp_whitespace(c)) ADVANCE_C;
+      if (c == delim) array_back(&state->quotes)->body_leads_with_delim = true;
+    }
     TOKEN(TOKEN_QUOTELIKE_BEGIN);
   }
 
