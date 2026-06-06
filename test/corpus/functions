@@ -284,7 +284,7 @@ print $sner / 2;
         (function)
         (scalar
           (varname)))
-      (bareword)))
+      (function)))
   (expression_statement
     (ambiguous_function_call_expression
       (function)
@@ -363,3 +363,70 @@ print({ $sner{boppers} } 'herro');
               (autoquoted_bareword)))))
       (string_literal
         (string_content)))))
+
+================================================================================
+Bareword filehandle in indirect-object slot - standard handles only (G4)
+================================================================================
+print STDERR "oops";
+binmode STDOUT, ":utf8";
+print FH @list;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (ambiguous_function_call_expression
+      (function)
+      (indirect_object
+        (filehandle))
+      (interpolated_string_literal
+        (string_content))))
+  (expression_statement
+    (ambiguous_function_call_expression
+      (function)
+      (list_expression
+        (filehandle)
+        (interpolated_string_literal
+          (string_content)))))
+  (expression_statement
+    (ambiguous_function_call_expression
+      (function)
+      (ambiguous_function_call_expression
+        (function)
+        (array
+          (varname))))))
+
+================================================================================
+builtin list-ops keep regex after the bareword; userland needs parens
+================================================================================
+my @a = split /,/, $s;
+print /x/;
+my @b = myfunc(/x/);
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      (variable_declaration
+        (array
+          (varname)))
+      (ambiguous_function_call_expression
+        (function)
+        (list_expression
+          (match_regexp
+            (regexp_content))
+          (scalar
+            (varname))))))
+  (expression_statement
+    (ambiguous_function_call_expression
+      (function)
+      (match_regexp
+        (regexp_content))))
+  (expression_statement
+    (assignment_expression
+      (variable_declaration
+        (array
+          (varname)))
+      (function_call_expression
+        (function)
+        (match_regexp
+          (regexp_content))))))

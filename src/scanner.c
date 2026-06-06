@@ -456,14 +456,37 @@ static bool isidcont(int32_t c) { return c == '_' || is_tsp_id_continue(c); }
 // there's a matching rule in the grammar to catch when it doesn't match a rule
 static bool is_interpolation_escape(int32_t c) { return c < 256 && tsp_strchr("$@-[{\\", c); }
 
+/* The runtime hands serialize() a FIXED buffer of TREE_SITTER_SERIALIZATION_BUFFER_SIZE
+ * (1024) bytes — `self->lexer.debug_buffer`, a member embedded in the Lexer/TSParser
+ * struct.  Writing past it is intra-object memory corruption (ASAN doesn't flag it),
+ * and returning a length > the buffer trips the runtime's `assert(length <= 1024)`
+ * (or, in NDEBUG builds, silently clobbers adjacent parser fields).  So we must bound
+ * the serialized size to the buffer, NOT to UINT8_MAX.
+ *
+ * Budget: everything except the quotes is fixed-size — the two count bytes, the
+ * recovery flag, and the whole heredoc FIFO at its worst case (HEREDOC_QUEUE_MAX
+ * full entries).  Whatever room is left holds quotes.  A deeply nested (or, in a
+ * mid-edit buffer, deeply *unclosed*) interpolation like `qq{ ${\ qq{ ... }} }`
+ * stacks one quote per level and can blow past this; we cap it.  Truncating the
+ * stack degrades parsing of pathologically-nested input (>~59 levels) but keeps it
+ * BOUNDED — the same graceful-degradation contract the heredoc overflow already uses.
+ */
+#define SER_FIXED_OVERHEAD \
+  (1 /* quote_count   */ + \
+   1 /* heredoc_state */ + 1 /* heredoc_count */ + \
+   HEREDOC_QUEUE_MAX * (1 /* interpolates */ + 1 /* indents */ + (int)sizeof(TSPString)) + \
+   1 /* recovery_emitted */)
+#define MAX_SERIALIZED_QUOTES \
+  ((TREE_SITTER_SERIALIZATION_BUFFER_SIZE - SER_FIXED_OVERHEAD) / (int)sizeof(TSPQuote))
+
 unsigned int tree_sitter_perl_external_scanner_serialize(void *payload, char *buffer) {
   LexerState *state = payload;
   size_t size = 0;
 
-  // Serialize the quotes array
+  // Serialize the quotes array, capped to what fits in the fixed buffer (see above).
   size_t quote_count = state->quotes.size;
-  if (quote_count > UINT8_MAX) {
-    quote_count = UINT8_MAX;
+  if (quote_count > MAX_SERIALIZED_QUOTES) {
+    quote_count = MAX_SERIALIZED_QUOTES;
   }
   buffer[size++] = (char)quote_count;
 
@@ -496,6 +519,9 @@ void tree_sitter_perl_external_scanner_deserialize(void *payload, const char *bu
   if (length > 0) {
     // Deserialize the quotes array
     size_t quote_count = (uint8_t)buffer[size++];
+    // Defensive: a well-formed buffer never exceeds this (serialize caps it), but
+    // clamp anyway so a malformed/old buffer can't drive an oversized memcpy.
+    if (quote_count > MAX_SERIALIZED_QUOTES) quote_count = MAX_SERIALIZED_QUOTES;
     if (quote_count > 0) {
       array_reserve(&state->quotes, quote_count);
       state->quotes.size = quote_count;
@@ -1005,7 +1031,13 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
           ADVANCE_C;
         }
       }
-      if (delim.length > 0) {
+      // We stop the loop above either at the closing quote or at EOF.  Only
+      // commit a heredoc if we actually found the closer; an EMPTY delimiter
+      // (`<<''` / `<<""`) is legal — perl terminates its body at the next blank
+      // line, which the body matcher already handles (an empty delim compares
+      // equal to an empty line).  Keying off the closer rather than a non-empty
+      // delim is also more correct: it won't mis-fire on EOF-without-closer.
+      if (c == delim_open) {
         // gotta eat that delimiter
         ADVANCE_C;
         // gotta null terminate up in here
@@ -1212,6 +1244,23 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
       ADVANCE_C;
       if (!isidcont(c)) TOKEN(TOKEN_FILETEST);
     }
+    return false;
+  }
+  // A lone non-identifier punctuation variable inside ${...} — ${@}, ${!},
+  // ${%}, ${$}, ${"} … — names the punctuation variable $@/$!/…, NOT a
+  // sigil/operator. The main lexer would otherwise pick the sigil/operator token
+  // (and for @ / % that token swallows the closing brace, decapitating the rest
+  // of the file). Recognize it here with the same '}'-lookahead the bareword
+  // path uses: one var char immediately followed (modulo whitespace) by '}' is
+  // the autoquoted name. Identifiers, digits and ^carets are handled by the
+  // grammar's other varname alternatives; '{' would begin a block, '#' a comment.
+  if (valid_symbols[TOKEN_BRACE_AUTOQUOTED] && !isidfirst(c) &&
+      c > ' ' && c != '}' && c != '{' && c != '^' && c != '#' &&
+      !(c >= '0' && c <= '9')) {
+    ADVANCE_C;
+    MARK_END;
+    while (is_tsp_whitespace(c)) ADVANCE_C;
+    if (c == '}') TOKEN(TOKEN_BRACE_AUTOQUOTED);
     return false;
   }
   if (isidfirst(c) &&

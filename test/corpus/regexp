@@ -90,7 +90,7 @@ Match w just solidus
 ================================================================================
 $var =~ /pattern/;
 time / 2; #comment
-sum /pattern;#still pattern/;
+split /pattern;#still pattern/;
 --------------------------------------------------------------------------------
 
 (source_file

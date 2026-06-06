@@ -202,6 +202,10 @@ module.exports = grammar({
     [$.function, $.bareword],
     [$.function, $.function_call_expression],
     [$._variables, $.indirect_object],
+    // a builtin filehandle after a list-op is ambiguous between the indirect
+    // object slot (`print STDERR LIST`) and a plain term argument
+    // (`binmode STDOUT, MODE`); GLR resolves on the following comma/term.
+    [$._term, $.indirect_object],
     [$.expression_statement, $._tricky_indirob_hashref],
     [$.autoquoted_bareword],
     // nameless params need extra lookahead
@@ -557,7 +561,13 @@ module.exports = grammar({
       $.map_grep_expression,
       $.sort_expression,
       /* PMFUNC */
+      alias($._builtin_filehandle, $.filehandle),
       $.bareword,
+      // builtin list-op words used as a bare term (e.g. `die if …`, `print;`)
+      // need a standalone reading too, since they're otherwise only reachable
+      // through the list-op function-call branches. They're unambiguously
+      // builtins, so emit `function`, not `bareword`.
+      alias($._listop_keyword, $.function),
       $.autoquoted_bareword,
       $._listop,
 
@@ -754,13 +764,29 @@ module.exports = grammar({
         optseq(':', optional(field('attributes', $.attrlist))))
     ),
 
-    _decl_variable_list: $ => paren_list_of(
-      choice(
-        $.undef_expression,
-        $._declared_vars,
-        $.refalias_variable
-      )
+    _decl_variable_list: $ => seq('(', optional($._decl_variable_list_body), ')'),
+
+    // The body intentionally avoids `paren_list_of`'s leading-`optional(rule)`
+    // shape: that admits an empty leading element, which collides with a nested
+    // `(` group opener and makes tree-sitter drop the group shift. Requiring the
+    // first element (while still allowing empty/trailing slots after a comma)
+    // keeps the nested-group `(` unambiguous.
+    _decl_variable_list_body: $ => seq(
+      $._decl_variable_list_element,
+      repeat(seq(',', optional($._decl_variable_list_element)))
     ),
+
+    _decl_variable_list_element: $ => choice(
+      $.undef_expression,
+      $._declared_vars,
+      $.refalias_variable,
+      // a nested parenthesized group: perl flattens `my ($a, ($b, $c))` to
+      // `my ($a, $b, $c)`, so structurally the inner `( ... )` is just another
+      // (recursive) variable list.
+      $.variable_group
+    ),
+
+    variable_group: $ => seq('(', optional($._decl_variable_list_body), ')'),
 
     localization_expression: $ =>
       prec(TERMPREC.UNOP, seq(choice('local', 'dynamically'), $._term)),
@@ -849,13 +875,19 @@ module.exports = grammar({
     ),
 
     indirect_object: $ => choice(
-      // we intentionally don't do bareword filehandles b/c we can't possibly do it right
-      // since we can't know what subs have been defined
+      // We punt on *arbitrary* bareword filehandles (can't know what subs are
+      // defined), but the standard predefined handles are a safe closed set —
+      // nobody sanely defines `sub STDOUT` — so we accept those.
+      alias($._builtin_filehandle, $.filehandle),
       $.block,
       // this may be kinda evil, but we use this token as a flag to not accept a search slash
       seq($.scalar, optional($._no_search_slash_plz)),
     ),
-    _unambiguous_function: $ => alias(choice($._bareword, $.amper_sub), $.function),
+    // Perl's predefined filehandles. A closed set, so recognizing them as
+    // filehandles (in the indirect-object slot and as filetest/func1 operands)
+    // can't collide with a user sub. Non-standard bareword handles are punted.
+    _builtin_filehandle: $ => choice('STDIN', 'STDOUT', 'STDERR'),
+    _unambiguous_function: $ => alias(choice($._bareword, $._listop_keyword, $.amper_sub), $.function),
     function_call_expression: $ => choice(
       seq(field('function', alias($.amper_sub, $.function))),
       // the usage of NONASSOC here is to make it that any parse of a paren after a func
@@ -868,14 +900,58 @@ module.exports = grammar({
       // we need the right precedence here so we can read ahead for the hash/sub disambiguation
       prec.right(TERMPREC.LSTOP,
         choice(
-          seq(field('function', $.function), field('arguments', $._listexpr)),
+          // The no-paren list-op form. Builtin LIST operators (print, split,
+          // join, …) keep regex-after-bareword behavior (`split /,/`, `print
+          // /x/`). For generic/userland barewords we apply PPI's heuristic: a
+          // following `/` is division by default, NOT a regex. The
+          // `_no_search_slash_plz` marker suppresses the search-slash token so
+          // `FOO / 1.05` lexes the `/` as division (the bareword then falls
+          // through to a plain term in a binary_expression). This sacrifices
+          // `myfunc /x/` (becomes division), but `myfunc(/x/)` is unaffected
+          // (parens make it unambiguous).
+          seq(field('function', alias($._listop_keyword, $.function)), field('arguments', $._listexpr)),
+          seq(field('function', $.function), optional($._no_search_slash_plz), field('arguments', $._listexpr)),
           seq(field('function', $.function), $.indirect_object, field('arguments', $._listexpr)),
+          seq(field('function', alias($._listop_keyword, $.function)), $.indirect_object, field('arguments', $._listexpr)),
           // we handle this_takes_a_block { thing; other_thing }; here. we don't wanna accept an indirob of scalar tho
           seq(field('function', $.function), alias($.block, $.indirect_object)),
           // we handle cases like takes_a_hash { 1 => 2 }; by having this special case
           seq(field('function', $.function), field('arguments', alias($._tricky_indirob_hashref, $.anonymous_hash_expression)), optseq($._PERLY_COMMA, field('arguments', $._listexpr)))
         )
       ),
+    // Builtin LIST operators. This is the `@function.builtin` list-op set from
+    // queries/highlights.scm, minus words that already have dedicated grammar
+    // handling (return → return_expression, sort → sort_expression) which would
+    // otherwise create unresolved conflicts.
+    //
+    // DESIGN NOTE — why these are folded into `ambiguous_function_call_expression`
+    // (aliased to `function`) rather than getting their own `listop_call_expression`
+    // node like func0op/func1op/sort do:
+    //   This token exists ONLY to control one thing — the search-slash heuristic
+    //   above (a `/` after a builtin list-op stays a regex: `split /,/`, `print
+    //   /x/`; after a generic bareword it's division). It is NOT meant to claim
+    //   these are "really" ambiguous. A dedicated node would read more cleanly,
+    //   BUT it isn't worth it: (a) it renames the node for every `print`/`split`/…
+    //   call, a breaking change for tree consumers, and (b) it costs ~+46 large
+    //   states (the no-paren call shapes — args / indirect-object / block-indirob
+    //   / hashref — have to be duplicated for the new node). So we reuse the
+    //   existing call machinery and only split the one search-slash-sensitive arg
+    //   branch. The `function` alias keeps the emitted node identical to a plain
+    //   bareword call.
+    _listop_keyword: $ => choice(
+      'accept', 'atan2', 'bind', 'binmode', 'bless', 'crypt', 'chmod', 'chown',
+      'connect', 'die', 'dbmopen', 'exec', 'fcntl', 'flock', 'getpriority',
+      'getprotobynumber', 'gethostbyaddr', 'getnetbyaddr', 'getservbyname',
+      'getservbyport', 'getsockopt', 'glob', 'index', 'ioctl', 'join', 'kill',
+      'link', 'listen', 'mkdir', 'msgctl', 'msgget', 'msgrcv', 'msgsend',
+      'opendir', 'print', 'printf', 'push', 'pack', 'pipe', 'rename', 'rindex',
+      'read', 'recv', 'reverse', 'say', 'select', 'seek', 'semctl', 'semget',
+      'semop', 'send', 'setpgrp', 'setpriority', 'seekdir', 'setsockopt',
+      'shmctl', 'shmread', 'shmwrite', 'shutdown', 'socket', 'socketpair',
+      'split', 'sprintf', 'splice', 'substr', 'system', 'symlink', 'syscall',
+      'sysopen', 'sysseek', 'sysread', 'syswrite', 'tie', 'truncate', 'unlink',
+      'unpack', 'utime', 'unshift', 'vec', 'warn', 'waitpid', 'formline', 'open'
+    ),
     // we only parse a function if it won't be an indirob
     function: $ => $._bareword,
 
@@ -912,11 +988,31 @@ module.exports = grammar({
     _signature_hash: $ => seq($._HASH_PERCENT, $._signature_varname),
 
     arraylen: $ => seq('$#', $._var_indirob),
-    glob: $ => seq($._GLOB_STAR, $._var_indirob),
+    // Like amper_sub: a braced-block glob target (`*{$x}`, `*{"Foo::$s"}`,
+    // `*{ EXPR }`) is a glob dereference of whatever EXPR yields, not the glob's
+    // literal name — so emit the target as a deref instead of burying it in
+    // varname. `*foo` / `*$ref` / `*{name}` keep their varname reading.
+    glob: $ => seq($._GLOB_STAR, choice(
+      alias($._amper_indirob, $.varname),
+      $._var_indirob_autoquote,
+      alias($._code_deref, $.glob_deref_expression),
+    )),
 
     // NOTE - amper_sub does NOT go into variable, b/c it's always a function call
     // unless it got refgen-ed
-    amper_sub: $ => seq($._SUB_AMPER, $._var_indirob),
+    amper_sub: $ => seq($._SUB_AMPER, choice(
+      // &foo / &$ref / &$punct — the name (or scalar) slot of a sub call
+      alias($._amper_indirob, $.varname),
+      // &{name} — a braced bareword autoquotes to a sub name (perl calls sub `name`)
+      $._var_indirob_autoquote,
+      // &{ EXPR } — a real code-dereference of whatever EXPR yields (a coderef in
+      // a scalar, a symbolic name from a string, or a code block). A distinct node
+      // lets consumers tell this from "call the sub literally named NAME".
+      alias($._code_deref, $.code_deref_expression),
+    )),
+    // _indirob minus the block arm; the braced-block case becomes code_deref
+    _amper_indirob: $ => choice($._bareword, $._ident_special, $.scalar),
+    _code_deref: $ => $.block,
 
     _indirob: $ => choice(
       $._bareword,
@@ -1023,6 +1119,12 @@ module.exports = grammar({
       $.match_regexp,
       $.substitution_regexp,
       $.transliteration_expression,
+      // v-strings in expression position require at least one dot.  A bare `vN`
+      // is ambiguous — perl parses it as a function call when a `sub vN` is in
+      // scope, else as a v-string — so we leave the single-token form a bareword
+      // and only claim the unambiguous dotted form (`v5.6.0`), which can't be a
+      // call.  `use`/`package`/`require` keep the permissive `version` token.
+      alias(token(prec(1, /v[0-9]+(?:\.[0-9]+)+/)), $.version),
     ),
 
     // we cast these into imaginary tokens to be quote chars with handedness
@@ -1094,6 +1196,7 @@ module.exports = grammar({
     _array_deref_interpolation: $ => prec.left(TERMPREC.ARROW, seq(field('arrayref', $.scalar), $._interp_arrow, token.immediate('@*'))),
     _interpolations: $ => choice(
       $.scalar,
+      $.arraylen,
       $.array,
       alias($._scalar_deref_interpolation, $.scalar_deref_expression),
       alias($._array_deref_interpolation, $.array_deref_expression),
@@ -1316,8 +1419,12 @@ module.exports = grammar({
 
     package: $ => $._bareword,
     _version: $ => prec(1, choice($.number, $.version)),
-    // we have to up the lexical prec here to prevent v5 from being read as a bareword
-    version: $ => token(prec(1, /v[0-9]+(?:\.[0-9]+)*/)),
+    // Lexical prec 2 (> the dotted v-string token in `_literal`, prec 1): in
+    // use/package/require contexts both tokens can match a dotted version, and
+    // this permissive form must win so `require v5.26` stays a
+    // require_version_expression.  The raised prec also keeps `v5` from lexing
+    // as a bareword.
+    version: $ => token(prec(2, /v[0-9]+(?:\.[0-9]+)*/)),
 
     _conditionals: $ => choice('if', 'unless'),
     _loops: $ => choice('while', 'until'),

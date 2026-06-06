@@ -315,7 +315,7 @@ CONST <FH>;
 (source_file
   (expression_statement
     (postfix_conditional_expression
-      (bareword)
+      (function)
       condition: (relational_expression
         left: (bareword)
         right: (number))))
@@ -346,7 +346,7 @@ die if CONST < $x
 (source_file
   (expression_statement
     (postfix_conditional_expression
-      (bareword)
+      (function)
       condition: (lowprec_logical_expression
         left: (relational_expression
           left: (bareword)
@@ -368,7 +368,7 @@ die if CONST < $x
         (varname))))
   (expression_statement
     (postfix_conditional_expression
-      (bareword)
+      (function)
       condition: (relational_expression
         left: (relational_expression
           left: (bareword)
@@ -758,7 +758,7 @@ FOO &foo;
   (expression_statement
     (function_call_expression
       function: (function
-        (varname
+        (code_deref_expression
           (block
             (expression_statement
               (scalar
@@ -793,6 +793,35 @@ FOO &foo;
       arguments: (function_call_expression
         function: (function
           (varname))))))
+
+================================================================================
+bareword followed by / is division, not regex (PPI heuristic)
+================================================================================
+my $x = VERY_WEAK / 1.05;
+my $y = FOO / 2 + BAR / 3;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      (variable_declaration
+        (scalar
+          (varname)))
+      (binary_expression
+        (bareword)
+        (number))))
+  (expression_statement
+    (assignment_expression
+      (variable_declaration
+        (scalar
+          (varname)))
+      (binary_expression
+        (binary_expression
+          (bareword)
+          (number))
+        (binary_expression
+          (bareword)
+          (number))))))
 
 ================================================================================
 chained comparison after a bareword is relational, not a fileglob (hybrid)
@@ -844,4 +873,4 @@ print <$dir/*> or die;
           content: (string_content
             (scalar
               (varname)))))
-      right: (bareword))))
+      right: (function))))

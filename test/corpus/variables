@@ -95,6 +95,42 @@ my ($x, undef, $z);
         (varname)))))
 
 ================================================================================
+variable declarations with nested parenthesized groups
+================================================================================
+my ( $msg, ($stay_alive) );
+my ($self, $msg, ($n));
+my ($a, ($b, ($c)));
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (variable_declaration
+      (scalar
+        (varname))
+      (variable_group
+        (scalar
+          (varname)))))
+  (expression_statement
+    (variable_declaration
+      (scalar
+        (varname))
+      (scalar
+        (varname))
+      (variable_group
+        (scalar
+          (varname)))))
+  (expression_statement
+    (variable_declaration
+      (scalar
+        (varname))
+      (variable_group
+        (scalar
+          (varname))
+        (variable_group
+          (scalar
+            (varname)))))))
+
+================================================================================
 variable declarations with initialiser
 ================================================================================
 my $s = 123;
