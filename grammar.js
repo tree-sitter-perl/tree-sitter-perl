@@ -1419,12 +1419,16 @@ module.exports = grammar({
 
     package: $ => $._bareword,
     _version: $ => prec(1, choice($.number, $.version)),
+    // Two forms: a v-string (`v5`, `v5.26.0`), and a bare numeric version with
+    // at least two dots (`5.14.0`, `1.2.3.4`) as used by `use 5.14.0;` /
+    // `package Foo 5.14.0;`. The bare form needs >=2 dots so it doesn't swallow
+    // an ordinary one-dot float (`5.14` stays a `number`).
     // Lexical prec 2 (> the dotted v-string token in `_literal`, prec 1): in
     // use/package/require contexts both tokens can match a dotted version, and
     // this permissive form must win so `require v5.26` stays a
     // require_version_expression.  The raised prec also keeps `v5` from lexing
     // as a bareword.
-    version: $ => token(prec(2, /v[0-9]+(?:\.[0-9]+)*/)),
+    version: $ => token(prec(2, /v[0-9]+(?:\.[0-9]+)*|[0-9]+(?:\.[0-9]+){2,}/)),
 
     _conditionals: $ => choice('if', 'unless'),
     _loops: $ => choice('while', 'until'),
