@@ -124,32 +124,25 @@ static int32_t close_for_open(int32_t c) {
 
 typedef struct {
   int32_t open, close, count;
-  /* These two together recognise a pattern-LEADING '['/'{' -- the quote's own
-   * opening delimiter appearing as the literal first element of the body
-   * (m{{...}}, qr{ {...} }, s{{...}}, m[[...]]) -- where the S_intuit_more
-   * subscript heuristic has nothing to weigh and so must not be consulted.  A
-   * real subscript binds immediately to a preceding variable, so a bracket is
-   * leading iff only optional whitespace precedes it in the body.
+  /* Recognises a pattern-LEADING '['/'{' -- the quote's own opening delimiter
+   * appearing (after optional whitespace) as the literal first element of the
+   * body (m{{...}}, qr{ {...} }, s{{...}}, m[[...]]) -- where the S_intuit_more
+   * subscript heuristic (tsp_intuit_more) has no preceding variable to weigh and
+   * so must not be consulted.
    *
-   * `body_col` is the column just after the opening delimiter, recorded once at
-   * the (committed) open token, so it is stable under GLR backtracking.  A
-   * bracket sitting at this column is at the body start -- but only on the
-   * opener's own line, since columns repeat across lines.
+   * Decided ONCE by a bounded lookahead at the opening delimiter (see the open
+   * handler), where the lexer sits exactly at the body start: if the first
+   * non-space body char is the delimiter again, the body leads with a literal
+   * group.  Looking at the actual first char sidesteps both problems of the
+   * earlier column+flag scheme -- columns repeat across lines, and the scanner
+   * can't see grammar-lexed interpolation -- because we never have to ask "has
+   * content been seen?": we just check what the first char *is*.
    *
-   * `seen_content` records whether the body has consumed any real content yet.
-   * It disambiguates the cross-line column collision: a bracket reaching a
-   * later line must have crossed either whitespace (caught separately) or real
-   * content, and content sets this flag, so a later-line bracket that happens
-   * to land at `body_col` is correctly treated as non-leading.  (The flag is
-   * only durable when set by content that emits an external token -- literal
-   * text, escapes, nested delimiters -- but those are exactly the cases that
-   * could push a bracket onto a later column-colliding line, so that is enough;
-   * a bare leading `$var{...}` subscript is instead ruled out by `body_col`.) */
-  int32_t body_col;
-  bool seen_content;
+   * Set at the opener, consumed (cleared) by that first bracket. */
+  bool body_leads_with_delim;
 } TSPQuote;
 
-static TSPQuote tspquote_new() { return (TSPQuote){0, 0, 0, -1, false}; }
+static TSPQuote tspquote_new() { return (TSPQuote){0, 0, 0, false}; }
 
 enum HeredocState { HEREDOC_NONE, HEREDOC_START, HEREDOC_UNKNOWN, HEREDOC_CONTINUE, HEREDOC_END };
 typedef struct {
@@ -225,31 +218,18 @@ static bool lexerstate_is_paired_delimiter(LexerState *state) {
   return !!q->open;
 }
 
-/* Record where the innermost quote's body starts (the column just after its
- * opening delimiter), for pattern-leading bracket detection. */
-static void lexerstate_set_body_col(LexerState *state, int32_t col) {
-  if (state->quotes.size) array_back(&state->quotes)->body_col = col;
-}
-
-/* Mark that the innermost quote's body has now consumed real content, so a
- * later delimiter-matching bracket is a subscript candidate, not leading. */
-static void lexerstate_mark_content_seen(LexerState *state) {
-  if (state->quotes.size) array_back(&state->quotes)->seen_content = true;
-}
-
-/* Is the bracket at `col` (with `had_whitespace` describing whether any
- * whitespace was skipped before it) at the pattern-LEADING position of the
- * innermost quote -- i.e. only whitespace, if anything, precedes it in this
- * body?  A real subscript binds immediately to its variable, so any preceding
- * whitespace rules a subscript out; otherwise the bracket is leading iff it
- * sits at the body's start column AND no content has been seen yet (the latter
- * rules out a same-column collision on a later line). */
-static bool lexerstate_at_body_lead(LexerState *state, int32_t col,
-                                    bool had_whitespace) {
+/* Is `c` the innermost quote's pattern-leading bracket -- the delimiter-matching
+ * '['/'{' the open-handler lookahead flagged as the body's first literal element?
+ * One-shot: clears the flag so a later same-delimiter bracket is treated as
+ * ordinary (subscript/class) content. */
+static bool lexerstate_take_body_lead(LexerState *state, int32_t c) {
   if (!state->quotes.size) return false;
   TSPQuote *q = array_back(&state->quotes);
-  if (q->body_col < 0) return false;
-  return had_whitespace || (!q->seen_content && col == q->body_col);
+  if (q->body_leads_with_delim && c == q->open) {
+    q->body_leads_with_delim = false;
+    return true;
+  }
+  return false;
 }
 
 //   in order to emulate a sublex, we basically need to have a new escape type character
@@ -745,7 +725,6 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
 
     if (c != '/') {
       lexerstate_push_quote(state, '/');
-      lexerstate_set_body_col(state, lexer->get_column(lexer));
       TOKEN(TOKEN_SEARCH_SLASH);
     }
     /* if we didn't get a search-slash, we fall back to the main parser */
@@ -769,10 +748,6 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
 
   if (valid_symbols[TOKEN_DOLLAR_IN_REGEXP] && c == '$') {
     DEBUG("Dollar in regexp\n", 0);
-    /* A '$' is body content (a variable / interpolation), so it ends the
-     * pattern-leading position: a following delimiter-matching bracket is now a
-     * subscript candidate, not a leading group. */
-    lexerstate_mark_content_seen(state);
     ADVANCE_C;
 
     /* Accept this literal dollar if it's followed by closing delimiter */
@@ -806,12 +781,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
      * count so the matching inner close doesn't terminate the quote early.
      * Anything beyond the leading position is genuinely ambiguous again, so the
      * heuristic below applies as before. */
-    bool leading = lexerstate_at_body_lead(state, lexer->get_column(lexer),
-                                           skipped_whitespace) &&
-                   lexerstate_is_quote_opener(state, c);
-    /* Either way this bracket is body content, so it ends the leading position
-     * for whatever follows it. */
-    lexerstate_mark_content_seen(state);
+    bool leading = lexerstate_take_body_lead(state, c);
     if (leading) {
       /* leave the opener for the content scanner below */
     } else {
@@ -979,13 +949,16 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     }
 
     lexerstate_push_quote(state, delim);
-    /* Record the body's start column; combined with the (initially false)
-     * seen_content flag this recognises a bracket immediately following the
-     * opener as pattern-leading. */
-    lexerstate_set_body_col(state, lexer->get_column(lexer));
-    // TODO - fill in this debug print here?
-    // DEBUG("Generic QSTRING open='%c' close='%c'\n", state->delim_open,
-    // state->delim_close);
+    /* Pattern-leading bracket lookahead (see TSPQuote.body_leads_with_delim):
+     * for a paired delimiter, peek past any leading whitespace -- if the body's
+     * first real char is the delimiter again (m{{...}}, qr{ {...} }, m[[...]]),
+     * it's a literal leading group, not a subscript.  This is pure lookahead:
+     * MARK_END already covers just the opener, so these advances don't extend
+     * the emitted token and the body is re-scanned from the opener's end. */
+    if (close_for_open(delim)) {
+      while (is_tsp_whitespace(c)) ADVANCE_C;
+      if (c == delim) array_back(&state->quotes)->body_leads_with_delim = true;
+    }
     TOKEN(TOKEN_QUOTELIKE_BEGIN);
   }
 
@@ -993,8 +966,6 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
       // If we're inside a quotelike that is using the `\` as a delimiter then
       // this doesn't count
       !(valid_symbols[TOKEN_QUOTELIKE_END] && lexerstate_is_quote_closer(state, '\\'))) {
-    /* An escape is body content, so it ends the pattern-leading position. */
-    lexerstate_mark_content_seen(state);
     // eat the reverse-solidus
     ADVANCE_C;
     // let's see what that reverse-solidus was hiding!
@@ -1055,16 +1026,6 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   if (valid_symbols[TOKEN_Q_STRING_CONTENT] || valid_symbols[TOKEN_QQ_STRING_CONTENT]) {
     bool is_qq = valid_symbols[TOKEN_QQ_STRING_CONTENT];
     bool valid = false;
-
-    /* Any char here that is not the body-closing delimiter is body content
-     * (literal text, an interpolation sigil, an escape, or a nested opener),
-     * so the pattern-leading position is over.  The closing delimiter ends the
-     * body and is not content, so it must not mark. */
-    {
-      int32_t closer = lexerstate_is_quote_closer(state, c);
-      if (!(closer && lexerstate_is_quote_closed(state, closer)))
-        lexerstate_mark_content_seen(state);
-    }
 
     while (c) {
       if (c == '\\') break;
