@@ -80,6 +80,39 @@ our $PackageVar;
         (varname)))))
 
 ================================================================================
+braced (autoquoted) variable declarations
+================================================================================
+my ${var} = 1;
+my @{arr} = (1);
+my %{h} = ();
+my ${ spaced };
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      right: (number)))
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (array
+          (varname)))
+      right: (number)))
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (hash
+          (varname)))
+      right: (stub_expression)))
+  (expression_statement
+    (variable_declaration
+      variable: (scalar
+        (varname)))))
+
+================================================================================
 variable declarations including undef
 ================================================================================
 my ($x, undef, $z);
