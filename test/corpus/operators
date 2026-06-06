@@ -874,3 +874,39 @@ print <$dir/*> or die;
             (scalar
               (varname)))))
       right: (function))))
+
+================================================================================
+x repetition operator glued to its count ("ab"x3)
+================================================================================
+my $a = "ab"x3;
+my @b = ("")x4;
+my $c = $s x 3;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      (variable_declaration
+        (scalar
+          (varname)))
+      (binary_expression
+        (interpolated_string_literal
+          (string_content))
+        (number))))
+  (expression_statement
+    (assignment_expression
+      (variable_declaration
+        (array
+          (varname)))
+      (binary_expression
+        (interpolated_string_literal)
+        (number))))
+  (expression_statement
+    (assignment_expression
+      (variable_declaration
+        (scalar
+          (varname)))
+      (binary_expression
+        (scalar
+          (varname))
+        (number)))))

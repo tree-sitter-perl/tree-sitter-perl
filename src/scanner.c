@@ -79,6 +79,8 @@ enum TokenType {
   TOKEN_RECOVER_BRACKET_CLOSE,
   TOKEN_RECOVER_BRACE_CLOSE,
   TOKEN_RECOVER_ARROW,
+  /* `x` repetition operator glued to its count (`"ab"x3`) */
+  TOKEN_X_OP,
   /* error condition is always last */
   TOKEN_ERROR
 };
@@ -568,6 +570,18 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   /* we use this to force tree-sitter to stay on the error branch of a nonassoc
    * operator */
   if (!is_ERROR && valid_symbols[TOKEN_NONASSOC]) TOKEN(TOKEN_NONASSOC);
+
+  /* The `x` repetition operator glued to its count (`"ab"x3`, `("")x4`). The
+   * internal lexer would greedily take `x3` as one identifier, so when the
+   * grammar offers the operator here (an operator is expected — perl's
+   * XOPERATOR state, which `valid_symbols` encodes) and `x` is glued to a digit,
+   * we emit it explicitly, consuming just the `x`. Anything else (`xor`, an
+   * identifier, a space-delimited `x`) falls through to the normal lexer. */
+  if (!is_ERROR && valid_symbols[TOKEN_X_OP] && c == 'x') {
+    ADVANCE_C;
+    if (c >= '0' && c <= '9') { MARK_END; TOKEN(TOKEN_X_OP); }
+    return false;
+  }
 
   // this is whitespace sensitive, so it must go before any whitespace is
   // skipped

@@ -3610,6 +3610,15 @@
                     {
                       "type": "STRING",
                       "value": "x"
+                    },
+                    {
+                      "type": "ALIAS",
+                      "content": {
+                        "type": "SYMBOL",
+                        "name": "_x_op"
+                      },
+                      "named": false,
+                      "value": "x"
                     }
                   ]
                 }
@@ -10077,6 +10086,10 @@
     {
       "type": "SYMBOL",
       "name": "_RECOVER_ARROW"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_x_op"
     },
     {
       "type": "SYMBOL",
