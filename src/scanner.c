@@ -729,46 +729,16 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
           }
           // if ident chars took us until the closing `>` then we're readline FILEHANDLE
           if (c == '>') TOKEN(TOKEN_OPEN_READLINE_BRACKET);
-          // otherwise we *might* be a fileglob operator (`<*.c>`, `<$dir/*>`).
-          // But a bare `<` followed by a term (e.g. `CONST < 0`) is the
-          // relational less-than operator, not a fileglob. We only reach this
-          // branch when an ambiguous bareword preceded the `<`, so both the
-          // glob and the relational reading are syntactically live and the
-          // scanner has to pick one.
-          //
-          // We scan ahead (without moving the marked token end, which still
-          // covers just `<`) looking for a closing `>` before the statement
-          // ends — a real glob is always `<...>` on a single line.  But "is
-          // there a `>` somewhere on this line" is too blunt: in
-          // `CONST < $x and $y > 2` the `>` belongs to a *second* relational
-          // operator, and committing to a glob `<$x and $y>` swallows it and
-          // derails the parse.
-          //
-          // The distinguishing signal is the *content*: a glob pattern
-          // (`*.c`, `$dir/*.txt`, `$sner `) never contains a Perl infix
-          // word-operator, whereas the relational false positives are exactly
-          // the expressions that do (`$x and $y`, `$a or $b`, `$a lt $b`, ...).
-          // So while scanning we watch for a whitespace-delimited operator
-          // word; if we see one, the `<...>` is a relational expression and we
-          // bail to let the grammar lex `<` as the operator.
-          //
-          // Note: this can only ever be a heuristic.  `print <$x and $y>` is a
-          // genuine glob in real Perl yet has identical content to the
-          // relational `CONST < $x and $y`; the two are distinguishable only by
-          // whether the leading bareword is a value or a list operator, which
-          // is parser state the scanner doesn't have.  We bias toward the
-          // relational reading for such (contrived) inputs.
+          // Otherwise `<...>` is either a fileglob (`<*.c>`) or the relational
+          // `<` operator (`CONST < 0`); both are live after an ambiguous
+          // bareword.  Gather the body and the bytes after the `>` (pure
+          // lookahead past MARK_END, so the token stays the one-char `<`;
+          // non-ASCII -> 0x7f), then let tsp_is_fileglob() decide -- see
+          // tsp_intuit_readline.h.
           if (valid_symbols[TOKEN_OPEN_FILEGLOB_BRACKET]) {
-            // Gather the `<...>` content (everything after `<` up to but not
-            // including the closing `>`) and a small window of the bytes that
-            // FOLLOW the `>` into capped buffers, then hand both to
-            // tsp_is_fileglob() (src/tsp_intuit_readline.h), which owns the
-            // whole decision.  These advances are pure lookahead past MARK_END;
-            // the emitted token stays exactly the one-char `<`.  Non-ASCII
-            // collapses to a 0x7f placeholder (the heuristic is ASCII-only).
-            // `content`/`clen` already hold the `$ident` prefix gathered above.
-            // The content scan stops at a statement boundary too, so we never
-            // run off into the next line looking for a `>` that isn't there.
+            // `content`/`clen` already hold the `$ident` prefix from above.
+            // Stop at a statement boundary so we don't chase a `>` onto the
+            // next line.
             while (c != '>' && c != '<' && c != ';' && c != '\n' &&
                    !lexer->eof(lexer)) {
               if (clen < sizeof(content))
