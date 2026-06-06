@@ -184,6 +184,9 @@ module.exports = grammar({
     $._RECOVER_BRACKET_CLOSE,
     $._RECOVER_BRACE_CLOSE,
     $._RECOVER_ARROW,
+    /* `x` repetition operator glued to its count (`"ab"x3`) — emitted only when
+     * an operator is expected, mirroring perl's XOPERATOR-state disambiguation */
+    $._x_op,
     /* error condition must always be last; we don't use this in the grammar */
     $._ERROR
   ],
@@ -646,7 +649,7 @@ module.exports = grammar({
         [prec.left, binop, '&', TERMPREC.BITANDOP], // _BITANDOP
         [prec.left, binop, choice('<<', '>>'), TERMPREC.SHIFTOP], // _SHIFTOP
         [prec.left, binop, choice('+', '-', '.'), TERMPREC.ADDOP], // _ADDOP
-        [prec.left, binop, choice('*', '/', '%', 'x'), TERMPREC.MULOP], // _MULOP
+        [prec.left, binop, choice('*', '/', '%', 'x', alias($._x_op, 'x')), TERMPREC.MULOP], // _MULOP
         [prec.left, binop, choice('=~', '!~'), TERMPREC.MATCHOP], // _MATCHOP
       ]
 
