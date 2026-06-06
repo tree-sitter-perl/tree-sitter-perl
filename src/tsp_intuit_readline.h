@@ -3,8 +3,8 @@
  * A tree-sitter-specific heuristic for the fileglob-vs-relational-operator
  * ambiguity.  This is NOT a port of any perl routine: real perl resolves it
  * purely by PL_expect (whether a value or a list operator preceded the `<`),
- * which the external scanner cannot see.  Instead we use a content + trailing
- * lookahead heuristic.
+ * which the external scanner cannot see.  Instead we use a HYBRID of a content
+ * shape test and a trailing-context (orphan) lookahead.
  *
  * The scanner reaches this decision only after an *ambiguous bareword*
  * (`valid_symbols[TOKEN_OPEN_FILEGLOB_BRACKET]`) followed by `<...>` whose
@@ -14,21 +14,29 @@
  *   print <*.c>;        # glob:       `<` opens a fileglob
  *   CONST < 7 > $x;     # relational: `<` is the less-than operator
  *
- * KEY STRUCTURAL INSIGHT ("post-`>` orphan lookahead"):
- *   A real glob/readline `<...>` is a COMPLETE term.  After its closing `>`,
- *   the surrounding `bareword <glob>` expression is itself a complete term, so
- *   what follows the `>` must be an operator, a comma, a statement modifier /
- *   low-precedence operator keyword, a closing bracket, `;`, newline, or EOF —
- *   NOT another bare term.  In `CONST < 7 > $x` there is exactly one `>`, and
- *   committing `< 7 >` as a glob would leave `$x` as an orphaned bare term with
- *   no connecting operator.  That orphan is the proof that `<` was really the
- *   relational operator (a chained comparison `CONST < 7 > $x`), so we bail.
+ * TWO INSIGHTS, COMBINED (each alone has a blind spot the other covers):
+ *
+ *   (a) GLOB-SHAPE.  A real glob/readline target positively LOOKS like one: a
+ *       glob pattern (metachar `*?[]{}~`, path `/`, or a filename-dot `foo.c`)
+ *       or a pure filehandle name (`$fh`, `STDIN`).  Content that is neither --
+ *       a bare number (`< 7 >`), a lone scalar with a separating space
+ *       (`< $a > foo`), an arithmetic operand -- is a relational operand, not a
+ *       glob.  This alone keeps `CONST < $a > foo` relational (a case a pure
+ *       orphan-lookahead gets wrong, since the trailing bareword looks benign).
+ *
+ *   (b) POST-`>` ORPHAN LOOKAHEAD.  A real glob is a COMPLETE term, so what
+ *       follows its `>` must be an operator, comma, statement modifier / low-
+ *       prec keyword, closing bracket, `;`, newline, or EOF -- NOT another bare
+ *       term.  In `CONST < $a/$b > $c` the content `$a/$b` IS glob-shaped (it
+ *       has a `/`), yet the trailing `$c` would be orphaned -- proof that `<`
+ *       was the operator (a case a pure content test gets wrong).
  *
  * Decision (given the `<...>` content and the bytes following the `>`):
- *   1. If the content contains a whitespace-delimited infix word-operator
- *      (and/or/xor/not/cmp/eq/ne/lt/gt/le/ge/x) the `<...>` is a relational
- *      expression, not a glob -> bail (NOT a fileglob).
- *   2. Otherwise look at the first non-space byte AFTER the `>`:
+ *   1. Content contains a whitespace-delimited infix word-operator
+ *      (and/or/xor/not/cmp/eq/ne/lt/gt/le/ge/x) => relational, bail.
+ *   2. Content is NOT glob-shaped and NOT a pure filehandle name => relational
+ *      operand, bail.  (the glob-shape gate, insight (a))
+ *   3. Otherwise look at the first non-space byte AFTER the `>` (insight (b)):
  *        - operator / comma / `;` / `=` / `=>` / closing bracket `) ] }` /
  *          newline / EOF, or a statement-modifier / low-prec operator keyword
  *          (if unless while until for foreach and or xor not cmp eq ne lt gt
@@ -38,11 +46,9 @@
  *          orphaned term -> bail (NOT a fileglob).
  *        - an alphabetic word that is NOT one of the keywords above: AMBIGUOUS.
  *          We lean toward NOT orphaning (treat as a fileglob) so that code like
- *          `<glob> SOMEFUNC` / `print <*.c> LIST` keeps parsing as a glob.  In
- *          practice a glob followed by a bareword is far more common (and less
- *          broken) than the relational `CONST < x > word` shape, and breaking a
- *          glob produces a cascading ERROR whereas the contrived relational
- *          chain ending in a bareword does not.
+ *          `<glob> SOMEFUNC` / `print <*.c> LIST` keeps parsing as a glob.  The
+ *          content already passed the glob-shape gate here, so leaning glob is
+ *          safer than orphaning a genuine glob.
  *
  * tsp_is_fileglob(content, clen, after, alen) returns TRUE  => commit to the
  * fileglob (subject to the scanner's other checks, e.g. a closing `>` was
@@ -120,13 +126,93 @@ static inline bool tsp_rl_content_has_infix_op(const char *s, size_t len) {
   return false;
 }
 
+/* The glob metacharacters whose presence in the content is decisive evidence
+ * of a glob pattern (as opposed to a relational operand). */
+static inline bool tsp_rl_is_glob_meta(int c) {
+  return c == '*' || c == '?' || c == '[' || c == ']' || c == '{' || c == '}' ||
+         c == '~';
+}
+
+/* Does the content POSITIVELY look like a glob pattern?  True if it contains a
+ * glob metacharacter, a path separator `/`, or a filename-looking `.` (a dot
+ * flanked by word characters, e.g. `foo.c`).  A bare number (`7`), a lone
+ * scalar (`$a`), or an operator expression has none of these. */
+static inline bool tsp_rl_content_is_globshaped(const char *s, size_t len) {
+  for (size_t i = 0; i < len; i++) {
+    unsigned char c = (unsigned char)s[i];
+    if (tsp_rl_is_glob_meta(c) || c == '/') return true;
+    if (c == '.') {
+      bool prev_word = (i > 0) && tsp_rl_isword((unsigned char)s[i - 1]);
+      bool next_word = (i + 1 < len) && tsp_rl_isword((unsigned char)s[i + 1]);
+      if (prev_word && next_word) return true;
+    }
+  }
+  return false;
+}
+
+/* Is the content a pure filehandle / scalar NAME (no leading whitespace): an
+ * optional leading `$`, then word characters with `::` or `'` package
+ * separators (e.g. `$fh`, `STDIN`, `Foo::BAR`), tolerating only trailing
+ * whitespace?  Such content is a readline target, not a relational operand.
+ * The leading-vs-trailing whitespace asymmetry is load-bearing: a glob target
+ * is written tight against `<` (`<$sner >`), whereas a relational `< EXPR`
+ * carries a separating space (`< $a > $b`). */
+static inline bool tsp_rl_is_filehandle(const char *buf, size_t len) {
+  size_t i = 0;
+  if (i >= len || tsp_rl_isspace((unsigned char)buf[i])) return false;
+  if (buf[i] == '$') i++;
+  if (i >= len) return false; /* bare `$`: not a name */
+
+  bool last_was_word = false;
+  while (i < len) {
+    if (tsp_rl_isword((unsigned char)buf[i])) {
+      last_was_word = true;
+      i++;
+    } else if (buf[i] == ':') {
+      if (!last_was_word) return false;
+      if (i + 1 >= len || buf[i + 1] != ':') return false;
+      last_was_word = false;
+      i += 2;
+    } else if (buf[i] == '\'') {
+      if (!last_was_word) return false;
+      last_was_word = false;
+      i++;
+    } else if (tsp_rl_isspace((unsigned char)buf[i])) {
+      if (!last_was_word) return false;
+      for (i++; i < len; i++)
+        if (!tsp_rl_isspace((unsigned char)buf[i])) return false;
+      return true;
+    } else {
+      return false;
+    }
+  }
+  return last_was_word;
+}
+
 /* --- the decision ---------------------------------------------------------- */
 static inline bool tsp_is_fileglob(const char *content, size_t clen,
                                    const char *after, size_t alen) {
+  /* The empty diamond `<>` (rare here; usually handled before us). */
+  if (clen == 0) return true;
+
   /* (1) operator-word inside the content => relational expression, not glob. */
   if (tsp_rl_content_has_infix_op(content, clen)) return false;
 
-  /* (2) post-`>` orphan lookahead. */
+  /* (2) GLOB-SHAPE GATE.  A real glob/readline target positively looks like a
+   * glob pattern (metachar / path / filename-dot) or a pure filehandle name.
+   * Content that is neither -- a bare number (`< 7 >`), a lone scalar with a
+   * separating space (`< $a > $b`), an arithmetic sub-expression -- is a
+   * relational operand, so bail.  This is what keeps `CONST < $a > foo` and
+   * `CONST < 7 > $x` relational without any lookahead. */
+  if (!tsp_rl_content_is_globshaped(content, clen) &&
+      !tsp_rl_is_filehandle(content, clen))
+    return false;
+
+  /* (3) post-`>` orphan lookahead.  The content looks glob-shaped, but a real
+   * glob is a COMPLETE term: if a bare term follows the `>` with no connecting
+   * operator it would be orphaned, which means `<` was the relational operator
+   * after all (e.g. `CONST < $a/$b > $c` -- glob-shaped content `$a/$b`, yet
+   * the trailing `$c` orphans). */
   size_t i = 0;
   while (i < alen && tsp_rl_isspace((unsigned char)after[i])) i++;
 

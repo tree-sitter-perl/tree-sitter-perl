@@ -715,9 +715,18 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
           MARK_END;
           // ah, we have a heredoc; let's just go down to that section then
           if (c == '<') goto heredoc_token_handling;
-          if (c == '$') ADVANCE_C;
+          // Gather the `<...>` body as we go, starting right after `<`, so the
+          // fileglob content heuristic below sees the WHOLE body -- including
+          // the `$ident` prefix the readline probe consumes here (otherwise a
+          // `<$sner >` glob would reach the heuristic with content " ").
+          char content[256];
+          size_t clen = 0;
+          if (c == '$') { content[clen++] = '$'; ADVANCE_C; }
           // we now zoooom as many ident chars as we can
-          while (isidcont(c)) ADVANCE_C;
+          while (isidcont(c)) {
+            if (clen < sizeof(content)) content[clen++] = (c < 0x80) ? (char)c : (char)0x7f;
+            ADVANCE_C;
+          }
           // if ident chars took us until the closing `>` then we're readline FILEHANDLE
           if (c == '>') TOKEN(TOKEN_OPEN_READLINE_BRACKET);
           // otherwise we *might* be a fileglob operator (`<*.c>`, `<$dir/*>`).
@@ -757,8 +766,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
             // whole decision.  These advances are pure lookahead past MARK_END;
             // the emitted token stays exactly the one-char `<`.  Non-ASCII
             // collapses to a 0x7f placeholder (the heuristic is ASCII-only).
-            char content[256];
-            size_t clen = 0;
+            // `content`/`clen` already hold the `$ident` prefix gathered above.
             // The content scan stops at a statement boundary too, so we never
             // run off into the next line looking for a `>` that isn't there.
             while (c != '>' && c != '<' && c != ';' && c != '\n' &&
