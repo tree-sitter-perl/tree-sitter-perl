@@ -343,7 +343,7 @@ module.exports = grammar({
       subExtensions(),
       'sub',
       field('name', $.bareword),
-      $._anon_sub_tail,
+      $._sub_decl_tail,
     ),
 
     method_declaration_statement: $ => seq(
@@ -351,7 +351,17 @@ module.exports = grammar({
       subExtensions(),
       'method',
       field('name', $.bareword),
-      $._anon_sub_tail,
+      $._sub_decl_tail,
+    ),
+
+    // A *named* sub/method declaration may be a forward declaration (no body,
+    // just `;`) as well as a definition — `sub foo;`, `sub foo :attr;`,
+    // `sub foo ($sig);`. Anonymous subs always need a body, so they keep
+    // `_anon_sub_tail`; here we allow either a body or a terminating `;`.
+    _sub_decl_tail: $ => seq(
+      optseq(':', optional(field('attributes', $.attrlist))),
+      optional(choice($.prototype, $.signature)),
+      choice(field('body', $.block), $._semicolon),
     ),
 
     // perly.y's grammar just considers a phaser to be a `sub` with a special
