@@ -335,6 +335,48 @@ CONST <FH>;
         (filehandle)))))
 
 ================================================================================
+bareword term < EXPR with a later > is relational, not a fileglob (gh#210)
+================================================================================
+die if CONST < $x and $y > 2;
+warn CONST < $x or $y;
+die if CONST < $x
+ > 2;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (postfix_conditional_expression
+      (bareword)
+      condition: (lowprec_logical_expression
+        left: (relational_expression
+          left: (bareword)
+          right: (scalar
+            (varname)))
+        right: (relational_expression
+          left: (scalar
+            (varname))
+          right: (number)))))
+  (expression_statement
+    (lowprec_logical_expression
+      left: (ambiguous_function_call_expression
+        function: (function)
+        arguments: (relational_expression
+          left: (bareword)
+          right: (scalar
+            (varname))))
+      right: (scalar
+        (varname))))
+  (expression_statement
+    (postfix_conditional_expression
+      (bareword)
+      condition: (relational_expression
+        left: (relational_expression
+          left: (bareword)
+          right: (scalar
+            (varname)))
+        right: (number)))))
+
+================================================================================
 EXPR << EXPR
 ================================================================================
 1 << 2;
@@ -751,3 +793,55 @@ FOO &foo;
       arguments: (function_call_expression
         function: (function
           (varname))))))
+
+================================================================================
+chained comparison after a bareword is relational, not a fileglob (hybrid)
+================================================================================
+CONST < 7 > $x;
+CONST < $a/$b > $c;
+CONST < $a > foo;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (relational_expression
+      left: (relational_expression
+        left: (bareword)
+        right: (number))
+      right: (scalar
+        (varname))))
+  (expression_statement
+    (relational_expression
+      left: (relational_expression
+        left: (bareword)
+        right: (binary_expression
+          left: (scalar
+            (varname))
+          right: (scalar
+            (varname))))
+      right: (scalar
+        (varname))))
+  (expression_statement
+    (relational_expression
+      left: (relational_expression
+        left: (bareword)
+        right: (scalar
+          (varname)))
+      right: (bareword))))
+
+================================================================================
+glob-shaped content with a trailing low-prec keyword stays a fileglob (hybrid)
+================================================================================
+print <$dir/*> or die;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (lowprec_logical_expression
+      left: (ambiguous_function_call_expression
+        function: (function)
+        arguments: (fileglob_expression
+          content: (string_content
+            (scalar
+              (varname)))))
+      right: (bareword))))

@@ -3,6 +3,7 @@
 #include "tsp_unicode.h"
 #include "tsp_keywords.h"
 #include "tsp_intuit_more.h"
+#include "tsp_intuit_readline.h"
 
 // grumble grumble no stdlib
 static char *tsp_strchr(register const char *s, int c) {
@@ -714,25 +715,49 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
           MARK_END;
           // ah, we have a heredoc; let's just go down to that section then
           if (c == '<') goto heredoc_token_handling;
-          if (c == '$') ADVANCE_C;
+          // Gather the `<...>` body as we go, starting right after `<`, so the
+          // fileglob content heuristic below sees the WHOLE body -- including
+          // the `$ident` prefix the readline probe consumes here (otherwise a
+          // `<$sner >` glob would reach the heuristic with content " ").
+          char content[256];
+          size_t clen = 0;
+          if (c == '$') { content[clen++] = '$'; ADVANCE_C; }
           // we now zoooom as many ident chars as we can
-          while (isidcont(c)) ADVANCE_C;
+          while (isidcont(c)) {
+            if (clen < sizeof(content)) content[clen++] = (c < 0x80) ? (char)c : (char)0x7f;
+            ADVANCE_C;
+          }
           // if ident chars took us until the closing `>` then we're readline FILEHANDLE
           if (c == '>') TOKEN(TOKEN_OPEN_READLINE_BRACKET);
-          // otherwise we *might* be a fileglob operator (`<*.c>`, `<$dir/*>`).
-          // But a bare `<` followed by a term (e.g. `CONST < 0`) is the
-          // relational less-than operator, not a fileglob. The two are only
-          // distinguishable by whether a closing `>` appears before the end of
-          // the statement: a real fileglob is always `<...>` on a single line.
-          // So we scan ahead (without moving the marked token end, which still
-          // covers just `<`) and only commit to a fileglob if we find a `>`. If
-          // we don't, we bail and let the grammar lex `<` as the operator.
+          // Otherwise `<...>` is either a fileglob (`<*.c>`) or the relational
+          // `<` operator (`CONST < 0`); both are live after an ambiguous
+          // bareword.  Gather the body and the bytes after the `>` (pure
+          // lookahead past MARK_END, so the token stays the one-char `<`;
+          // non-ASCII -> 0x7f), then let tsp_is_fileglob() decide -- see
+          // tsp_intuit_readline.h.
           if (valid_symbols[TOKEN_OPEN_FILEGLOB_BRACKET]) {
-            while (c != '>' && c != '<' && c != ';' && c != '\n' && !lexer->eof(lexer))
+            // `content`/`clen` already hold the `$ident` prefix from above.
+            // Stop at a statement boundary so we don't chase a `>` onto the
+            // next line.
+            while (c != '>' && c != '<' && c != ';' && c != '\n' &&
+                   !lexer->eof(lexer)) {
+              if (clen < sizeof(content))
+                content[clen++] = (c < 0x80) ? (char)c : (char)0x7f;
               ADVANCE_C;
+            }
+
             if (c == '>') {
-              lexerstate_push_quote(state, '<');
-              TOKEN(TOKEN_OPEN_FILEGLOB_BRACKET);
+              ADVANCE_C;  // step past the closing `>` (still pure lookahead)
+              char after[256];
+              size_t alen = 0;
+              while (alen < sizeof(after) && c != '\n' && !lexer->eof(lexer)) {
+                after[alen++] = (c < 0x80) ? (char)c : (char)0x7f;
+                ADVANCE_C;
+              }
+              if (tsp_is_fileglob(content, clen, after, alen)) {
+                lexerstate_push_quote(state, '<');
+                TOKEN(TOKEN_OPEN_FILEGLOB_BRACKET);
+              }
             }
           }
           // not a readline, not a fileglob — let `<` fall through to the
