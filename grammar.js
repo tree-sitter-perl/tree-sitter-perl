@@ -973,10 +973,10 @@ module.exports = grammar({
     ),
     _signature_varname: $ => alias($._identifier, $.varname),
     scalar: $ => seq('$', $._var_indirob),
-    _declare_scalar: $ => seq('$', $.varname),
+    _declare_scalar: $ => seq('$', choice($.varname, $._var_indirob_autoquote)),
     _signature_scalar: $ => seq('$', $._signature_varname),
     array: $ => seq('@', $._var_indirob),
-    _declare_array: $ => seq('@', $.varname),
+    _declare_array: $ => seq('@', choice($.varname, $._var_indirob_autoquote)),
     _signature_array: $ => seq('@', $._signature_varname),
     // these need to have higher prec than the equivalent operator symbols
     _HASH_PERCENT: $ => alias(token(prec(2, '%')), '%'), // self-aliasing b/c token
@@ -984,7 +984,7 @@ module.exports = grammar({
     _GLOB_STAR: $ => alias(token(prec(2, '*')), '*'), // self-aliasing b/c token
 
     hash: $ => seq($._HASH_PERCENT, $._var_indirob),
-    _declare_hash: $ => seq($._HASH_PERCENT, $.varname),
+    _declare_hash: $ => seq($._HASH_PERCENT, choice($.varname, $._var_indirob_autoquote)),
     _signature_hash: $ => seq($._HASH_PERCENT, $._signature_varname),
 
     arraylen: $ => seq('$#', $._var_indirob),

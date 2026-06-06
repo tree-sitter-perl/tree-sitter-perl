@@ -6384,8 +6384,17 @@
           "value": "$"
         },
         {
-          "type": "SYMBOL",
-          "name": "varname"
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "varname"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "_var_indirob_autoquote"
+            }
+          ]
         }
       ]
     },
@@ -6423,8 +6432,17 @@
           "value": "@"
         },
         {
-          "type": "SYMBOL",
-          "name": "varname"
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "varname"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "_var_indirob_autoquote"
+            }
+          ]
         }
       ]
     },
@@ -6510,8 +6528,17 @@
           "name": "_HASH_PERCENT"
         },
         {
-          "type": "SYMBOL",
-          "name": "varname"
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "varname"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "_var_indirob_autoquote"
+            }
+          ]
         }
       ]
     },
