@@ -396,6 +396,54 @@ print FH @list;
           (varname))))))
 
 ================================================================================
+list-op block is a hashref arg, except for the indirect-object set
+================================================================================
+bless {@_}, $class;
+join {x}, @y;
+print {$fh} @x;
+exec {$prog} @args;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (ambiguous_function_call_expression
+      function: (function)
+      arguments: (list_expression
+        (anonymous_hash_expression
+          (array
+            (varname)))
+        (scalar
+          (varname)))))
+  (expression_statement
+    (ambiguous_function_call_expression
+      function: (function)
+      arguments: (list_expression
+        (anonymous_hash_expression
+          (bareword))
+        (array
+          (varname)))))
+  (expression_statement
+    (ambiguous_function_call_expression
+      function: (function)
+      (indirect_object
+        (block
+          (expression_statement
+            (scalar
+              (varname)))))
+      arguments: (array
+        (varname))))
+  (expression_statement
+    (ambiguous_function_call_expression
+      function: (function)
+      (indirect_object
+        (block
+          (expression_statement
+            (scalar
+              (varname)))))
+      arguments: (array
+        (varname)))))
+
+================================================================================
 builtin list-ops keep regex after the bareword; userland needs parens
 ================================================================================
 my @a = split /,/, $s;
