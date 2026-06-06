@@ -473,3 +473,34 @@ glob access
       (glob_deref_expression
         (scalar
           (varname))))))
+
+================================================================================
+Dereference cast of a punctuation variable (${ $/ }, @{ $! })
+================================================================================
+my $x = ${ $/ };
+my @y = @{ $! };
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      (variable_declaration
+        (scalar
+          (varname)))
+      (scalar
+        (varname
+          (block
+            (expression_statement
+              (scalar
+                (varname))))))))
+  (expression_statement
+    (assignment_expression
+      (variable_declaration
+        (array
+          (varname)))
+      (array
+        (varname
+          (block
+            (expression_statement
+              (scalar
+                (varname)))))))))
