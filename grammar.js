@@ -580,7 +580,7 @@ module.exports = grammar({
       // need a standalone reading too, since they're otherwise only reachable
       // through the list-op function-call branches. They're unambiguously
       // builtins, so emit `function`, not `bareword`.
-      alias($._listop_keyword, $.function),
+      alias(choice($._listop_keyword, $._indirob_listop), $.function),
       $.autoquoted_bareword,
       $._listop,
 
@@ -900,7 +900,7 @@ module.exports = grammar({
     // filehandles (in the indirect-object slot and as filetest/func1 operands)
     // can't collide with a user sub. Non-standard bareword handles are punted.
     _builtin_filehandle: $ => choice('STDIN', 'STDOUT', 'STDERR'),
-    _unambiguous_function: $ => alias(choice($._bareword, $._listop_keyword, $.amper_sub), $.function),
+    _unambiguous_function: $ => alias(choice($._bareword, $._listop_keyword, $._indirob_listop, $.amper_sub), $.function),
     function_call_expression: $ => choice(
       seq(field('function', alias($.amper_sub, $.function))),
       // the usage of NONASSOC here is to make it that any parse of a paren after a func
@@ -923,9 +923,10 @@ module.exports = grammar({
           // `myfunc /x/` (becomes division), but `myfunc(/x/)` is unaffected
           // (parens make it unambiguous).
           seq(field('function', alias($._listop_keyword, $.function)), field('arguments', $._listexpr)),
+          seq(field('function', alias($._indirob_listop, $.function)), field('arguments', $._listexpr)),
           seq(field('function', $.function), optional($._no_search_slash_plz), field('arguments', $._listexpr)),
           seq(field('function', $.function), $.indirect_object, field('arguments', $._listexpr)),
-          seq(field('function', alias($._listop_keyword, $.function)), $.indirect_object, field('arguments', $._listexpr)),
+          seq(field('function', alias($._indirob_listop, $.function)), $.indirect_object, field('arguments', $._listexpr)),
           // we handle this_takes_a_block { thing; other_thing }; here. we don't wanna accept an indirob of scalar tho
           seq(field('function', $.function), alias($.block, $.indirect_object)),
           // we handle cases like takes_a_hash { 1 => 2 }; by having this special case
@@ -951,17 +952,28 @@ module.exports = grammar({
     //   existing call machinery and only split the one search-slash-sensitive arg
     //   branch. The `function` alias keeps the emitted node identical to a plain
     //   bareword call.
+    // The builtin list-ops that take a no-comma indirect object `FUNC {EXPR} LIST`
+    // (perlfunc): print/printf/say take a filehandle there, exec/system the
+    // program. Only these get the block/filehandle-indirob branch — for every
+    // other list-op (bless, join, push, …) a `{…}` is a hashref argument, not an
+    // indirect object. (sort's `{$a<=>$b}` comparator is its own rule.)
+    _indirob_listop: $ => choice('print', 'printf', 'say', 'exec', 'system'),
+    // NB: the no-comma-indirect-object list-ops (print/printf/say/exec/system)
+    // live in `_indirob_listop`, NOT here — the two sets are kept disjoint so a
+    // keyword reduces to exactly one hidden rule (overlap = reduce/reduce
+    // conflict). Use `choice($._listop_keyword, $._indirob_listop)` where you
+    // want "any builtin list-op".
     _listop_keyword: $ => choice(
       'accept', 'atan2', 'bind', 'binmode', 'bless', 'crypt', 'chmod', 'chown',
-      'connect', 'die', 'dbmopen', 'exec', 'fcntl', 'flock', 'getpriority',
+      'connect', 'die', 'dbmopen', 'fcntl', 'flock', 'getpriority',
       'getprotobynumber', 'gethostbyaddr', 'getnetbyaddr', 'getservbyname',
       'getservbyport', 'getsockopt', 'glob', 'index', 'ioctl', 'join', 'kill',
       'link', 'listen', 'mkdir', 'msgctl', 'msgget', 'msgrcv', 'msgsend',
-      'opendir', 'print', 'printf', 'push', 'pack', 'pipe', 'rename', 'rindex',
-      'read', 'recv', 'reverse', 'say', 'select', 'seek', 'semctl', 'semget',
+      'opendir', 'push', 'pack', 'pipe', 'rename', 'rindex',
+      'read', 'recv', 'reverse', 'select', 'seek', 'semctl', 'semget',
       'semop', 'send', 'setpgrp', 'setpriority', 'seekdir', 'setsockopt',
       'shmctl', 'shmread', 'shmwrite', 'shutdown', 'socket', 'socketpair',
-      'split', 'sprintf', 'splice', 'substr', 'system', 'symlink', 'syscall',
+      'split', 'sprintf', 'splice', 'substr', 'symlink', 'syscall',
       'sysopen', 'sysseek', 'sysread', 'syswrite', 'tie', 'truncate', 'unlink',
       'unpack', 'utime', 'unshift', 'vec', 'warn', 'waitpid', 'formline', 'open'
     ),

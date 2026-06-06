@@ -2917,8 +2917,17 @@
         {
           "type": "ALIAS",
           "content": {
-            "type": "SYMBOL",
-            "name": "_listop_keyword"
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "SYMBOL",
+                "name": "_listop_keyword"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "_indirob_listop"
+              }
+            ]
           },
           "named": true,
           "value": "function"
@@ -5650,6 +5659,10 @@
           },
           {
             "type": "SYMBOL",
+            "name": "_indirob_listop"
+          },
+          {
+            "type": "SYMBOL",
             "name": "amper_sub"
           }
         ]
@@ -5846,6 +5859,32 @@
                 "type": "FIELD",
                 "name": "function",
                 "content": {
+                  "type": "ALIAS",
+                  "content": {
+                    "type": "SYMBOL",
+                    "name": "_indirob_listop"
+                  },
+                  "named": true,
+                  "value": "function"
+                }
+              },
+              {
+                "type": "FIELD",
+                "name": "arguments",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "_listexpr"
+                }
+              }
+            ]
+          },
+          {
+            "type": "SEQ",
+            "members": [
+              {
+                "type": "FIELD",
+                "name": "function",
+                "content": {
                   "type": "SYMBOL",
                   "name": "function"
                 }
@@ -5907,7 +5946,7 @@
                   "type": "ALIAS",
                   "content": {
                     "type": "SYMBOL",
-                    "name": "_listop_keyword"
+                    "name": "_indirob_listop"
                   },
                   "named": true,
                   "value": "function"
@@ -6003,6 +6042,31 @@
         ]
       }
     },
+    "_indirob_listop": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "print"
+        },
+        {
+          "type": "STRING",
+          "value": "printf"
+        },
+        {
+          "type": "STRING",
+          "value": "say"
+        },
+        {
+          "type": "STRING",
+          "value": "exec"
+        },
+        {
+          "type": "STRING",
+          "value": "system"
+        }
+      ]
+    },
     "_listop_keyword": {
       "type": "CHOICE",
       "members": [
@@ -6049,10 +6113,6 @@
         {
           "type": "STRING",
           "value": "dbmopen"
-        },
-        {
-          "type": "STRING",
-          "value": "exec"
         },
         {
           "type": "STRING",
@@ -6144,14 +6204,6 @@
         },
         {
           "type": "STRING",
-          "value": "print"
-        },
-        {
-          "type": "STRING",
-          "value": "printf"
-        },
-        {
-          "type": "STRING",
           "value": "push"
         },
         {
@@ -6181,10 +6233,6 @@
         {
           "type": "STRING",
           "value": "reverse"
-        },
-        {
-          "type": "STRING",
-          "value": "say"
         },
         {
           "type": "STRING",
@@ -6265,10 +6313,6 @@
         {
           "type": "STRING",
           "value": "substr"
-        },
-        {
-          "type": "STRING",
-          "value": "system"
         },
         {
           "type": "STRING",
