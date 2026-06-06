@@ -6802,7 +6802,7 @@
               },
               {
                 "type": "SYMBOL",
-                "name": "_ident_special"
+                "name": "_special_var_name"
               },
               {
                 "type": "PATTERN",
@@ -9423,12 +9423,16 @@
       "value": "[_\\p{XID_Start}][\\p{XID_Continue}]*",
       "flags": "v"
     },
+    "_special_var_name": {
+      "type": "PATTERN",
+      "value": "[0-9]+|\\^([A-Z[?\\^_]|])|\\S"
+    },
     "_ident_special": {
       "type": "CHOICE",
       "members": [
         {
-          "type": "PATTERN",
-          "value": "[0-9]+|\\^([A-Z[?\\^_]|])|\\S"
+          "type": "SYMBOL",
+          "name": "_special_var_name"
         },
         {
           "type": "SEQ",

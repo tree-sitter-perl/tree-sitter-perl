@@ -1042,7 +1042,7 @@ module.exports = grammar({
     // not all indirobs are alike; for variables, they have autoquoting behavior
     _var_indirob_autoquote: $ => seq(
       $._PERLY_BRACE_OPEN,
-      alias(choice($._brace_autoquoted_token, $._bareword, $._ident_special, /\^\w+/), $.varname),
+      alias(choice($._brace_autoquoted_token, $._bareword, $._special_var_name, /\^\w+/), $.varname),
       $._brace_end_zw, '}'
     ),
     _var_indirob: $ => choice(
@@ -1464,7 +1464,11 @@ module.exports = grammar({
     // this pattern tries to encapsulate the joys of S_scan_ident in toke.c in perl core
     // _dollar_ident_zw takes care of the subtleties that distinguish $$; ( only $$
     // followed by semicolon ) from $$deref
-    _ident_special: $ => choice(/[0-9]+|\^([A-Z[?\^_]|])|\S/, seq('$', $._dollar_ident_zw)),
+    // the punctuation/number/caret special-variable NAME ($!, $0, $^W). Split out
+    // so the ${...} autoquote can use just this — NOT the `$`-prefixed form below,
+    // since `${ $foo }` / `${ $/ }` is always a dereference, not an autoquoted name.
+    _special_var_name: $ => /[0-9]+|\^([A-Z[?\^_]|])|\S/,
+    _ident_special: $ => choice($._special_var_name, seq('$', $._dollar_ident_zw)),
 
     bareword: $ => prec.dynamic(1, $._bareword),
     // _bareword is at the very end b/c the lexer prefers tokens defined earlier in the grammar
