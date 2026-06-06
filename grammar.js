@@ -919,10 +919,25 @@ module.exports = grammar({
           seq(field('function', $.function), field('arguments', alias($._tricky_indirob_hashref, $.anonymous_hash_expression)), optseq($._PERLY_COMMA, field('arguments', $._listexpr)))
         )
       ),
-    // Builtin LIST operators that keep regex-after-bareword behavior. This is the
-    // `@function.builtin` list-op set from queries/highlights.scm, minus words
-    // that already have dedicated grammar handling (return → return_expression,
-    // sort → sort_expression) which would otherwise create unresolved conflicts.
+    // Builtin LIST operators. This is the `@function.builtin` list-op set from
+    // queries/highlights.scm, minus words that already have dedicated grammar
+    // handling (return → return_expression, sort → sort_expression) which would
+    // otherwise create unresolved conflicts.
+    //
+    // DESIGN NOTE — why these are folded into `ambiguous_function_call_expression`
+    // (aliased to `function`) rather than getting their own `listop_call_expression`
+    // node like func0op/func1op/sort do:
+    //   This token exists ONLY to control one thing — the search-slash heuristic
+    //   above (a `/` after a builtin list-op stays a regex: `split /,/`, `print
+    //   /x/`; after a generic bareword it's division). It is NOT meant to claim
+    //   these are "really" ambiguous. A dedicated node would read more cleanly,
+    //   BUT it isn't worth it: (a) it renames the node for every `print`/`split`/…
+    //   call, a breaking change for tree consumers, and (b) it costs ~+46 large
+    //   states (the no-paren call shapes — args / indirect-object / block-indirob
+    //   / hashref — have to be duplicated for the new node). So we reuse the
+    //   existing call machinery and only split the one search-slash-sensitive arg
+    //   branch. The `function` alias keeps the emitted node identical to a plain
+    //   bareword call.
     _listop_keyword: $ => choice(
       'accept', 'atan2', 'bind', 'binmode', 'bless', 'crypt', 'chmod', 'chown',
       'connect', 'die', 'dbmopen', 'exec', 'fcntl', 'flock', 'getpriority',
