@@ -3,6 +3,7 @@
 #include "tsp_unicode.h"
 #include "tsp_keywords.h"
 #include "tsp_intuit_more.h"
+#include "tsp_intuit_readline.h"
 
 // grumble grumble no stdlib
 static char *tsp_strchr(register const char *s, int c) {
@@ -714,9 +715,18 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
           MARK_END;
           // ah, we have a heredoc; let's just go down to that section then
           if (c == '<') goto heredoc_token_handling;
-          if (c == '$') ADVANCE_C;
+          // Gather the `<...>` body as we go, starting right after `<`, so the
+          // fileglob content heuristic below sees the WHOLE body -- including
+          // the `$ident` prefix the readline probe consumes here (otherwise a
+          // `<$sner >` glob would reach the heuristic with content " ").
+          char content[256];
+          size_t clen = 0;
+          if (c == '$') { content[clen++] = '$'; ADVANCE_C; }
           // we now zoooom as many ident chars as we can
-          while (isidcont(c)) ADVANCE_C;
+          while (isidcont(c)) {
+            if (clen < sizeof(content)) content[clen++] = (c < 0x80) ? (char)c : (char)0x7f;
+            ADVANCE_C;
+          }
           // if ident chars took us until the closing `>` then we're readline FILEHANDLE
           if (c == '>') TOKEN(TOKEN_OPEN_READLINE_BRACKET);
           // otherwise we *might* be a fileglob operator (`<*.c>`, `<$dir/*>`).
@@ -749,46 +759,35 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
           // is parser state the scanner doesn't have.  We bias toward the
           // relational reading for such (contrived) inputs.
           if (valid_symbols[TOKEN_OPEN_FILEGLOB_BRACKET]) {
-            // tracks the start-of-word position so we can test whitespace-
-            // delimited tokens against the infix-operator list as we go
-            char word[4];
-            unsigned wlen = 0;
-            bool at_word_start = true;  // true after whitespace / right after `<`
-            bool saw_relational_op = false;
-            while (c != '>' && c != '<' && c != ';' && c != '\n' && !lexer->eof(lexer)) {
-              if (iswspace(c)) {
-                // a freshly-finished word: check it against the operators
-                if (wlen && wlen < sizeof(word)) {
-                  word[wlen] = '\0';
-                  if (streq(word, "and") || streq(word, "or") ||
-                      streq(word, "xor") || streq(word, "not") ||
-                      streq(word, "cmp") || streq(word, "eq") ||
-                      streq(word, "ne") || streq(word, "lt") ||
-                      streq(word, "gt") || streq(word, "le") ||
-                      streq(word, "ge") || streq(word, "x")) {
-                    saw_relational_op = true;
-                    break;
-                  }
-                }
-                wlen = 0;
-                at_word_start = true;
-              } else {
-                // only accumulate alpha runs that began at a word boundary;
-                // anything else (sigils, `*`, `/`, digits, `.`) makes this not
-                // a bare operator word, so we stop collecting until the next
-                // whitespace resets us
-                if (at_word_start && iswalpha((wint_t)c) && wlen < sizeof(word) - 1)
-                  word[wlen++] = (char)c;
-                else {
-                  wlen = sizeof(word);  // poison: too long / not a clean word
-                  at_word_start = false;
-                }
-              }
+            // Gather the `<...>` content (everything after `<` up to but not
+            // including the closing `>`) and a small window of the bytes that
+            // FOLLOW the `>` into capped buffers, then hand both to
+            // tsp_is_fileglob() (src/tsp_intuit_readline.h), which owns the
+            // whole decision.  These advances are pure lookahead past MARK_END;
+            // the emitted token stays exactly the one-char `<`.  Non-ASCII
+            // collapses to a 0x7f placeholder (the heuristic is ASCII-only).
+            // `content`/`clen` already hold the `$ident` prefix gathered above.
+            // The content scan stops at a statement boundary too, so we never
+            // run off into the next line looking for a `>` that isn't there.
+            while (c != '>' && c != '<' && c != ';' && c != '\n' &&
+                   !lexer->eof(lexer)) {
+              if (clen < sizeof(content))
+                content[clen++] = (c < 0x80) ? (char)c : (char)0x7f;
               ADVANCE_C;
             }
-            if (c == '>' && !saw_relational_op) {
-              lexerstate_push_quote(state, '<');
-              TOKEN(TOKEN_OPEN_FILEGLOB_BRACKET);
+
+            if (c == '>') {
+              ADVANCE_C;  // step past the closing `>` (still pure lookahead)
+              char after[256];
+              size_t alen = 0;
+              while (alen < sizeof(after) && c != '\n' && !lexer->eof(lexer)) {
+                after[alen++] = (c < 0x80) ? (char)c : (char)0x7f;
+                ADVANCE_C;
+              }
+              if (tsp_is_fileglob(content, clen, after, alen)) {
+                lexerstate_push_quote(state, '<');
+                TOKEN(TOKEN_OPEN_FILEGLOB_BRACKET);
+              }
             }
           }
           // not a readline, not a fileglob — let `<` fall through to the

@@ -793,3 +793,55 @@ FOO &foo;
       arguments: (function_call_expression
         function: (function
           (varname))))))
+
+================================================================================
+chained comparison after a bareword is relational, not a fileglob (hybrid)
+================================================================================
+CONST < 7 > $x;
+CONST < $a/$b > $c;
+CONST < $a > foo;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (relational_expression
+      left: (relational_expression
+        left: (bareword)
+        right: (number))
+      right: (scalar
+        (varname))))
+  (expression_statement
+    (relational_expression
+      left: (relational_expression
+        left: (bareword)
+        right: (binary_expression
+          left: (scalar
+            (varname))
+          right: (scalar
+            (varname))))
+      right: (scalar
+        (varname))))
+  (expression_statement
+    (relational_expression
+      left: (relational_expression
+        left: (bareword)
+        right: (scalar
+          (varname)))
+      right: (bareword))))
+
+================================================================================
+glob-shaped content with a trailing low-prec keyword stays a fileglob (hybrid)
+================================================================================
+print <$dir/*> or die;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (lowprec_logical_expression
+      left: (ambiguous_function_call_expression
+        function: (function)
+        arguments: (fileglob_expression
+          content: (string_content
+            (scalar
+              (varname)))))
+      right: (bareword))))
