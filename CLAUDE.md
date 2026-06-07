@@ -30,6 +30,20 @@ things.
   scanner is fresh. (`-r` alone doesn't fix parallelism — two rebuilds still race
   on the shared `.so`.)
 
+- **Debugging block-vs-hash & other ambiguity with `parse -d`:** when a
+  construct errors and you can't tell *why* the parser chose the branch it did,
+  dump the GLR trace: `tree-sitter parse -d normal FILE` (values: `quiet`,
+  `normal`, `pretty`; `-D` writes a `log.html` graph). The decisive signal is
+  **`process version:N`** lines — a second `version` appearing means GLR
+  *forked* into parallel stacks; if you only ever see `version:0`, the parser
+  committed to a single reading and there's no competing parse to win. That's
+  how the `bless({…})`-vs-hashref bug was cracked: `foo({%$arg})` forked at
+  `reduce sym:function` (so a hashref stack survived) while `bless(` never
+  forked, leaving only the block-indirob stack to error-recover. Grep the trace
+  for `reduce sym:`, `detect_error`, `recover`, `process version` and strip the
+  noisy `[row,col]` spans. Pairs well with a `perl -ce '…'` oracle to confirm
+  whether the input is even valid Perl before chasing a "bug."
+
 ## Parser size
 
 - The meaningful size/complexity metric is **`LARGE_STATE_COUNT`** (and
