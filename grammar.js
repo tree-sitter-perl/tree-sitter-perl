@@ -204,6 +204,9 @@ module.exports = grammar({
     [$.return_expression],
     [$.function, $.bareword],
     [$.function, $.function_call_expression],
+    // a statement-leading bareword may head a `KEYWORD (EXPR) BLOCK` control
+    // construct or an ordinary function call; GLR resolves on the trailing block
+    [$.compound_block_statement, $.function_call_expression, $.function],
     [$._variables, $.indirect_object],
     // a builtin filehandle after a list-op is ambiguous between the indirect
     // object slot (`print STDERR LIST`) and a plain term argument
@@ -244,7 +247,7 @@ module.exports = grammar({
       $.method_declaration_statement,
       $.phaser_statement,
       $.conditional_statement,
-      /* TODO: given/when/default */
+      $.compound_block_statement,
       $.loop_statement,
       $.cstyle_for_statement,
       $.for_statement,
@@ -377,6 +380,20 @@ module.exports = grammar({
         field('block', $.block),
         optional($._else)
       ),
+    // Graceful-degradation catch-all for the control-flow *shape*
+    // `KEYWORD (EXPR) BLOCK` introduced by CPAN/pluggable keywords we don't
+    // model precisely — `given (X) {…}`, `when (X) {…}`, `match (X) {…}`, and
+    // any future clone. We recognize the shape (not the name) so the keyword
+    // isn't reserved from userland, and emit a generic node for the next layer
+    // (perl-lsp, which sees the `use`) to refine. Low dynamic precedence so a
+    // real function call / known construct always wins when one applies.
+    compound_block_statement: $ => prec.dynamic(1, seq(
+      field('keyword', alias($._bareword, $.keyword)),
+      // consume the always-on NONASSOC the scanner injects after `KEYWORD (` —
+      // otherwise it commits this to a function call and starves this branch.
+      '(', $._NONASSOC, field('condition', $._expr), ')',
+      field('block', $.block),
+    )),
     _loop_body: $ => seq(field('block', $.block), optseq('continue', field('continue', $.block))),
     loop_statement: $ => seq($._loops, '(', field('condition', $._expr), ')', $._loop_body),
     cstyle_for_statement: $ =>
