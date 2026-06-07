@@ -906,7 +906,16 @@ module.exports = grammar({
       // the usage of NONASSOC here is to make it that any parse of a paren after a func
       // automatically becomes a non-ambiguous function call
       seq(field('function', $._unambiguous_function), '(', $._NONASSOC, optional(field('arguments', $._expr)), recoverParen($)),
-      seq(field('function', $._unambiguous_function), '(', $._NONASSOC, $.indirect_object, field('arguments', $._expr), recoverParen($)),
+      // The indirect-object call form `FUNC(INDIROB ARGS)` is only valid for the
+      // indirob set (print/printf/say/exec/system) and userland barewords — NOT
+      // the other builtin list-ops. Otherwise `bless({%$arg}, $class)` reads its
+      // leading `{…}` as a block indirect-object instead of a hashref argument.
+      // Listed as the disjoint pieces (`_indirob_listop` direct, the named
+      // `function` rule for barewords) rather than one combined alias, so a
+      // keyword reduces to a single hidden rule (no reduce/reduce that would
+      // starve print's indirob in favor of the hashref reading).
+      seq(field('function', alias($._indirob_listop, $.function)), '(', $._NONASSOC, $.indirect_object, field('arguments', $._expr), recoverParen($)),
+      seq(field('function', $.function), '(', $._NONASSOC, $.indirect_object, field('arguments', $._expr), recoverParen($)),
     ),
     _tricky_indirob_hashref: $ => seq($._PERLY_BRACE_OPEN, $._expr, $._PERLY_SEMICOLON, '}'),
     ambiguous_function_call_expression: $ =>
