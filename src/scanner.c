@@ -79,6 +79,8 @@ enum TokenType {
   TOKEN_RECOVER_BRACKET_CLOSE,
   TOKEN_RECOVER_BRACE_CLOSE,
   TOKEN_RECOVER_ARROW,
+  /* `x` repetition operator glued to its count (`"ab"x3`) */
+  TOKEN_X_OP,
   /* error condition is always last */
   TOKEN_ERROR
 };
@@ -569,6 +571,18 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
    * operator */
   if (!is_ERROR && valid_symbols[TOKEN_NONASSOC]) TOKEN(TOKEN_NONASSOC);
 
+  /* The `x` repetition operator glued to its count (`"ab"x3`, `("")x4`). The
+   * internal lexer would greedily take `x3` as one identifier, so when the
+   * grammar offers the operator here (an operator is expected — perl's
+   * XOPERATOR state, which `valid_symbols` encodes) and `x` is glued to a digit,
+   * we emit it explicitly, consuming just the `x`. Anything else (`xor`, an
+   * identifier, a space-delimited `x`) falls through to the normal lexer. */
+  if (!is_ERROR && valid_symbols[TOKEN_X_OP] && c == 'x') {
+    ADVANCE_C;
+    if (c >= '0' && c <= '9') { MARK_END; TOKEN(TOKEN_X_OP); }
+    return false;
+  }
+
   // this is whitespace sensitive, so it must go before any whitespace is
   // skipped
   if (valid_symbols[TOKEN_HEREDOC_MIDDLE] && !is_ERROR && state->heredoc_count > 0) {
@@ -824,8 +838,11 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   }
 
   if (!is_ERROR && valid_symbols[TOKEN_DOLLAR_IDENT_ZW]) {
-    // false on word chars, another dollar or {
-    if (!isidcont(c) && !tsp_strchr("${", c)) {
+    // false on word chars, another dollar or {  -- but if whitespace intervened
+    // the `$` can't begin a glued deref ($$foo needs the name glued on), so a
+    // following word char is a separate token: `$$ eq …`, `$$ and …` are the
+    // PID var `$$`, not `${$eq}`. Treat skipped whitespace as a hard boundary.
+    if (!tsp_strchr("${", c) && (skipped_whitespace || !isidcont(c))) {
       if (c == ':') {
         // NOTE - it's a syntax error to do $$:, so that's why we return
         // dollar_ident_zw in that case
@@ -931,6 +948,14 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     }
 
     if (!tsp_intuit_more(buf, n)) {
+      /* If this class/quantifier opener is also the quote's own delimiter
+       * (`m{ \d{2} }`, `m[ [abc] ]`), it opens a nested level — bump the count
+       * so the matching inner close doesn't terminate the quote early. The
+       * content scanner does this when it consumes `{`/`[` inline; we must do
+       * the same here, since we only reach this branch when the opener leads a
+       * scan (e.g. right after an escape) and the content scanner is bypassed. */
+      int32_t qi = lexerstate_is_quote_opener(state, open);
+      if (qi) lexerstate_saw_opener(state, qi);
       TOKEN(open == '[' ? TOKEN_REGEXP_OPEN_BRACKET : TOKEN_REGEXP_OPEN_BRACE);
     }
     /* subscript: let the grammar's immediate '[' / '{' win */
