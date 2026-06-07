@@ -1202,12 +1202,14 @@ module.exports = grammar({
     _array_element_interpolation: $ => choice(
       seq(field('array', alias($.scalar, $.container_variable)), token.immediate('['), field('index', $._expr), ']'),
       prec.left(TERMPREC.ARROW, seq($.scalar, $._interp_arrow, '[', field('index', $._expr), ']')),
-      seq($._subscripted_interpolations, token.immediate('['), field('index', $._expr), ']'),
+      // chained subscript: implicit (`$h{a}[0]`) or with an explicit arrow (`$h->{a}->[0]`)
+      seq($._subscripted_interpolations, optional($._interp_arrow), token.immediate('['), field('index', $._expr), ']'),
     ),
     _hash_element_interpolation: $ => choice(
       seq(field('hash', alias($.scalar, $.container_variable)), token.immediate('{'), field('key', $._hash_key), '}'),
       prec.left(TERMPREC.ARROW, seq($.scalar, $._interp_arrow, '{', field('key', $._hash_key), '}')),
-      seq($._subscripted_interpolations, token.immediate('{'), field('key', $._hash_key), '}'),
+      // chained subscript: implicit (`$h{a}{b}`) or with an explicit arrow (`$h->{a}->{b}`)
+      seq($._subscripted_interpolations, optional($._interp_arrow), token.immediate('{'), field('key', $._hash_key), '}'),
     ),
     _slice_expression_interpolation: $ => choice(
       seq(field('array', alias($.array, $.slice_container_variable)), token.immediate('['), $._expr, ']'),

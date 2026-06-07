@@ -7894,6 +7894,18 @@
               "name": "_subscripted_interpolations"
             },
             {
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "SYMBOL",
+                  "name": "_interp_arrow"
+                },
+                {
+                  "type": "BLANK"
+                }
+              ]
+            },
+            {
               "type": "IMMEDIATE_TOKEN",
               "content": {
                 "type": "STRING",
@@ -7995,6 +8007,18 @@
             {
               "type": "SYMBOL",
               "name": "_subscripted_interpolations"
+            },
+            {
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "SYMBOL",
+                  "name": "_interp_arrow"
+                },
+                {
+                  "type": "BLANK"
+                }
+              ]
             },
             {
               "type": "IMMEDIATE_TOKEN",

@@ -390,3 +390,30 @@ my $b = "z ${@foo} w";
               (expression_statement
                 (array
                   (varname))))))))))
+
+================================================================================
+Chained subscripts with explicit arrows interpolate (gh gap)
+================================================================================
+my $s = "$h->{a}->{b} $_[0]->{k}";
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      right: (interpolated_string_literal
+        content: (string_content
+          (hash_element_expression
+            (hash_element_expression
+              (scalar
+                (varname))
+              key: (autoquoted_bareword))
+            key: (autoquoted_bareword))
+          (hash_element_expression
+            (array_element_expression
+              array: (container_variable
+                (varname))
+              index: (number))
+            key: (autoquoted_bareword)))))))
