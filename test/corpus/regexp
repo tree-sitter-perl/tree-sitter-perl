@@ -414,3 +414,33 @@ bbbbbb$a[0]];
             array: (container_variable
               (varname))
             index: (number)))))))
+
+================================================================================
+Brace-delimited regex with {n,m} quantifier after an escape
+================================================================================
+my $m = $s =~ m{(\d{1,2})}i;
+$s =~ s{\w{2,}}{x}g;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      right: (binary_expression
+        left: (scalar
+          (varname))
+        right: (match_regexp
+          content: (regexp_content
+            (escape_sequence))
+          modifiers: (match_regexp_modifiers)))))
+  (expression_statement
+    (binary_expression
+      left: (scalar
+        (varname))
+      right: (substitution_regexp
+        content: (regexp_content
+          (escape_sequence))
+        (replacement)
+        modifiers: (substitution_regexp_modifiers)))))
