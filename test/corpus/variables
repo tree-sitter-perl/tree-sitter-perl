@@ -504,3 +504,30 @@ my @y = @{ $! };
             (expression_statement
               (scalar
                 (varname)))))))))
+
+================================================================================
+PID var $$ before a word operator / statement modifier
+================================================================================
+$pid eq $$ or die;
+print "x" if $$ == 1;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (lowprec_logical_expression
+      left: (equality_expression
+        left: (scalar
+          (varname))
+        right: (scalar
+          (varname)))
+      right: (function)))
+  (expression_statement
+    (postfix_conditional_expression
+      (ambiguous_function_call_expression
+        function: (function)
+        arguments: (interpolated_string_literal
+          content: (string_content)))
+      condition: (equality_expression
+        left: (scalar
+          (varname))
+        right: (number)))))

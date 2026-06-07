@@ -838,8 +838,11 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   }
 
   if (!is_ERROR && valid_symbols[TOKEN_DOLLAR_IDENT_ZW]) {
-    // false on word chars, another dollar or {
-    if (!isidcont(c) && !tsp_strchr("${", c)) {
+    // false on word chars, another dollar or {  -- but if whitespace intervened
+    // the `$` can't begin a glued deref ($$foo needs the name glued on), so a
+    // following word char is a separate token: `$$ eq …`, `$$ and …` are the
+    // PID var `$$`, not `${$eq}`. Treat skipped whitespace as a hard boundary.
+    if (!tsp_strchr("${", c) && (skipped_whitespace || !isidcont(c))) {
       if (c == ':') {
         // NOTE - it's a syntax error to do $$:, so that's why we return
         // dollar_ident_zw in that case
