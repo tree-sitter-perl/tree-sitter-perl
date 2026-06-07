@@ -948,6 +948,14 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     }
 
     if (!tsp_intuit_more(buf, n)) {
+      /* If this class/quantifier opener is also the quote's own delimiter
+       * (`m{ \d{2} }`, `m[ [abc] ]`), it opens a nested level — bump the count
+       * so the matching inner close doesn't terminate the quote early. The
+       * content scanner does this when it consumes `{`/`[` inline; we must do
+       * the same here, since we only reach this branch when the opener leads a
+       * scan (e.g. right after an escape) and the content scanner is bypassed. */
+      int32_t qi = lexerstate_is_quote_opener(state, open);
+      if (qi) lexerstate_saw_opener(state, qi);
       TOKEN(open == '[' ? TOKEN_REGEXP_OPEN_BRACKET : TOKEN_REGEXP_OPEN_BRACE);
     }
     /* subscript: let the grammar's immediate '[' / '{' win */
