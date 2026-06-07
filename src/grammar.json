@@ -5753,8 +5753,64 @@
               "type": "FIELD",
               "name": "function",
               "content": {
+                "type": "ALIAS",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "_indirob_listop"
+                },
+                "named": true,
+                "value": "function"
+              }
+            },
+            {
+              "type": "STRING",
+              "value": "("
+            },
+            {
+              "type": "SYMBOL",
+              "name": "_NONASSOC"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "indirect_object"
+            },
+            {
+              "type": "FIELD",
+              "name": "arguments",
+              "content": {
                 "type": "SYMBOL",
-                "name": "_unambiguous_function"
+                "name": "_expr"
+              }
+            },
+            {
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "STRING",
+                  "value": ")"
+                },
+                {
+                  "type": "ALIAS",
+                  "content": {
+                    "type": "SYMBOL",
+                    "name": "_RECOVER_PAREN_CLOSE"
+                  },
+                  "named": false,
+                  "value": ")"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "FIELD",
+              "name": "function",
+              "content": {
+                "type": "SYMBOL",
+                "name": "function"
               }
             },
             {

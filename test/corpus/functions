@@ -444,6 +444,36 @@ exec {$prog} @args;
         (varname)))))
 
 ================================================================================
+parenthesized list-op call: `{…}` is a hashref arg, except the indirob set
+================================================================================
+bless({%$arg}, $class);
+print({$fh} @list);
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (function_call_expression
+      function: (function)
+      arguments: (list_expression
+        (anonymous_hash_expression
+          (hash
+            (varname
+              (scalar
+                (varname)))))
+        (scalar
+          (varname)))))
+  (expression_statement
+    (function_call_expression
+      function: (function)
+      (indirect_object
+        (block
+          (expression_statement
+            (scalar
+              (varname)))))
+      arguments: (array
+        (varname)))))
+
+================================================================================
 builtin list-ops keep regex after the bareword; userland needs parens
 ================================================================================
 my @a = split /,/, $s;
