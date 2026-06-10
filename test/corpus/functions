@@ -501,6 +501,54 @@ return map { $_ } @x, @y;
             (varname)))))))
 
 ================================================================================
+self-nested parenless list-ops gobble at any depth (adversarial)
+================================================================================
+print print 1, 2;
+print join ",", print join ",", print join ",", print join ",", @x;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (ambiguous_function_call_expression
+      (function)
+      (ambiguous_function_call_expression
+        (function)
+        (list_expression
+          (number)
+          (number)))))
+  (expression_statement
+    (ambiguous_function_call_expression
+      (function)
+      (ambiguous_function_call_expression
+        (function)
+        (list_expression
+          (interpolated_string_literal
+            (string_content))
+          (ambiguous_function_call_expression
+            (function)
+            (ambiguous_function_call_expression
+              (function)
+              (list_expression
+                (interpolated_string_literal
+                  (string_content))
+                (ambiguous_function_call_expression
+                  (function)
+                  (ambiguous_function_call_expression
+                    (function)
+                    (list_expression
+                      (interpolated_string_literal
+                        (string_content))
+                      (ambiguous_function_call_expression
+                        (function)
+                        (ambiguous_function_call_expression
+                          (function)
+                          (list_expression
+                            (interpolated_string_literal
+                              (string_content))
+                            (array
+                              (varname))))))))))))))))
+
+================================================================================
 parenthesized list-op call: `{…}` is a hashref arg, except the indirob set
 ================================================================================
 bless({%$arg}, $class);
