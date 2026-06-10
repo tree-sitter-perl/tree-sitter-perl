@@ -1983,6 +1983,36 @@
         ]
       }
     },
+    "_gobbling_listexpr": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "PREC_DYNAMIC",
+          "value": 2,
+          "content": {
+            "type": "ALIAS",
+            "content": {
+              "type": "SYMBOL",
+              "name": "_term_rightward"
+            },
+            "named": true,
+            "value": "list_expression"
+          }
+        },
+        {
+          "type": "PREC_DYNAMIC",
+          "value": 2,
+          "content": {
+            "type": "SYMBOL",
+            "name": "ambiguous_function_call_expression"
+          }
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_term"
+        }
+      ]
+    },
     "subscripted": {
       "type": "CHOICE",
       "members": [
@@ -5225,7 +5255,7 @@
                 "name": "list",
                 "content": {
                   "type": "SYMBOL",
-                  "name": "_listexpr"
+                  "name": "_gobbling_listexpr"
                 }
               }
             ]
@@ -5254,7 +5284,7 @@
                 "name": "list",
                 "content": {
                   "type": "SYMBOL",
-                  "name": "_listexpr"
+                  "name": "_gobbling_listexpr"
                 }
               }
             ]
@@ -5404,7 +5434,7 @@
                 "name": "list",
                 "content": {
                   "type": "SYMBOL",
-                  "name": "_listexpr"
+                  "name": "_gobbling_listexpr"
                 }
               }
             ]
@@ -5903,7 +5933,7 @@
                 "name": "arguments",
                 "content": {
                   "type": "SYMBOL",
-                  "name": "_listexpr"
+                  "name": "_gobbling_listexpr"
                 }
               }
             ]
@@ -5929,7 +5959,7 @@
                 "name": "arguments",
                 "content": {
                   "type": "SYMBOL",
-                  "name": "_listexpr"
+                  "name": "_gobbling_listexpr"
                 }
               }
             ]
@@ -5962,7 +5992,7 @@
                 "name": "arguments",
                 "content": {
                   "type": "SYMBOL",
-                  "name": "_listexpr"
+                  "name": "_gobbling_listexpr"
                 }
               }
             ]
@@ -5987,7 +6017,7 @@
                 "name": "arguments",
                 "content": {
                   "type": "SYMBOL",
-                  "name": "_listexpr"
+                  "name": "_gobbling_listexpr"
                 }
               }
             ]
@@ -6017,7 +6047,7 @@
                 "name": "arguments",
                 "content": {
                   "type": "SYMBOL",
-                  "name": "_listexpr"
+                  "name": "_gobbling_listexpr"
                 }
               }
             ]
@@ -6083,7 +6113,7 @@
                         "name": "arguments",
                         "content": {
                           "type": "SYMBOL",
-                          "name": "_listexpr"
+                          "name": "_gobbling_listexpr"
                         }
                       }
                     ]
@@ -9999,6 +10029,14 @@
     [
       "_listexpr",
       "_term_rightward"
+    ],
+    [
+      "_gobbling_listexpr",
+      "_term_rightward"
+    ],
+    [
+      "_gobbling_listexpr",
+      "_listop"
     ],
     [
       "return_expression"
