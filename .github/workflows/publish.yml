@@ -16,7 +16,7 @@ jobs:
     outputs:
       body: ${{ steps.notes.outputs.body }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - id: notes
         run: |
           body=$(git log -1 --format=%b)
@@ -44,8 +44,8 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
@@ -61,7 +61,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions-rust-lang/setup-rust-toolchain@v1
       - uses: tree-sitter/setup-action/cli@v2
       - run: tree-sitter generate src/grammar.json
@@ -76,15 +76,15 @@ jobs:
     name: Build Python source dist
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
       - uses: tree-sitter/setup-action/cli@v2
       - run: tree-sitter generate src/grammar.json
       - run: pip install --upgrade build setuptools wheel
       - run: python -mbuild -n -s
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: dist-sources
           path: dist/*.tar.gz
@@ -97,7 +97,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest, windows-latest]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: tree-sitter/setup-action/cli@v2
       - run: tree-sitter generate src/grammar.json
       - uses: pypa/cibuildwheel@v2.22
@@ -105,7 +105,7 @@ jobs:
           output-dir: dist
         env:
           CIBW_ARCHS: native
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: dist-wheels-${{ matrix.os }}
           path: dist/*.whl
@@ -118,7 +118,7 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: dist
           pattern: dist-*
