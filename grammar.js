@@ -198,8 +198,6 @@ module.exports = grammar({
   ],
   conflicts: $ => [
     [$.preinc_expression, $.postinc_expression],
-    // we need this b/c otherwise a nested term will eat its children's nodes (print print 1, 2, 3)
-    [$._listexpr, $._term_rightward],
     // all of the following go GLR b/c they need extra tokens to allow postfixy autoquotes
     [$.return_expression],
     [$.function, $.bareword],
@@ -446,9 +444,19 @@ module.exports = grammar({
       prec.left(TERMPREC.OROP, binop(choice('or', 'xor'), $._expr)),
     ),
 
+    /* A parenless list operator gobbles everything to its right
+     * (`return bless {}, $class` ≡ `return bless({}, $class)`), so at a comma
+     * the parser must ALWAYS continue the innermost open list, never close a
+     * call and let the comma escape to an enclosing return/list. We force that
+     * branch statically: the `_term` production here is prec.right, so the
+     * equal-precedence shift/reduce against `_term_rightward`'s comma resolves
+     * toward the shift (right-assoc reduce = prefer shift) and the escape
+     * readings are never even forked. Which consumer owns the finished flat
+     * list stays deterministic — it reduces to whatever's below it on the
+     * stack, which is exactly the innermost list-taker. */
     _listexpr: $ => choice(
       alias($._term_rightward, $.list_expression),
-      $._term
+      prec.right($._term)
     ),
     /* ensure that an entire list expression's contents appear in one big flat
     * list, while permitting multiple internal commas and an optional trailing one */

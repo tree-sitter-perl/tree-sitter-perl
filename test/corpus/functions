@@ -212,9 +212,10 @@ print 'things', sum 1, 2, 3;
           (string_content))
         (ambiguous_function_call_expression
           (function)
-          (number))
-        (number)
-        (number)))))
+          (list_expression
+            (number)
+            (number)
+            (number)))))))
 
 ================================================================================
 ambiguous funcs with indirect objects
@@ -442,6 +443,110 @@ exec {$prog} @args;
               (varname)))))
       arguments: (array
         (varname)))))
+
+================================================================================
+a nested parenless list-op gobbles the comma list
+================================================================================
+return bless {}, $class;
+print join ',', @list;
+return sort { $a <=> $b } @x, @y;
+return map { $_ } @x, @y;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (return_expression
+      (ambiguous_function_call_expression
+        (function)
+        (list_expression
+          (anonymous_hash_expression)
+          (scalar
+            (varname))))))
+  (expression_statement
+    (ambiguous_function_call_expression
+      (function)
+      (ambiguous_function_call_expression
+        (function)
+        (list_expression
+          (string_literal
+            (string_content))
+          (array
+            (varname))))))
+  (expression_statement
+    (return_expression
+      (sort_expression
+        (block
+          (expression_statement
+            (equality_expression
+              (scalar
+                (varname))
+              (scalar
+                (varname)))))
+        (list_expression
+          (array
+            (varname))
+          (array
+            (varname))))))
+  (expression_statement
+    (return_expression
+      (map_grep_expression
+        (block
+          (expression_statement
+            (scalar
+              (varname))))
+        (list_expression
+          (array
+            (varname))
+          (array
+            (varname)))))))
+
+================================================================================
+self-nested parenless list-ops gobble at any depth (adversarial)
+================================================================================
+print print 1, 2;
+print join ",", print join ",", print join ",", print join ",", @x;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (ambiguous_function_call_expression
+      (function)
+      (ambiguous_function_call_expression
+        (function)
+        (list_expression
+          (number)
+          (number)))))
+  (expression_statement
+    (ambiguous_function_call_expression
+      (function)
+      (ambiguous_function_call_expression
+        (function)
+        (list_expression
+          (interpolated_string_literal
+            (string_content))
+          (ambiguous_function_call_expression
+            (function)
+            (ambiguous_function_call_expression
+              (function)
+              (list_expression
+                (interpolated_string_literal
+                  (string_content))
+                (ambiguous_function_call_expression
+                  (function)
+                  (ambiguous_function_call_expression
+                    (function)
+                    (list_expression
+                      (interpolated_string_literal
+                        (string_content))
+                      (ambiguous_function_call_expression
+                        (function)
+                        (ambiguous_function_call_expression
+                          (function)
+                          (list_expression
+                            (interpolated_string_literal
+                              (string_content))
+                            (array
+                              (varname))))))))))))))))
 
 ================================================================================
 parenthesized list-op call: `{…}` is a hashref arg, except the indirob set

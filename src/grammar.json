@@ -1941,8 +1941,12 @@
           "value": "list_expression"
         },
         {
-          "type": "SYMBOL",
-          "name": "_term"
+          "type": "PREC_RIGHT",
+          "value": 0,
+          "content": {
+            "type": "SYMBOL",
+            "name": "_term"
+          }
         }
       ]
     },
@@ -9995,10 +9999,6 @@
     [
       "preinc_expression",
       "postinc_expression"
-    ],
-    [
-      "_listexpr",
-      "_term_rightward"
     ],
     [
       "return_expression"
