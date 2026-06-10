@@ -198,13 +198,6 @@ module.exports = grammar({
   ],
   conflicts: $ => [
     [$.preinc_expression, $.postinc_expression],
-    // we need this b/c otherwise a nested term will eat its children's nodes (print print 1, 2, 3)
-    [$._listexpr, $._term_rightward],
-    // same fork for the list-op argument flavor; dynamic prec then picks the gobbling stack
-    [$._gobbling_listexpr, $._term_rightward],
-    // a parenless call as a lone argument reduces both ways (rewarded arg vs plain term);
-    // the trees are identical and dynamic prec keeps the rewarded one
-    [$._gobbling_listexpr, $._listop],
     // all of the following go GLR b/c they need extra tokens to allow postfixy autoquotes
     [$.return_expression],
     [$.function, $.bareword],
@@ -451,35 +444,25 @@ module.exports = grammar({
       prec.left(TERMPREC.OROP, binop(choice('or', 'xor'), $._expr)),
     ),
 
+    /* A parenless list operator gobbles everything to its right
+     * (`return bless {}, $class` ≡ `return bless({}, $class)`), so at a comma
+     * the parser must ALWAYS continue the innermost open list, never close a
+     * call and let the comma escape to an enclosing return/list. We force that
+     * branch statically: the `_term` production here is prec.right, so the
+     * equal-precedence shift/reduce against `_term_rightward`'s comma resolves
+     * toward the shift (right-assoc reduce = prefer shift) and the escape
+     * readings are never even forked. Which consumer owns the finished flat
+     * list stays deterministic — it reduces to whatever's below it on the
+     * stack, which is exactly the innermost list-taker. */
     _listexpr: $ => choice(
       alias($._term_rightward, $.list_expression),
-      $._term
+      prec.right($._term)
     ),
     /* ensure that an entire list expression's contents appear in one big flat
     * list, while permitting multiple internal commas and an optional trailing one */
     _term_rightward: $ => prec.right(seq(
       $._term, repeat1(seq($._PERLY_COMMA, optional($._term))),
     )),
-    /* The no-paren argument list of a list operator. Shape-identical to
-     * _listexpr, but the multi-term reading carries dynamic precedence: when
-     * GLR forks on a comma ("does `, $x` continue this call's arguments, or
-     * escape to an enclosing return/list?") the innermost list-op must gobble
-     * it — perl's rule is that a parenless list-op consumes everything to its
-     * right, so `return bless {}, $class` is `return bless({}, $class)`.
-     * `return` itself stays on plain _listexpr (neutral): a list argument to
-     * a real list-op outscores it, while bare `return 1, 2` keeps winning
-     * against the statement-level list the same way it always has.
-     * The second production breaks the two-listop tie (`print join ',', @x`):
-     * both "print gobbles" and "join gobbles" contain exactly one rewarded
-     * list, but only the correct innermost-gobble reading ALSO has a parenless
-     * call as the outer call's entire argument, so reward that shape too. A
-     * paren'd call can't trip this — it reduces to function_call_expression,
-     * not the ambiguous node — so `print foo(1), $y` keeps print's list. */
-    _gobbling_listexpr: $ => choice(
-      prec.dynamic(2, alias($._term_rightward, $.list_expression)),
-      prec.dynamic(2, $.ambiguous_function_call_expression),
-      $._term
-    ),
 
     subscripted: $ => choice(
       $.glob_slot_expression,
@@ -869,8 +852,8 @@ module.exports = grammar({
 
     _map_grep: $ => choice('map', 'grep'),
     map_grep_expression: $ => prec.left(TERMPREC.LSTOP, choice(
-      seq($._map_grep, field('callback', $.block), field('list', $._gobbling_listexpr)),
-      seq($._map_grep, field('callback', $._term), $._PERLY_COMMA, field('list', $._gobbling_listexpr)),
+      seq($._map_grep, field('callback', $.block), field('list', $._listexpr)),
+      seq($._map_grep, field('callback', $._term), $._PERLY_COMMA, field('list', $._listexpr)),
       seq($._map_grep, '(', $._NONASSOC, field('callback', $._term), $._PERLY_COMMA, field('list', $._listexpr), ')'),
       seq($._map_grep, '(', $._NONASSOC, field('callback', $.block), field('list', $._listexpr), ')'),
     )),
@@ -882,7 +865,7 @@ module.exports = grammar({
     // hashref
     _sort_routine: $ => choice(prec(1, alias($._bareword, $.function)), $.block, prec(1, $.scalar)),
     sort_expression: $ => prec.left(TERMPREC.LSTOP, choice(
-      seq('sort', optional(field('callback', $._sort_routine)), field('list', $._gobbling_listexpr)),
+      seq('sort', optional(field('callback', $._sort_routine)), field('list', $._listexpr)),
       seq('sort', '(', $._NONASSOC, optional(field('callback', $._sort_routine)), field('list', $._listexpr), ')'),
     )),
 
@@ -956,15 +939,15 @@ module.exports = grammar({
           // through to a plain term in a binary_expression). This sacrifices
           // `myfunc /x/` (becomes division), but `myfunc(/x/)` is unaffected
           // (parens make it unambiguous).
-          seq(field('function', alias($._listop_keyword, $.function)), field('arguments', $._gobbling_listexpr)),
-          seq(field('function', alias($._indirob_listop, $.function)), field('arguments', $._gobbling_listexpr)),
-          seq(field('function', $.function), optional($._no_search_slash_plz), field('arguments', $._gobbling_listexpr)),
-          seq(field('function', $.function), $.indirect_object, field('arguments', $._gobbling_listexpr)),
-          seq(field('function', alias($._indirob_listop, $.function)), $.indirect_object, field('arguments', $._gobbling_listexpr)),
+          seq(field('function', alias($._listop_keyword, $.function)), field('arguments', $._listexpr)),
+          seq(field('function', alias($._indirob_listop, $.function)), field('arguments', $._listexpr)),
+          seq(field('function', $.function), optional($._no_search_slash_plz), field('arguments', $._listexpr)),
+          seq(field('function', $.function), $.indirect_object, field('arguments', $._listexpr)),
+          seq(field('function', alias($._indirob_listop, $.function)), $.indirect_object, field('arguments', $._listexpr)),
           // we handle this_takes_a_block { thing; other_thing }; here. we don't wanna accept an indirob of scalar tho
           seq(field('function', $.function), alias($.block, $.indirect_object)),
           // we handle cases like takes_a_hash { 1 => 2 }; by having this special case
-          seq(field('function', $.function), field('arguments', alias($._tricky_indirob_hashref, $.anonymous_hash_expression)), optseq($._PERLY_COMMA, field('arguments', $._gobbling_listexpr)))
+          seq(field('function', $.function), field('arguments', alias($._tricky_indirob_hashref, $.anonymous_hash_expression)), optseq($._PERLY_COMMA, field('arguments', $._listexpr)))
         )
       ),
     // Builtin LIST operators. This is the `@function.builtin` list-op set from

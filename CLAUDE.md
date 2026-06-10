@@ -115,28 +115,26 @@ Other scanner responsibilities:
   boundaries.
 - **Autoquote tokens** (`_fat_comma_autoquoted`, `_brace_autoquoted`): barewords
   that auto-stringify before `=>` or inside hash subscripts.
-- **List-op gobbling via `_gobbling_listexpr`:** a parenless list-op consumes
-  everything to its right (`return bless {}, $class` ≡ `return bless({}, $class)`),
-  but when GLR forks on the comma every reading has the *same node multiset* —
-  the trees differ only in where the `list_expression` lands, so default
-  tie-breaking picks arbitrarily (and wrongly). The fix is **position-specific
-  dynamic precedence**: `_gobbling_listexpr` is `_listexpr` re-wrapped so the
-  multi-term reading (and a parenless-call-as-lone-argument reading, which
-  breaks the `print join ',', @x` two-listop tie) carries `prec.dynamic`. It's
-  used *only* in list-op argument slots (ambiguous calls, no-paren sort/map);
-  `return` stays on neutral `_listexpr` so plain `return 1, 2` still beats the
-  statement-level list. Putting the dyn prec on the shared `_term_rightward`
-  itself wouldn't work — every competing reading reduces that same production
-  exactly once, so all forks would score identically.
-  Known boundary (adversarially probed): self-nested listop-with-comma chains
-  like `print join ",", print join ",", …` hold up to 3 levels; at ≥4 the GLR
-  version cap prunes the gobbling stack before it banks its rewards (gobbling
-  = delaying reduction, so its `prec.dynamic` only lands at the `;` while flat
-  readings bank +2 per chunk early) and the top levels degrade gracefully to
-  the old flat statement-list parse — no ERROR nodes. Not fixable in-grammar:
-  the version cap is a tree-sitter library constant. Plain chains are fine at
-  scale (200× `sner 1, 2, sner …` and 100-deep `sner sner … 1, 2` both parse
-  fully nested, no slowdown).
+- **List-op gobbling is forced statically, not GLR-arbitrated:** a parenless
+  list-op consumes everything to its right (`return bless {}, $class` ≡
+  `return bless({}, $class)`), i.e. at a comma the parser must *always*
+  continue the innermost open list. This is encoded as `prec.right` on the
+  `_term` production of `_listexpr`: in the equal-precedence shift/reduce
+  against `_term_rightward`'s comma, a right-associative reduce means "prefer
+  the shift", so the close-the-call-and-escape reading is never even forked.
+  Which consumer owns the finished flat list is then deterministic — it
+  reduces into whatever sits below it on the stack (the innermost list-taker).
+  Two dead ends, both tried: (1) a `[$._listexpr, $._term_rightward]` GLR
+  conflict + dynamic precedence can't arbitrate this — the competing readings
+  have *identical node multisets* (the `list_expression` just lands elsewhere),
+  per-position `prec.dynamic` rewards land only when the gobbling stack finally
+  reduces at `;`, and under self-nested chains (`print join ",", print join
+  ",", …` ≥4 deep) the version cap prunes the late-banking gobble stack before
+  payday. (2) raising `_term_rightward` to `prec.right(1)` makes *completing*
+  a list beat *continuing* its own repeat1, so lists close after their second
+  element (stacked-heredoc tests catch it). The static fix removed that GLR
+  conflict entirely: −300 large states, ~2× faster on comma-heavy input, zero
+  stack versions spent, correct at any nesting depth.
 - **State golfing via `alias()`:** the cheapest real state reductions come from
   factoring a repeated shape (subscript bodies `[..]`/`{..}`/`(..)`, the shared
   sub/method attribute+signature+body tail) into one hidden rule, then `alias()`-ing
