@@ -11,6 +11,9 @@
 (anonymous_subroutine_expression
   body: (block) @function.inner) @function.outer
 
+; ---- sub/method attributes ----
+(attribute) @attribute.inner @attribute.outer
+
 ; ---- classes: packages, classes, and roles (block form) ----
 (package_statement
   (block) @class.inner) @class.outer
@@ -66,6 +69,13 @@
   left: (_) @assignment.lhs
   right: (_) @assignment.inner @assignment.rhs) @assignment.outer
 
-; ---- blocks and comments ----
+; ---- returns ----
+(return_expression) @return.outer
+(return_expression
+  (_) @return.inner)
+
+; ---- blocks, comments, regexes ----
 (block) @block.outer
 (comment) @comment.outer
+(quoted_regexp) @regex.outer
+(match_regexp) @regex.outer
