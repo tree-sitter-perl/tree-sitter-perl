@@ -706,3 +706,38 @@ class Example :isa(BaseClass) {
         (block
           (expression_statement
             (number)))))))
+
+================================================================================
+Generic KEYWORD (EXPR) BLOCK control construct (given/when, match/case, etc.)
+================================================================================
+given ($x) {
+  when (1) { foo() }
+}
+match ($y) { case (2) { bar() } }
+--------------------------------------------------------------------------------
+
+(source_file
+  (compound_block_statement
+    keyword: (keyword)
+    condition: (scalar
+      (varname))
+    block: (block
+      (compound_block_statement
+        keyword: (keyword)
+        condition: (number)
+        block: (block
+          (expression_statement
+            (function_call_expression
+              function: (function)))))))
+  (compound_block_statement
+    keyword: (keyword)
+    condition: (scalar
+      (varname))
+    block: (block
+      (compound_block_statement
+        keyword: (keyword)
+        condition: (number)
+        block: (block
+          (expression_statement
+            (function_call_expression
+              function: (function))))))))
