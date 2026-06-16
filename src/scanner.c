@@ -79,6 +79,7 @@ enum TokenType {
   TOKEN_RECOVER_BRACKET_CLOSE,
   TOKEN_RECOVER_BRACE_CLOSE,
   TOKEN_RECOVER_ARROW,
+  TOKEN_RECOVER_BLOCK_CLOSE,
   /* `x` repetition operator glued to its count (`"ab"x3`) */
   TOKEN_X_OP,
   /* error condition is always last */
@@ -378,8 +379,9 @@ enum PeekResult {
   PEEK_NOT_KEYWORD, // word read but not a keyword — caller MUST return false
 };
 
-static enum PeekResult peek_is_statement_keyword(TSLexer *lexer) {
+static enum PeekResult peek_is_statement_keyword(TSLexer *lexer, bool *is_structural) {
   int32_t la = lexer->lookahead;
+  *is_structural = false;
 
   if (KEYWORD_FIRST_CHAR_FILTER(la))
     return PEEK_NO_MATCH;
@@ -400,6 +402,14 @@ static enum PeekResult peek_is_statement_keyword(TSLexer *lexer) {
 
   bool needs_name = false;
   KEYWORD_MATCH(word, needs_name);
+
+  // Structural OO keywords (method/class/role) never legitimately nest inside a
+  // sub/method body, so they alone trigger body block-close recovery.  use/no/
+  // sub/package commonly DO appear in a body (e.g. `no strict 'refs';`) and must
+  // not trigger it.
+  *is_structural = (strcmp(word, "method") == 0 ||
+                    strcmp(word, "class") == 0 ||
+                    strcmp(word, "role") == 0);
 
   // Skip whitespace after keyword (including newlines — the peek resets
   // on failure, and we need to see past newlines for fat comma detection).
@@ -725,6 +735,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     valid_symbols[TOKEN_RECOVER_PAREN_CLOSE] ||
     valid_symbols[TOKEN_RECOVER_BRACKET_CLOSE] ||
     valid_symbols[TOKEN_RECOVER_BRACE_CLOSE] ||
+    valid_symbols[TOKEN_RECOVER_BLOCK_CLOSE] ||
     valid_symbols[PERLY_SEMICOLON];
 
   // Syntactic boundary: '}', ';', or EOF
@@ -757,10 +768,19 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   if ((crossed_newline || recovery_emitted) && !is_ERROR && any_recovery_valid &&
       !KEYWORD_FIRST_CHAR_FILTER(c)) {
     MARK_END;  // zero-width position for recovery tokens
-    enum PeekResult peek = peek_is_statement_keyword(lexer);
+    bool is_structural = false;
+    enum PeekResult peek = peek_is_statement_keyword(lexer, &is_structural);
     if (peek == PEEK_KEYWORD) {
       DEBUG("keyword boundary\n", 0);
       EMIT_RECOVERY_TOKENS(true);
+      // Body block-close: only a structural OO keyword (method/class/role)
+      // closes a half-typed sub/method body.  Fires after any inner paren/
+      // bracket closers above; the enclosing class block can't accept this
+      // token, so the cascade stops at one body (no over-closing).
+      if (is_structural && valid_symbols[TOKEN_RECOVER_BLOCK_CLOSE]) {
+        DEBUG("body block recovery at structural keyword\n", 0);
+        TOKEN(TOKEN_RECOVER_BLOCK_CLOSE);
+      }
       // PERLY_SEMICOLON is always the last recovery token in the chain;
       // no need to set recovery_emitted since nothing follows it.
       if (valid_symbols[PERLY_SEMICOLON]) TOKEN(PERLY_SEMICOLON);

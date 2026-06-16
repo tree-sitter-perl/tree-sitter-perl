@@ -246,3 +246,147 @@ $x->foo(
       method: (method)
       arguments: (command_string
         content: (string_content)))))
+
+================================================================================
+Block recovery - method body closed by next method keyword
+================================================================================
+class Sner {
+  method herro ($yerface) {
+     my $thing = 3;
+  method sneel ($another_thing) {
+    1;
+  }
+}
+--------------------------------------------------------------------------------
+
+(source_file
+  (class_statement
+    name: (package)
+    (block
+      (method_declaration_statement
+        name: (bareword)
+        (signature
+          (mandatory_parameter
+            (scalar
+              (varname))))
+        body: (block
+          (expression_statement
+            (assignment_expression
+              left: (variable_declaration
+                variable: (scalar
+                  (varname)))
+              right: (number)))))
+      (method_declaration_statement
+        name: (bareword)
+        (signature
+          (mandatory_parameter
+            (scalar
+              (varname))))
+        body: (block
+          (expression_statement
+            (number)))))))
+
+================================================================================
+Block recovery - stacked missing method braces become siblings (no over-close)
+================================================================================
+class Outer {
+  method a {
+    my $x = 3;
+  method b {
+    my $y = 4;
+  method c {
+    1;
+  }
+}
+--------------------------------------------------------------------------------
+
+(source_file
+  (class_statement
+    name: (package)
+    (block
+      (method_declaration_statement
+        name: (bareword)
+        body: (block
+          (expression_statement
+            (assignment_expression
+              left: (variable_declaration
+                variable: (scalar
+                  (varname)))
+              right: (number)))))
+      (method_declaration_statement
+        name: (bareword)
+        body: (block
+          (expression_statement
+            (assignment_expression
+              left: (variable_declaration
+                variable: (scalar
+                  (varname)))
+              right: (number)))))
+      (method_declaration_statement
+        name: (bareword)
+        body: (block
+          (expression_statement
+            (number)))))))
+
+================================================================================
+Block recovery - no/use inside sub body NOT closed (only method/class/role trigger)
+================================================================================
+sub import {
+  my $class = shift;
+  no strict 'refs';
+  my $y = 4;
+}
+--------------------------------------------------------------------------------
+
+(source_file
+  (subroutine_declaration_statement
+    name: (bareword)
+    body: (block
+      (expression_statement
+        (assignment_expression
+          left: (variable_declaration
+            variable: (scalar
+              (varname)))
+          right: (func1op_call_expression)))
+      (use_statement
+        module: (package)
+        (string_literal
+          content: (string_content)))
+      (expression_statement
+        (assignment_expression
+          left: (variable_declaration
+            variable: (scalar
+              (varname)))
+          right: (number))))))
+
+================================================================================
+Block recovery - valid nested named sub preserved (sub keyword does not trigger)
+================================================================================
+sub outer {
+  my $x = 3;
+  sub inner { 1; }
+  my $y = 4;
+}
+--------------------------------------------------------------------------------
+
+(source_file
+  (subroutine_declaration_statement
+    name: (bareword)
+    body: (block
+      (expression_statement
+        (assignment_expression
+          left: (variable_declaration
+            variable: (scalar
+              (varname)))
+          right: (number)))
+      (subroutine_declaration_statement
+        name: (bareword)
+        body: (block
+          (expression_statement
+            (number))))
+      (expression_statement
+        (assignment_expression
+          left: (variable_declaration
+            variable: (scalar
+              (varname)))
+          right: (number))))))
