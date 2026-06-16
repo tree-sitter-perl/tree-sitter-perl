@@ -390,3 +390,35 @@ sub outer {
             variable: (scalar
               (varname)))
           right: (number))))))
+
+================================================================================
+Block recovery - anon hash in body does not block method recovery
+================================================================================
+class C {
+  method a {
+    my $h = { x => 1 };
+  method b { 1 }
+}
+--------------------------------------------------------------------------------
+
+(source_file
+  (class_statement
+    name: (package)
+    (block
+      (method_declaration_statement
+        name: (bareword)
+        body: (block
+          (expression_statement
+            (assignment_expression
+              left: (variable_declaration
+                variable: (scalar
+                  (varname)))
+              right: (anonymous_hash_expression
+                (list_expression
+                  (autoquoted_bareword)
+                  (number)))))))
+      (method_declaration_statement
+        name: (bareword)
+        body: (block
+          (expression_statement
+            (number)))))))
