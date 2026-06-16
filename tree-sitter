@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Dev shim: pin TREE_SITTER_LIBDIR to a per-worktree dir so parallel worktree
+# builds don't fight over the shared ~/.cache/tree-sitter/lib/perl.so (keyed by
+# grammar *name*, "perl"). See CLAUDE.md "Parallel worktrees clobber each other".
+#
+# Invoke as `./tree-sitter ...` instead of bare `tree-sitter`. Committed so it
+# rides along into every git worktree automatically. Does NOT shadow the bare
+# `tree-sitter` on PATH (cwd isn't on PATH), so package.json's `tree-sitter test`
+# is unaffected.
+set -euo pipefail
+
+# This script's own directory == the worktree root it lives in.
+root=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+
+# One libdir per worktree (respects an explicit override if already set).
+export TREE_SITTER_LIBDIR="${TREE_SITTER_LIBDIR:-/tmp/tslib-$(basename -- "$root")}"
+
+# Hand off to whatever `tree-sitter` is on PATH. Guard against resolving back to
+# this shim (e.g. if the repo dir is on PATH) so we never recurse.
+real=$(command -v tree-sitter || true)
+if [ -z "$real" ]; then
+  echo "tree-sitter shim: no 'tree-sitter' found on PATH" >&2
+  exit 127
+fi
+if [ "$(cd -- "$(dirname -- "$real")" && pwd -P)/$(basename -- "$real")" = "$root/tree-sitter" ]; then
+  echo "tree-sitter shim: PATH resolves back to this shim; put a real tree-sitter on PATH" >&2
+  exit 127
+fi
+
+exec "$real" "$@"

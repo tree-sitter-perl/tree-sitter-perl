@@ -7,32 +7,18 @@ things.
 
 ## Toolchain / local dev
 
-- **Use the cargo-installed `tree-sitter` CLI** (`~/.cargo/bin/tree-sitter`,
-  0.26.x), not `npx tree-sitter` / the `node_modules` binary. The bundled
-  prebuilt CLI needs GLIBC 2.39 and won't run on older linux boxes; the cargo build
-  does. (`package.json`'s `test` script shells out to whatever `tree-sitter` is
-  on PATH — just make sure that's the cargo one.)
-- Regenerate + test: `tree-sitter generate && tree-sitter test`.
-- **Scanner-recompile gotcha:** `tree-sitter parse`/`test` do **not** reliably
+- **Use `./tree-sitter`** instead of the tree-sitter CLI. it handles scoping your commands
+  correctly via TREE_SITTER_LIBDIR so as not to poison the build cache for anyone working
+  in a parallel worktree
+- Regenerate + test: `./tree-sitter generate && ./tree-sitter test`.
+- **Scanner-recompile gotcha:** `./tree-sitter parse`/`test` do **not** reliably
   recompile the external scanner when only `src/scanner.c` changes (they check
   `grammar.js`/`parser.c` freshness, not `scanner.c`). Pass `-r`/`--rebuild` to
-  force it, or you'll chase ghosts from a stale `~/.cache/tree-sitter/lib/perl.so`.
-- **Parallel worktrees clobber each other:** the compiled parser is cached at
-  `~/.cache/tree-sitter/lib/perl.so` keyed by grammar *name* (`perl`), so
-  concurrent builds in different worktrees fight over one file. Give each its
-  own lib dir:
-
-  ```sh
-  TREE_SITTER_LIBDIR=/tmp/tslib-$(basename "$PWD") tree-sitter test -r
-  ```
-
-  The per-worktree `LIBDIR` is the part that buys isolation; `-r` guarantees the
-  scanner is fresh. (`-r` alone doesn't fix parallelism — two rebuilds still race
-  on the shared `.so`.)
-
+  force it, or you'll chase ghosts from a stale cache (check the `./tree-sitter` script
+  for the location)
 - **Debugging block-vs-hash & other ambiguity with `parse -d`:** when a
   construct errors and you can't tell *why* the parser chose the branch it did,
-  dump the GLR trace: `tree-sitter parse -d normal FILE` (values: `quiet`,
+  dump the GLR trace: `./tree-sitter parse -d normal FILE` (values: `quiet`,
   `normal`, `pretty`; `-D` writes a `log.html` graph). The decisive signal is
   **`process version:N`** lines — a second `version` appearing means GLR
   *forked* into parallel stacks; if you only ever see `version:0`, the parser
@@ -51,7 +37,7 @@ things.
   is dominated by large embedded unicode tables. Large states each carry a full
   lookahead-table row; small states use a compact representation, so
   `LARGE_STATE_COUNT` is what drives table size.
-- Per-rule breakdown: `tree-sitter generate --report-states-for-rule -`. Caveat:
+- Per-rule breakdown: `./tree-sitter generate --report-states-for-rule -`. Caveat:
   those per-rule counts are *overlapping participation* counts (rules sharing the
   same left-recursive machinery all "cost" similar large numbers), not separable
   piles. Only genuinely *duplicated structure* is worth factoring — and you factor
