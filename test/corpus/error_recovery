@@ -422,3 +422,32 @@ class C {
         body: (block
           (expression_statement
             (number)))))))
+
+================================================================================
+Block recovery - unclosed bracket in body still closes body (siblings)
+================================================================================
+class C {
+  method a {
+    my @x = [
+  method b { 1 }
+}
+--------------------------------------------------------------------------------
+
+(source_file
+  (class_statement
+    name: (package)
+    (block
+      (method_declaration_statement
+        name: (bareword)
+        body: (block
+          (expression_statement
+            (assignment_expression
+              left: (variable_declaration
+                variable: (array
+                  (varname)))
+              right: (anonymous_array_expression)))))
+      (method_declaration_statement
+        name: (bareword)
+        body: (block
+          (expression_statement
+            (number)))))))

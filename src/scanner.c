@@ -781,9 +781,16 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
         DEBUG("body block recovery at structural keyword\n", 0);
         TOKEN(TOKEN_RECOVER_BLOCK_CLOSE);
       }
-      // PERLY_SEMICOLON is always the last recovery token in the chain;
-      // no need to set recovery_emitted since nothing follows it.
-      if (valid_symbols[PERLY_SEMICOLON]) TOKEN(PERLY_SEMICOLON);
+      // A statement terminator may need to fire BEFORE the body block-close:
+      // after an inner closer (e.g. `my @x = [` -> `]`) completes an expression,
+      // the statement still needs `;` before the enclosing body can reduce and
+      // close.  Re-arm the recovery cascade (recovery_emitted) so the next scan
+      // re-enters here and can emit the block-close.  Harmless when nothing
+      // follows: the re-entry finds no further valid recovery token.
+      if (valid_symbols[PERLY_SEMICOLON]) {
+        state->recovery_emitted = true;
+        TOKEN(PERLY_SEMICOLON);
+      }
     }
     if (peek == PEEK_FAT_COMMA) {
       // Fat comma — keyword followed by '='.  Bail to the autoquote
