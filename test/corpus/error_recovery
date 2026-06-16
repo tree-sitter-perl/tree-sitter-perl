@@ -451,3 +451,70 @@ class C {
         body: (block
           (expression_statement
             (number)))))))
+
+================================================================================
+Block recovery - unclosed if in method body closes if + body (siblings)
+================================================================================
+class C {
+  method a {
+    if ($x) {
+      foo();
+  method b { 1 }
+}
+--------------------------------------------------------------------------------
+
+(source_file
+  (class_statement
+    name: (package)
+    (block
+      (method_declaration_statement
+        name: (bareword)
+        body: (block
+          (conditional_statement
+            condition: (scalar
+              (varname))
+            block: (block
+              (expression_statement
+                (function_call_expression
+                  function: (function)))))))
+      (method_declaration_statement
+        name: (bareword)
+        body: (block
+          (expression_statement
+            (number)))))))
+
+================================================================================
+Block recovery - nested unclosed loop+if cascade close to sibling method
+================================================================================
+class C {
+  method a {
+    while ($x) {
+      if ($y) {
+        foo();
+  method b { 1 }
+}
+--------------------------------------------------------------------------------
+
+(source_file
+  (class_statement
+    name: (package)
+    (block
+      (method_declaration_statement
+        name: (bareword)
+        body: (block
+          (loop_statement
+            condition: (scalar
+              (varname))
+            block: (block
+              (conditional_statement
+                condition: (scalar
+                  (varname))
+                block: (block
+                  (expression_statement
+                    (function_call_expression
+                      function: (function)))))))))
+      (method_declaration_statement
+        name: (bareword)
+        body: (block
+          (expression_statement
+            (number)))))))

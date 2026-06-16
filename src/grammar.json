@@ -1231,8 +1231,13 @@
           }
         },
         {
-          "type": "SYMBOL",
-          "name": "block"
+          "type": "ALIAS",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_body_block"
+          },
+          "named": true,
+          "value": "block"
         }
       ]
     },
@@ -1263,8 +1268,13 @@
           "type": "FIELD",
           "name": "block",
           "content": {
-            "type": "SYMBOL",
-            "name": "block"
+            "type": "ALIAS",
+            "content": {
+              "type": "SYMBOL",
+              "name": "_body_block"
+            },
+            "named": true,
+            "value": "block"
           }
         },
         {
@@ -1288,8 +1298,13 @@
           "type": "FIELD",
           "name": "block",
           "content": {
-            "type": "SYMBOL",
-            "name": "block"
+            "type": "ALIAS",
+            "content": {
+              "type": "SYMBOL",
+              "name": "_body_block"
+            },
+            "named": true,
+            "value": "block"
           }
         },
         {
@@ -1306,8 +1321,13 @@
                   "type": "FIELD",
                   "name": "continue",
                   "content": {
-                    "type": "SYMBOL",
-                    "name": "block"
+                    "type": "ALIAS",
+                    "content": {
+                      "type": "SYMBOL",
+                      "name": "_body_block"
+                    },
+                    "named": true,
+                    "value": "block"
                   }
                 }
               ]
@@ -1596,8 +1616,13 @@
           "type": "FIELD",
           "name": "try_block",
           "content": {
-            "type": "SYMBOL",
-            "name": "block"
+            "type": "ALIAS",
+            "content": {
+              "type": "SYMBOL",
+              "name": "_body_block"
+            },
+            "named": true,
+            "value": "block"
           }
         },
         {
@@ -1643,8 +1668,13 @@
                   "type": "FIELD",
                   "name": "catch_block",
                   "content": {
-                    "type": "SYMBOL",
-                    "name": "block"
+                    "type": "ALIAS",
+                    "content": {
+                      "type": "SYMBOL",
+                      "name": "_body_block"
+                    },
+                    "named": true,
+                    "value": "block"
                   }
                 }
               ]
@@ -1668,8 +1698,13 @@
                   "type": "FIELD",
                   "name": "finally_block",
                   "content": {
-                    "type": "SYMBOL",
-                    "name": "block"
+                    "type": "ALIAS",
+                    "content": {
+                      "type": "SYMBOL",
+                      "name": "_body_block"
+                    },
+                    "named": true,
+                    "value": "block"
                   }
                 }
               ]
@@ -1692,8 +1727,13 @@
           "type": "FIELD",
           "name": "block",
           "content": {
-            "type": "SYMBOL",
-            "name": "block"
+            "type": "ALIAS",
+            "content": {
+              "type": "SYMBOL",
+              "name": "_body_block"
+            },
+            "named": true,
+            "value": "block"
           }
         }
       ]
@@ -1823,8 +1863,13 @@
           "type": "FIELD",
           "name": "block",
           "content": {
-            "type": "SYMBOL",
-            "name": "block"
+            "type": "ALIAS",
+            "content": {
+              "type": "SYMBOL",
+              "name": "_body_block"
+            },
+            "named": true,
+            "value": "block"
           }
         }
       ]
@@ -1856,8 +1901,13 @@
           "type": "FIELD",
           "name": "block",
           "content": {
-            "type": "SYMBOL",
-            "name": "block"
+            "type": "ALIAS",
+            "content": {
+              "type": "SYMBOL",
+              "name": "_body_block"
+            },
+            "named": true,
+            "value": "block"
           }
         },
         {

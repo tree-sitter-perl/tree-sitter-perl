@@ -779,6 +779,10 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
       // token, so the cascade stops at one body (no over-closing).
       if (is_structural && valid_symbols[TOKEN_RECOVER_BLOCK_CLOSE]) {
         DEBUG("body block recovery at structural keyword\n", 0);
+        // Re-arm the cascade so the next scan re-enters and can close the NEXT
+        // enclosing recover-aware block (e.g. an unclosed `if`/loop body inside
+        // the method: close the if-block, then the method body).
+        state->recovery_emitted = true;
         TOKEN(TOKEN_RECOVER_BLOCK_CLOSE);
       }
       // A statement terminator may need to fire BEFORE the body block-close:

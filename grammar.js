@@ -384,14 +384,14 @@ module.exports = grammar({
     // perly.y's grammar just considers a phaser to be a `sub` with a special
     // name and lacking the `sub` keyword, but most tree consumers are likely
     // to care about distinguishing it
-    phaser_statement: $ => seq(field('phase', $._PHASE_NAME), $.block),
+    phaser_statement: $ => seq(field('phase', $._PHASE_NAME), alias($._body_block, $.block)),
 
     conditional_statement: $ =>
       seq($._conditionals, '(', field('condition', $._expr), ')',
-        field('block', $.block),
+        field('block', alias($._body_block, $.block)),
         optional($._else)
       ),
-    _loop_body: $ => seq(field('block', $.block), optseq('continue', field('continue', $.block))),
+    _loop_body: $ => seq(field('block', alias($._body_block, $.block)), optseq('continue', field('continue', alias($._body_block, $.block)))),
     loop_statement: $ => seq($._loops, '(', field('condition', $._expr), ')', $._loop_body),
     cstyle_for_statement: $ =>
       seq($._KW_FOR,
@@ -416,18 +416,18 @@ module.exports = grammar({
 
     try_statement: $ => seq(
       'try',
-      field('try_block', $.block),
+      field('try_block', alias($._body_block, $.block)),
       // regular perl only permits catch(VAR) but we get easy compatibility
       // with Syntax::Keyword::Try too by being a bit more flexible
       optseq('catch', optseq('(', field('catch_expr', $._expr), ')'),
-        field('catch_block', $.block)),
+        field('catch_block', alias($._body_block, $.block))),
       optseq('finally',
-        field('finally_block', $.block)),
+        field('finally_block', alias($._body_block, $.block))),
     ),
 
     defer_statement: $ => seq(
       'defer',
-      field('block', $.block),
+      field('block', alias($._body_block, $.block)),
     ),
 
     // perly.y calls this `sideff`
@@ -447,10 +447,10 @@ module.exports = grammar({
     yadayada: $ => '...',
 
     _else: $ => choice($.else, $.elsif),
-    else: $ => seq('else', field('block', $.block)),
+    else: $ => seq('else', field('block', alias($._body_block, $.block))),
     elsif: $ =>
       seq('elsif', '(', field('condition', $._expr), ')',
-        field('block', $.block),
+        field('block', alias($._body_block, $.block)),
         optional($._else)
       ),
 
