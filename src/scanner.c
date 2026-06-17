@@ -439,8 +439,18 @@ static enum PeekResult peek_is_statement_keyword(TSLexer *lexer, bool *is_struct
   // A statement keyword.  Structural OO keywords (method/class/role) never
   // legitimately nest inside a sub/method body, so they alone trigger body
   // block-close recovery.  use/no/sub/package commonly DO appear in a body
-  // (e.g. `no strict 'refs';`) and must not trigger it.  (`kind` was already
-  // classified above; don't re-run KEYWORD_MATCH.)
+  // (e.g. `no strict 'refs';`) and must not trigger it.
+  //
+  // `sub` is the tempting one: a bare nested `sub foo {...}` is almost always a
+  // "won't stay shared" bug, not intent — so closing the enclosing body at it
+  // would often be the *helpful* read.  We deliberately don't.  It is valid Perl
+  // and it is genuinely out there (~140 nested bare subs across a 92k-file
+  // corpus: perl's own regen/Porting codegen scripts, some CPAN, real app code),
+  // so the parser tree-s it faithfully; diagnosing the footgun belongs to the
+  // layer above (linter/LSP), not the grammar.  Lexical `my sub` (which *does*
+  // truly nest, and is legit) is a separate story and is excluded for free
+  // anyway: it starts with `my`, takes the KW_NONE path above, and never reaches
+  // here.  (`kind` was already classified above; don't re-run KEYWORD_MATCH.)
   *is_structural = (strcmp(word, "method") == 0 ||
                     strcmp(word, "class") == 0 ||
                     strcmp(word, "role") == 0);
