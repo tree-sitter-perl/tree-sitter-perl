@@ -9513,6 +9513,18 @@
               "type": "CHOICE",
               "members": [
                 {
+                  "type": "SYMBOL",
+                  "name": "_fat_comma_autoquoted_ahead"
+                },
+                {
+                  "type": "BLANK"
+                }
+              ]
+            },
+            {
+              "type": "CHOICE",
+              "members": [
+                {
                   "type": "STRING",
                   "value": "-"
                 },
@@ -10174,6 +10186,10 @@
     {
       "type": "SYMBOL",
       "name": "_fat_comma_autoquoted"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_fat_comma_autoquoted_ahead"
     },
     {
       "type": "SYMBOL",
