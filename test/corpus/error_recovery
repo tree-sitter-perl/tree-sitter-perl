@@ -116,6 +116,38 @@ package => 1);
         (number)))))
 
 ================================================================================
+Fat-comma keys on continuation lines inside an open call autoquote
+================================================================================
+__PACKAGE__->add_columns(
+  first => 1,
+  name  => 2,
+  status => 3,
+  sort  => 4,
+  class => 5,
+  package => 6,
+);
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (method_call_expression
+      invocant: (func0op_call_expression)
+      method: (method)
+      arguments: (list_expression
+        (autoquoted_bareword)
+        (number)
+        (autoquoted_bareword)
+        (number)
+        (autoquoted_bareword)
+        (number)
+        (autoquoted_bareword)
+        (number)
+        (autoquoted_bareword)
+        (number)
+        (autoquoted_bareword)
+        (number)))))
+
+================================================================================
 Keyword boundary - postfix unless NOT broken
 ================================================================================
 print "hello"

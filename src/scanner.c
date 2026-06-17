@@ -66,6 +66,7 @@ enum TokenType {
   TOKEN_HEREDOC_MIDDLE,
   TOKEN_HEREDOC_END,
   TOKEN_FAT_COMMA_AUTOQUOTED,
+  TOKEN_FAT_COMMA_AUTOQUOTED_AHEAD,
   TOKEN_FILETEST,
   TOKEN_BRACE_AUTOQUOTED,
   /* zero-width lookahead tokens */
@@ -373,10 +374,19 @@ static bool isidfirst(int32_t c);
 static bool isidcont(int32_t c);
 
 enum PeekResult {
-  PEEK_NO_MATCH,    // first char not a keyword starter — lexer untouched
-  PEEK_KEYWORD,     // statement keyword (not followed by =>)
-  PEEK_FAT_COMMA,   // keyword followed by => — caller should goto fat_comma_check
-  PEEK_NOT_KEYWORD, // word read but not a keyword — caller MUST return false
+  PEEK_NO_MATCH,      // first char not a keyword starter — lexer untouched
+  PEEK_KEYWORD,       // statement keyword (not followed by =>)
+  PEEK_FAT_COMMA,     // keyword followed by => — caller MARK_ENDs then goto fat_comma_check
+  PEEK_AUTOQUOTE_KEY, // non-keyword word followed by => — peek already marked the
+                      // word boundary; caller goes straight to fat_comma_check
+  PEEK_NOT_KEYWORD,   // word read but not a keyword — caller MUST return false
+};
+
+// How a word read by the keyword peek classifies (set by KEYWORD_MATCH).
+enum KwKind {
+  KW_NONE,       // not a statement keyword
+  KW_ALWAYS,     // always a statement keyword (package/use/no/class/role)
+  KW_NEEDS_NAME, // declaration only if followed by a name (sub/method)
 };
 
 static enum PeekResult peek_is_statement_keyword(TSLexer *lexer, bool *is_structural) {
@@ -396,39 +406,67 @@ static enum PeekResult peek_is_statement_keyword(TSLexer *lexer, bool *is_struct
   }
   word[len] = '\0';
 
-  // Must be a word boundary (not followed by more identifier chars)
-  if (isidcont(la))
+  // Classify *before* consuming any identifier tail: a statement keyword must
+  // end exactly at the keyword charset boundary.  A longer identifier (e.g.
+  // "service", "naming") read only partway by the loop above is never a
+  // keyword — but it can still be a fat-comma autoquote key, so we don't bail.
+  enum KwKind kind = KW_NONE;
+  if (!isidcont(la))
+    KEYWORD_MATCH(word, kind);
+
+  if (kind == KW_NONE) {
+    // Not a statement keyword.  It may still be a fat-comma autoquote key
+    // (`name => 1` on a continuation line inside an open list, where the
+    // recovery gate fires and would otherwise lex it as a plain bareword).
+    // Consume the rest of the identifier, mark the token end at the word
+    // boundary, then look past whitespace for '='.  The whole word must be
+    // covered, so skip with advance(false): advance(true) would reset the
+    // token start past the word and emit a zero-width key.  mark_end fixes the
+    // end at the word, so trailing whitespace stays out of the token anyway.
+    while (isidcont(la)) {
+      lexer->advance(lexer, false);
+      la = lexer->lookahead;
+    }
+    lexer->mark_end(lexer);
+    while (is_tsp_whitespace(la)) {
+      lexer->advance(lexer, false);
+      la = lexer->lookahead;
+    }
+    if (la == '=') return PEEK_AUTOQUOTE_KEY;
     return PEEK_NOT_KEYWORD;
+  }
 
-  bool needs_name = false;
-  KEYWORD_MATCH(word, needs_name);
-
-  // Structural OO keywords (method/class/role) never legitimately nest inside a
-  // sub/method body, so they alone trigger body block-close recovery.  use/no/
-  // sub/package commonly DO appear in a body (e.g. `no strict 'refs';`) and must
-  // not trigger it.
+  // A statement keyword.  Structural OO keywords (method/class/role) never
+  // legitimately nest inside a sub/method body, so they alone trigger body
+  // block-close recovery.  use/no/sub/package commonly DO appear in a body
+  // (e.g. `no strict 'refs';`) and must not trigger it.  (`kind` was already
+  // classified above; don't re-run KEYWORD_MATCH.)
   *is_structural = (strcmp(word, "method") == 0 ||
                     strcmp(word, "class") == 0 ||
                     strcmp(word, "role") == 0);
 
-  // Skip whitespace after keyword (including newlines — the peek resets
-  // on failure, and we need to see past newlines for fat comma detection).
-  // Use advance(true) so whitespace is NOT included in the token.
+  // The caller already marked a zero-width position at the keyword start for
+  // recovery-token emission; leave that mark alone (don't mark_end here) and
+  // skip trailing whitespace with advance(true) — the recovery-safe behavior.
+  // A word-end mark here would make the recovery token swallow the keyword
+  // (and breaks the keyword-boundary tests).
   while (is_tsp_whitespace(la)) {
     lexer->advance(lexer, true);
     la = lexer->lookahead;
   }
 
-  // Fat comma => means it's a hash key, not a statement.
-  // Bail at '=' without advancing past it.  Caller will MARK_END
-  // (covering the word) then goto fat_comma_check.
+  // Fat comma => means even a keyword is a hash key, not a statement
+  // (`package => 1`).  We can't mark the word boundary here without clobbering
+  // the recovery mark, so the caller emits a zero-width _fat_comma_autoquoted
+  // _ahead marker and tree-sitter re-lexes the word through the normal
+  // autoquote path with a correct span.  (Plain words and non-keyword builtins
+  // — sort/map/ref/state/… — take the KW_NONE path above and autoquote in a
+  // single pass.)
   if (la == '=') return PEEK_FAT_COMMA;
 
   // For sub/method: only a declaration if followed by an identifier (name)
-  if (needs_name) {
-    if (!isidfirst(la))
-      return PEEK_NOT_KEYWORD;  // anonymous sub/method
-  }
+  if (kind == KW_NEEDS_NAME && !isidfirst(la))
+    return PEEK_NOT_KEYWORD;  // anonymous sub/method
 
   return PEEK_KEYWORD;
 }
@@ -797,12 +835,27 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
       }
     }
     if (peek == PEEK_FAT_COMMA) {
-      // Fat comma — keyword followed by '='.  Bail to the autoquote
-      // handler's => check.  Peek left us at '=' with the word
-      // consumed and whitespace skipped (as true skip).  MARK_END
-      // covers just the word.  Same goto pattern as heredoc vs
-      // diamond disambiguation.
+      // A statement keyword used as a fat-comma key (`package => 1`).  We can't
+      // mark the word boundary here (peek preserved the caller's zero-width
+      // recovery mark for the keyword path, and re-marking would consume the
+      // keyword).  Instead emit a zero-width "autoquote ahead" marker at the
+      // word start: tree-sitter re-lexes the word via the normal autoquote
+      // path, which marks the word boundary correctly.  The recovery gate
+      // won't re-fire on re-entry (no newline precedes the word that scan), so
+      // there's no loop.  Falls back to the old (zero-width-span) emission if
+      // the marker isn't accepted in this state.
+      if (valid_symbols[TOKEN_FAT_COMMA_AUTOQUOTED_AHEAD])
+        TOKEN(TOKEN_FAT_COMMA_AUTOQUOTED_AHEAD);
       MARK_END;
+      c = lexer->lookahead;
+      goto fat_comma_check;
+    }
+    if (peek == PEEK_AUTOQUOTE_KEY) {
+      // A non-keyword bareword used as a fat-comma key (`name => 1`) on a
+      // continuation line where the recovery gate fired.  Peek already marked
+      // the token end at the word boundary (covering exactly the word), so do
+      // NOT MARK_END again — that would re-mark at '=' and emit a zero-width
+      // key.  Resume at the autoquote handler's => check.
       c = lexer->lookahead;
       goto fat_comma_check;
     }

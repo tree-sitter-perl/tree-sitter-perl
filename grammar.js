@@ -178,6 +178,7 @@ module.exports = grammar({
     $._heredoc_middle,
     $.heredoc_end,
     $._fat_comma_autoquoted,
+    $._fat_comma_autoquoted_ahead,
     $._filetest,
     $._brace_autoquoted_token,
     /* zero-width lookahead tokens */
@@ -1499,7 +1500,7 @@ module.exports = grammar({
         // minus autoquoting
         prec(TERMPREC.PAREN, seq('-', $._bareword)),
       ),
-      seq(optional('-'), $._fat_comma_autoquoted)
+      seq(optional($._fat_comma_autoquoted_ahead), optional('-'), $._fat_comma_autoquoted)
     ),
     // NOTE - these have zw lookaheads so they override just being read as barewords
     _brace_autoquoted: $ => alias($._brace_autoquoted_token, $.autoquoted_bareword),
