@@ -46,16 +46,19 @@ path('./src/tsp_keywords.h')->spew(<<C);
 #define KEYWORD_WORD_CHAR(la) \\
   ($word_char_test)
 
-// Keyword matching: sets needs_name for keywords that require an
-// identifier to be a declaration (sub, method).  Falls through to
-// PEEK_NOT_KEYWORD for non-keywords.
-#define KEYWORD_MATCH(word, needs_name) do { \\
+// Keyword classification: sets `kind` to one of the KwKind values.
+//   KW_NONE       — not a statement keyword (a plain bareword / autoquote key)
+//   KW_ALWAYS     — always a statement keyword (package, use, no, class, role)
+//   KW_NEEDS_NAME — only a declaration if followed by a name (sub, method)
+// Unlike a bare match this never returns: the caller decides what to do with a
+// non-keyword, which may still be a fat-comma autoquote key.
+#define KEYWORD_MATCH(word, kind) do { \\
     if ($always_test) { \\
-      /* always statement keywords */ \\
+      (kind) = KW_ALWAYS; \\
     } else if ($named_test) { \\
-      (needs_name) = true; \\
+      (kind) = KW_NEEDS_NAME; \\
     } else { \\
-      return PEEK_NOT_KEYWORD; \\
+      (kind) = KW_NONE; \\
     } \\
   } while(0)
 C
