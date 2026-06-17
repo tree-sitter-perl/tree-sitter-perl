@@ -278,3 +278,275 @@ $x->foo(
       method: (method)
       arguments: (command_string
         content: (string_content)))))
+
+================================================================================
+Block recovery - method body closed by next method keyword
+================================================================================
+class Sner {
+  method herro ($yerface) {
+     my $thing = 3;
+  method sneel ($another_thing) {
+    1;
+  }
+}
+--------------------------------------------------------------------------------
+
+(source_file
+  (class_statement
+    name: (package)
+    (block
+      (method_declaration_statement
+        name: (bareword)
+        (signature
+          (mandatory_parameter
+            (scalar
+              (varname))))
+        body: (block
+          (expression_statement
+            (assignment_expression
+              left: (variable_declaration
+                variable: (scalar
+                  (varname)))
+              right: (number)))))
+      (method_declaration_statement
+        name: (bareword)
+        (signature
+          (mandatory_parameter
+            (scalar
+              (varname))))
+        body: (block
+          (expression_statement
+            (number)))))))
+
+================================================================================
+Block recovery - stacked missing method braces become siblings (no over-close)
+================================================================================
+class Outer {
+  method a {
+    my $x = 3;
+  method b {
+    my $y = 4;
+  method c {
+    1;
+  }
+}
+--------------------------------------------------------------------------------
+
+(source_file
+  (class_statement
+    name: (package)
+    (block
+      (method_declaration_statement
+        name: (bareword)
+        body: (block
+          (expression_statement
+            (assignment_expression
+              left: (variable_declaration
+                variable: (scalar
+                  (varname)))
+              right: (number)))))
+      (method_declaration_statement
+        name: (bareword)
+        body: (block
+          (expression_statement
+            (assignment_expression
+              left: (variable_declaration
+                variable: (scalar
+                  (varname)))
+              right: (number)))))
+      (method_declaration_statement
+        name: (bareword)
+        body: (block
+          (expression_statement
+            (number)))))))
+
+================================================================================
+Block recovery - no/use inside sub body NOT closed (only method/class/role trigger)
+================================================================================
+sub import {
+  my $class = shift;
+  no strict 'refs';
+  my $y = 4;
+}
+--------------------------------------------------------------------------------
+
+(source_file
+  (subroutine_declaration_statement
+    name: (bareword)
+    body: (block
+      (expression_statement
+        (assignment_expression
+          left: (variable_declaration
+            variable: (scalar
+              (varname)))
+          right: (func1op_call_expression)))
+      (use_statement
+        module: (package)
+        (string_literal
+          content: (string_content)))
+      (expression_statement
+        (assignment_expression
+          left: (variable_declaration
+            variable: (scalar
+              (varname)))
+          right: (number))))))
+
+================================================================================
+Block recovery - valid nested named sub preserved (sub keyword does not trigger)
+================================================================================
+sub outer {
+  my $x = 3;
+  sub inner { 1; }
+  my $y = 4;
+}
+--------------------------------------------------------------------------------
+
+(source_file
+  (subroutine_declaration_statement
+    name: (bareword)
+    body: (block
+      (expression_statement
+        (assignment_expression
+          left: (variable_declaration
+            variable: (scalar
+              (varname)))
+          right: (number)))
+      (subroutine_declaration_statement
+        name: (bareword)
+        body: (block
+          (expression_statement
+            (number))))
+      (expression_statement
+        (assignment_expression
+          left: (variable_declaration
+            variable: (scalar
+              (varname)))
+          right: (number))))))
+
+================================================================================
+Block recovery - anon hash in body does not block method recovery
+================================================================================
+class C {
+  method a {
+    my $h = { x => 1 };
+  method b { 1 }
+}
+--------------------------------------------------------------------------------
+
+(source_file
+  (class_statement
+    name: (package)
+    (block
+      (method_declaration_statement
+        name: (bareword)
+        body: (block
+          (expression_statement
+            (assignment_expression
+              left: (variable_declaration
+                variable: (scalar
+                  (varname)))
+              right: (anonymous_hash_expression
+                (list_expression
+                  (autoquoted_bareword)
+                  (number)))))))
+      (method_declaration_statement
+        name: (bareword)
+        body: (block
+          (expression_statement
+            (number)))))))
+
+================================================================================
+Block recovery - unclosed bracket in body still closes body (siblings)
+================================================================================
+class C {
+  method a {
+    my @x = [
+  method b { 1 }
+}
+--------------------------------------------------------------------------------
+
+(source_file
+  (class_statement
+    name: (package)
+    (block
+      (method_declaration_statement
+        name: (bareword)
+        body: (block
+          (expression_statement
+            (assignment_expression
+              left: (variable_declaration
+                variable: (array
+                  (varname)))
+              right: (anonymous_array_expression)))))
+      (method_declaration_statement
+        name: (bareword)
+        body: (block
+          (expression_statement
+            (number)))))))
+
+================================================================================
+Block recovery - unclosed if in method body closes if + body (siblings)
+================================================================================
+class C {
+  method a {
+    if ($x) {
+      foo();
+  method b { 1 }
+}
+--------------------------------------------------------------------------------
+
+(source_file
+  (class_statement
+    name: (package)
+    (block
+      (method_declaration_statement
+        name: (bareword)
+        body: (block
+          (conditional_statement
+            condition: (scalar
+              (varname))
+            block: (block
+              (expression_statement
+                (function_call_expression
+                  function: (function)))))))
+      (method_declaration_statement
+        name: (bareword)
+        body: (block
+          (expression_statement
+            (number)))))))
+
+================================================================================
+Block recovery - nested unclosed loop+if cascade close to sibling method
+================================================================================
+class C {
+  method a {
+    while ($x) {
+      if ($y) {
+        foo();
+  method b { 1 }
+}
+--------------------------------------------------------------------------------
+
+(source_file
+  (class_statement
+    name: (package)
+    (block
+      (method_declaration_statement
+        name: (bareword)
+        body: (block
+          (loop_statement
+            condition: (scalar
+              (varname))
+            block: (block
+              (conditional_statement
+                condition: (scalar
+                  (varname))
+                block: (block
+                  (expression_statement
+                    (function_call_expression
+                      function: (function)))))))))
+      (method_declaration_statement
+        name: (bareword)
+        body: (block
+          (expression_statement
+            (number)))))))

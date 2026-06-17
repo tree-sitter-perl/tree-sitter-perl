@@ -83,6 +83,13 @@ const aliasMany = (to, tokens) => tokens.map(t => alias(t, to))
 const recoverParen = ($) => choice(')', alias($._RECOVER_PAREN_CLOSE, ')'))
 const recoverBracket = ($) => choice(']', alias($._RECOVER_BRACKET_CLOSE, ']'))
 const recoverBrace = ($) => choice('}', alias($._RECOVER_BRACE_CLOSE, '}'))
+// Block-body closer: a DISTINCT recovery token from recoverBrace's subscript
+// `}`.  Used only on sub/method bodies (`_body_block`).  The scanner emits
+// `_RECOVER_BLOCK_CLOSE` only when a `method`/`class`/`role` keyword opens the
+// next line — keywords that never legitimately nest inside a body (verified
+// against ~2.4k modern-OO modules) — so a half-typed body closes just itself.
+// Distinct from `_RECOVER_BRACE_CLOSE` so subscript-brace recovery is untouched.
+const recoverBlock = ($) => choice('}', alias($._RECOVER_BLOCK_CLOSE, '}'))
 
 // little helper just to keep things DRY
 const subExtensions = () => repeat(choice('extended', 'async'))
@@ -185,6 +192,7 @@ module.exports = grammar({
     $._RECOVER_BRACKET_CLOSE,
     $._RECOVER_BRACE_CLOSE,
     $._RECOVER_ARROW,
+    $._RECOVER_BLOCK_CLOSE,
     /* `x` repetition operator glued to its count (`"ab"x3`) — emitted only when
      * an operator is expected, mirroring perl's XOPERATOR-state disambiguation */
     $._x_op,
@@ -225,6 +233,14 @@ module.exports = grammar({
     _PERLY_BRACE_OPEN: $ => '{',
 
     block: $ => seq($._PERLY_BRACE_OPEN, repeat($._fullstmt), '}'),
+
+    // Like `block`, but recovery-aware: accepts a synthetic `}` injected by the
+    // scanner when a `method`/`class`/`role` keyword starts the next line.  Used
+    // ONLY for sub/method bodies (aliased back to `block` so node names are
+    // identical).  Class/role bodies stay plain `block`, which bounds recovery:
+    // closing a body lands in the enclosing class block, which cannot accept the
+    // synthetic `}`, so the cascade stops (no over-closing).
+    _body_block: $ => seq($._PERLY_BRACE_OPEN, repeat($._fullstmt), recoverBlock($)),
 
     _fullstmt: $ => choice($._barestmt, $.statement_label),
 
@@ -363,20 +379,20 @@ module.exports = grammar({
     _sub_decl_tail: $ => seq(
       optseq(':', optional(field('attributes', $.attrlist))),
       optional(choice($.prototype, $.signature)),
-      choice(field('body', $.block), $._semicolon),
+      choice(field('body', alias($._body_block, $.block)), $._semicolon),
     ),
 
     // perly.y's grammar just considers a phaser to be a `sub` with a special
     // name and lacking the `sub` keyword, but most tree consumers are likely
     // to care about distinguishing it
-    phaser_statement: $ => seq(field('phase', $._PHASE_NAME), $.block),
+    phaser_statement: $ => seq(field('phase', $._PHASE_NAME), alias($._body_block, $.block)),
 
     conditional_statement: $ =>
       seq($._conditionals, '(', field('condition', $._expr), ')',
-        field('block', $.block),
+        field('block', alias($._body_block, $.block)),
         optional($._else)
       ),
-    _loop_body: $ => seq(field('block', $.block), optseq('continue', field('continue', $.block))),
+    _loop_body: $ => seq(field('block', alias($._body_block, $.block)), optseq('continue', field('continue', alias($._body_block, $.block)))),
     loop_statement: $ => seq($._loops, '(', field('condition', $._expr), ')', $._loop_body),
     cstyle_for_statement: $ =>
       seq($._KW_FOR,
@@ -401,18 +417,18 @@ module.exports = grammar({
 
     try_statement: $ => seq(
       'try',
-      field('try_block', $.block),
+      field('try_block', alias($._body_block, $.block)),
       // regular perl only permits catch(VAR) but we get easy compatibility
       // with Syntax::Keyword::Try too by being a bit more flexible
       optseq('catch', optseq('(', field('catch_expr', $._expr), ')'),
-        field('catch_block', $.block)),
+        field('catch_block', alias($._body_block, $.block))),
       optseq('finally',
-        field('finally_block', $.block)),
+        field('finally_block', alias($._body_block, $.block))),
     ),
 
     defer_statement: $ => seq(
       'defer',
-      field('block', $.block),
+      field('block', alias($._body_block, $.block)),
     ),
 
     // perly.y calls this `sideff`
@@ -432,10 +448,10 @@ module.exports = grammar({
     yadayada: $ => '...',
 
     _else: $ => choice($.else, $.elsif),
-    else: $ => seq('else', field('block', $.block)),
+    else: $ => seq('else', field('block', alias($._body_block, $.block))),
     elsif: $ =>
       seq('elsif', '(', field('condition', $._expr), ')',
-        field('block', $.block),
+        field('block', alias($._body_block, $.block)),
         optional($._else)
       ),
 

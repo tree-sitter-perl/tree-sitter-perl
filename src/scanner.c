@@ -80,6 +80,7 @@ enum TokenType {
   TOKEN_RECOVER_BRACKET_CLOSE,
   TOKEN_RECOVER_BRACE_CLOSE,
   TOKEN_RECOVER_ARROW,
+  TOKEN_RECOVER_BLOCK_CLOSE,
   /* `x` repetition operator glued to its count (`"ab"x3`) */
   TOKEN_X_OP,
   /* error condition is always last */
@@ -388,8 +389,9 @@ enum KwKind {
   KW_NEEDS_NAME, // declaration only if followed by a name (sub/method)
 };
 
-static enum PeekResult peek_is_statement_keyword(TSLexer *lexer) {
+static enum PeekResult peek_is_statement_keyword(TSLexer *lexer, bool *is_structural) {
   int32_t la = lexer->lookahead;
+  *is_structural = false;
 
   if (KEYWORD_FIRST_CHAR_FILTER(la))
     return PEEK_NO_MATCH;
@@ -434,23 +436,42 @@ static enum PeekResult peek_is_statement_keyword(TSLexer *lexer) {
     return PEEK_NOT_KEYWORD;
   }
 
-  // A statement keyword.  The caller already marked a zero-width position at
-  // the keyword start for recovery-token emission; leave that mark alone (don't
-  // mark_end here) and skip trailing whitespace with advance(true) — the
-  // original recovery-safe behavior.  A word-end mark here would make the
-  // recovery token swallow the keyword (and breaks the keyword-boundary tests).
+  // A statement keyword.  Structural OO keywords (method/class/role) never
+  // legitimately nest inside a sub/method body, so they alone trigger body
+  // block-close recovery.  use/no/sub/package commonly DO appear in a body
+  // (e.g. `no strict 'refs';`) and must not trigger it.
+  //
+  // `sub` is the tempting one: a bare nested `sub foo {...}` is almost always a
+  // "won't stay shared" bug, not intent — so closing the enclosing body at it
+  // would often be the *helpful* read.  We deliberately don't.  It is valid Perl
+  // and it is genuinely out there (~140 nested bare subs across a 92k-file
+  // corpus: perl's own regen/Porting codegen scripts, some CPAN, real app code),
+  // so the parser tree-s it faithfully; diagnosing the footgun belongs to the
+  // layer above (linter/LSP), not the grammar.  Lexical `my sub` (which *does*
+  // truly nest, and is legit) is a separate story and is excluded for free
+  // anyway: it starts with `my`, takes the KW_NONE path above, and never reaches
+  // here.  (`kind` was already classified above; don't re-run KEYWORD_MATCH.)
+  *is_structural = (strcmp(word, "method") == 0 ||
+                    strcmp(word, "class") == 0 ||
+                    strcmp(word, "role") == 0);
+
+  // The caller already marked a zero-width position at the keyword start for
+  // recovery-token emission; leave that mark alone (don't mark_end here) and
+  // skip trailing whitespace with advance(true) — the recovery-safe behavior.
+  // A word-end mark here would make the recovery token swallow the keyword
+  // (and breaks the keyword-boundary tests).
   while (is_tsp_whitespace(la)) {
     lexer->advance(lexer, true);
     la = lexer->lookahead;
   }
 
   // Fat comma => means even a keyword is a hash key, not a statement
-  // (`package => 1`).  The caller MARK_ENDs and resumes at fat_comma_check.
-  // NOTE: a keyword key inside an open list on a continuation line autoquotes
-  // but with a zero-width span (recovery's word-start mark wins over the
-  // word-end span an autoquote wants — see the split above).  Plain words and
-  // non-keyword builtins (sort/map/ref/state/…) take the KW_NONE path and get
-  // a correct span; only the 7 reserved statement keywords hit this edge.
+  // (`package => 1`).  We can't mark the word boundary here without clobbering
+  // the recovery mark, so the caller emits a zero-width _fat_comma_autoquoted
+  // _ahead marker and tree-sitter re-lexes the word through the normal
+  // autoquote path with a correct span.  (Plain words and non-keyword builtins
+  // — sort/map/ref/state/… — take the KW_NONE path above and autoquote in a
+  // single pass.)
   if (la == '=') return PEEK_FAT_COMMA;
 
   // For sub/method: only a declaration if followed by an identifier (name)
@@ -762,6 +783,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     valid_symbols[TOKEN_RECOVER_PAREN_CLOSE] ||
     valid_symbols[TOKEN_RECOVER_BRACKET_CLOSE] ||
     valid_symbols[TOKEN_RECOVER_BRACE_CLOSE] ||
+    valid_symbols[TOKEN_RECOVER_BLOCK_CLOSE] ||
     valid_symbols[PERLY_SEMICOLON];
 
   // Syntactic boundary: '}', ';', or EOF
@@ -794,13 +816,33 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   if ((crossed_newline || recovery_emitted) && !is_ERROR && any_recovery_valid &&
       !KEYWORD_FIRST_CHAR_FILTER(c)) {
     MARK_END;  // zero-width position for recovery tokens
-    enum PeekResult peek = peek_is_statement_keyword(lexer);
+    bool is_structural = false;
+    enum PeekResult peek = peek_is_statement_keyword(lexer, &is_structural);
     if (peek == PEEK_KEYWORD) {
       DEBUG("keyword boundary\n", 0);
       EMIT_RECOVERY_TOKENS(true);
-      // PERLY_SEMICOLON is always the last recovery token in the chain;
-      // no need to set recovery_emitted since nothing follows it.
-      if (valid_symbols[PERLY_SEMICOLON]) TOKEN(PERLY_SEMICOLON);
+      // Body block-close: only a structural OO keyword (method/class/role)
+      // closes a half-typed sub/method body.  Fires after any inner paren/
+      // bracket closers above; the enclosing class block can't accept this
+      // token, so the cascade stops at one body (no over-closing).
+      if (is_structural && valid_symbols[TOKEN_RECOVER_BLOCK_CLOSE]) {
+        DEBUG("body block recovery at structural keyword\n", 0);
+        // Re-arm the cascade so the next scan re-enters and can close the NEXT
+        // enclosing recover-aware block (e.g. an unclosed `if`/loop body inside
+        // the method: close the if-block, then the method body).
+        state->recovery_emitted = true;
+        TOKEN(TOKEN_RECOVER_BLOCK_CLOSE);
+      }
+      // A statement terminator may need to fire BEFORE the body block-close:
+      // after an inner closer (e.g. `my @x = [` -> `]`) completes an expression,
+      // the statement still needs `;` before the enclosing body can reduce and
+      // close.  Re-arm the recovery cascade (recovery_emitted) so the next scan
+      // re-enters here and can emit the block-close.  Harmless when nothing
+      // follows: the re-entry finds no further valid recovery token.
+      if (valid_symbols[PERLY_SEMICOLON]) {
+        state->recovery_emitted = true;
+        TOKEN(PERLY_SEMICOLON);
+      }
     }
     if (peek == PEEK_FAT_COMMA) {
       // A statement keyword used as a fat-comma key (`package => 1`).  We can't
