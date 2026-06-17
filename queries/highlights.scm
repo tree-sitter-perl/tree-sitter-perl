@@ -117,6 +117,7 @@
   [(varname) (filehandle)] @variable.builtin
   (#match? @variable.builtin "^((ENV|ARGV|INC|ARGVOUT|SIG|STDIN|STDOUT|STDERR)|[_ab]|\\W|\\d+|\\^.*)$")
 )
+(filehandle (varname)) @variable
 
 [(array) (arraylen)] @variable.array
 (glob) @variable.builtin
