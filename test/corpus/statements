@@ -813,3 +813,24 @@ my $x = Ναμε::Thing->new;
       right: (method_call_expression
         invocant: (bareword)
         method: (method)))))
+
+================================================================================
+format declaration
+================================================================================
+format STDOUT =
+@<<<< @>>>>
+$l, $r
+.
+my $after = 1;
+--------------------------------------------------------------------------------
+
+(source_file
+  (format_statement
+    name: (bareword)
+    (format_content))
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      right: (number))))

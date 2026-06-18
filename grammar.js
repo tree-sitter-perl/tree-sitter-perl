@@ -193,6 +193,9 @@ module.exports = grammar({
     $._RECOVER_BRACE_CLOSE,
     $._RECOVER_ARROW,
     $._RECOVER_BLOCK_CLOSE,
+    /* opaque body of a `format NAME = ... .` declaration: from the line after
+     * `=` up to and including the lone-`.` terminator line */
+    $.format_content,
     /* `x` repetition operator glued to its count (`"ab"x3`) — emitted only when
      * an operator is expected, mirroring perl's XOPERATOR-state disambiguation */
     $._x_op,
@@ -264,6 +267,7 @@ module.exports = grammar({
       $.subroutine_declaration_statement,
       $.method_declaration_statement,
       $.phaser_statement,
+      $.format_statement,
       $.conditional_statement,
       /* TODO: given/when/default */
       $.loop_statement,
@@ -302,6 +306,15 @@ module.exports = grammar({
         optional(field('version', $._version)),
         optseq(':', optional(field('attributes', $.attrlist))),
         $.block),
+    ),
+    /* `format NAME = <newline> BODY .` — NAME defaults to STDOUT and is
+     * optional. The body (picture/argument lines up to a lone `.`) is opaque
+     * content read by the external scanner. */
+    format_statement: $ => seq(
+      'format',
+      optional(field('name', $.bareword)),
+      '=',
+      $.format_content,
     ),
     class_phaser_statement: $ => seq(
       field('phase', choice('BUILD', 'ADJUST')),

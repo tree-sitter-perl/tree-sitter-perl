@@ -191,6 +191,10 @@
         },
         {
           "type": "SYMBOL",
+          "name": "format_statement"
+        },
+        {
+          "type": "SYMBOL",
           "name": "conditional_statement"
         },
         {
@@ -636,6 +640,39 @@
               "name": "block"
             }
           ]
+        }
+      ]
+    },
+    "format_statement": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "format"
+        },
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "FIELD",
+              "name": "name",
+              "content": {
+                "type": "SYMBOL",
+                "name": "bareword"
+              }
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
+        },
+        {
+          "type": "STRING",
+          "value": "="
+        },
+        {
+          "type": "SYMBOL",
+          "name": "format_content"
         }
       ]
     },
@@ -10420,6 +10457,10 @@
     {
       "type": "SYMBOL",
       "name": "_RECOVER_BLOCK_CLOSE"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "format_content"
     },
     {
       "type": "SYMBOL",

@@ -81,6 +81,9 @@ enum TokenType {
   TOKEN_RECOVER_BRACE_CLOSE,
   TOKEN_RECOVER_ARROW,
   TOKEN_RECOVER_BLOCK_CLOSE,
+  /* opaque body of a `format NAME = ... .` declaration: everything from the
+   * line after `=` up to and including the lone-`.` terminator line */
+  TOKEN_FORMAT_CONTENT,
   /* `x` repetition operator glued to its count (`"ab"x3`) */
   TOKEN_X_OP,
   /* `class`/`role`/`method` emitted only in declaration position */
@@ -627,6 +630,40 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     while (!lexer->eof(lexer)) ADVANCE_C;
 
     TOKEN(TOKEN_GOBBLED_CONTENT);
+  }
+
+  /* `format NAME = <newline> BODY .` — the body, from the line after `=` up to
+   * and including a line that is exactly `.`, is opaque content the LR grammar
+   * can't parse context-free. We consume the rest of the `=` line, the
+   * newline, then every line until (and including) a lone-`.` terminator line,
+   * emitting it all as one TOKEN_FORMAT_CONTENT. Whitespace-sensitive (must not
+   * skip the leading newline of the body separately), so it lives up here
+   * before any whitespace handling. */
+  if (!is_ERROR && valid_symbols[TOKEN_FORMAT_CONTENT]) {
+    /* swallow the remainder of the `format ... =` line, then its newline */
+    while (c != '\n' && !lexer->eof(lexer)) ADVANCE_C;
+    if (c == '\n') ADVANCE_C;
+    /* now read body lines; stop after a line consisting solely of `.`
+     * (perl: a lone `.`, trailing whitespace tolerated) */
+    while (!lexer->eof(lexer)) {
+      /* peek whether this whole line is just `.` */
+      bool only_dot = false;
+      if (c == '.') {
+        ADVANCE_C;
+        only_dot = true;
+        while (c == ' ' || c == '\t' || c == '\r') ADVANCE_C;
+        if (c != '\n' && !lexer->eof(lexer)) only_dot = false;
+      }
+      if (only_dot) {
+        if (c == '\n') ADVANCE_C; /* include the terminator's newline */
+        break;
+      }
+      /* not the terminator: consume to end of this line */
+      while (c != '\n' && !lexer->eof(lexer)) ADVANCE_C;
+      if (c == '\n') ADVANCE_C;
+    }
+    MARK_END;
+    TOKEN(TOKEN_FORMAT_CONTENT);
   }
 
   /* we use this to force tree-sitter to stay on the error branch of a nonassoc
