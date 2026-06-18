@@ -1534,9 +1534,11 @@ module.exports = grammar({
     _ident_special: $ => choice($._special_var_name, seq('$', $._dollar_ident_zw)),
 
     bareword: $ => prec.dynamic(1, $._bareword),
-    // _bareword is at the very end b/c the lexer prefers tokens defined earlier in the grammar
-    //_bareword: $ => choice($._identifier, unicode_ranges.bareword),
-    _bareword: $ => choice($._identifier, /((::)|([a-zA-Z_]\w*))+/),
+    // _bareword is at the very end b/c the lexer prefers tokens defined earlier in the grammar.
+    // unicode_ranges.bareword is the unicode-aware version of the dotted/qualified bareword
+    // (XID_Start/XID_Continue), keeping package names & package-qualified identifiers
+    // consistent with the unicode-aware `_identifier` used by sub names.
+    _bareword: $ => choice($._identifier, unicode_ranges.bareword),
     ...primitives,
   }
 })

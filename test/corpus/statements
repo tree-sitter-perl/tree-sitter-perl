@@ -794,3 +794,22 @@ sprintf "%d", --$i, 2;
           operand: (scalar
             (varname)))
         (number)))))
+
+================================================================================
+Unicode package / qualified identifiers
+================================================================================
+package Føø::Bær;
+my $x = Ναμε::Thing->new;
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_statement
+    name: (package))
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      right: (method_call_expression
+        invocant: (bareword)
+        method: (method)))))

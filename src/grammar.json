@@ -9791,7 +9791,8 @@
         },
         {
           "type": "PATTERN",
-          "value": "((::)|([a-zA-Z_]\\w*))+"
+          "value": "((::)|([_\\p{XID_Start}][\\p{XID_Continue}]*))+",
+          "flags": "v"
         }
       ]
     },
