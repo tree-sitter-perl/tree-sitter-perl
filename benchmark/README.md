@@ -43,6 +43,8 @@ timeout — the failure count should not move.
 
 ## Latest results
 
+Known remaining grammar gaps are tracked in [`coverage-gaps.md`](coverage-gaps.md).
+
 Measured with `tree-sitter` 0.26.x against `ganezdragon/tree-sitter-perl`.
 
 **Broad corpus** — 8,334 files, perl5 core + major CPAN distributions
