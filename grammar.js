@@ -806,9 +806,12 @@ module.exports = grammar({
     // do FILENAME is more of an eval, so we parse it as eval_expression w/ a filename
     // node inside
     do_expression: $ => choice(seq('do', $.block)),
-    eval_expression: $ => prec(TERMPREC.UNOP,
+    eval_expression: $ => prec.left(TERMPREC.UNOP,
       choice(
-        seq('eval', choice($.block, $._term)),
+        // bare `eval`/`eval { … }`/`eval EXPR` — with no argument it defaults
+        // to `$_` (e.g. `map { eval } @list`). prec.left resolves the resulting
+        // `eval` • term shift/reduce, same as func1op's bare shift/pop.
+        seq('eval', optional(choice($.block, $._term))),
         seq('do', alias($._term, $.filename))
       )
     ),

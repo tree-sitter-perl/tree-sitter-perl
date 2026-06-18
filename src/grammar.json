@@ -4804,7 +4804,7 @@
       ]
     },
     "eval_expression": {
-      "type": "PREC",
+      "type": "PREC_LEFT",
       "value": 16,
       "content": {
         "type": "CHOICE",
@@ -4820,12 +4820,20 @@
                 "type": "CHOICE",
                 "members": [
                   {
-                    "type": "SYMBOL",
-                    "name": "block"
+                    "type": "CHOICE",
+                    "members": [
+                      {
+                        "type": "SYMBOL",
+                        "name": "block"
+                      },
+                      {
+                        "type": "SYMBOL",
+                        "name": "_term"
+                      }
+                    ]
                   },
                   {
-                    "type": "SYMBOL",
-                    "name": "_term"
+                    "type": "BLANK"
                   }
                 ]
               }

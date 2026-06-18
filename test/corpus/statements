@@ -880,3 +880,25 @@ our Cache::LRU $c :shared;
       attributes: (attrlist
         (attribute
           name: (attribute_name))))))
+
+================================================================================
+bare eval (no argument)
+================================================================================
+my @v = map { eval } @list;
+eval;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (array
+          (varname)))
+      right: (map_grep_expression
+        callback: (block
+          (expression_statement
+            (eval_expression)))
+        list: (array
+          (varname)))))
+  (expression_statement
+    (eval_expression)))
