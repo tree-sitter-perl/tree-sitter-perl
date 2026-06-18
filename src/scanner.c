@@ -635,13 +635,10 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     TOKEN(TOKEN_GOBBLED_CONTENT);
   }
 
-  /* `format NAME = <newline> BODY .` — the body, from the line after `=` up to
-   * and including a line that is exactly `.`, is opaque content the LR grammar
-   * can't parse context-free. We consume the rest of the `=` line, the
-   * newline, then every line until (and including) a lone-`.` terminator line,
-   * emitting it all as one TOKEN_FORMAT_CONTENT. Whitespace-sensitive (must not
-   * skip the leading newline of the body separately), so it lives up here
-   * before any whitespace handling. */
+  /* `format NAME = <newline> BODY .` — the body (line after `=` up to and
+   * including a lone `.` line) is opaque content the LR grammar can't parse, read
+   * as one TOKEN_FORMAT_CONTENT.  Lives before whitespace handling so the body's
+   * leading newline isn't skipped separately. */
   if (!is_ERROR && valid_symbols[TOKEN_FORMAT_CONTENT]) {
     /* swallow the remainder of the `format ... =` line, then its newline */
     while (c != '\n' && !lexer->eof(lexer)) ADVANCE_C;
@@ -824,27 +821,15 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     valid_symbols[TOKEN_RECOVER_BLOCK_CLOSE] ||
     valid_symbols[PERLY_SEMICOLON];
 
-  // Contextual OO keywords.  `class`/`role` are declaration keywords only when a
-  // name follows; otherwise the word is an ordinary bareword — a sub call
-  // (`class($cv)`), the MooseX `role { … }` block, or the `-role` import flag.
-  // Deciding here, before emitting, keeps a single parse with no keyword-vs-call
-  // ambiguity (this is how perl's toke.c does it) and avoids the GLR
-  // union-lexing that would otherwise let a quote-op-named term lex greedily.
-  // (Runs after whitespace-skip above, so `c` is the word start.)  Deferred while
-  // recovery is pending so the body block-close fires first (these keywords are
-  // the structural-recovery trigger — see below).
-  // The recovery-pending deferral applies only to the OO keywords (class/role/
-  // method) — they ARE the structural block-close recovery trigger, so they must
-  // let recovery fire first.  `async`/`try` never trigger block recovery, so they
-  // can be classified even mid-body (e.g. `sub f { try { … } catch … }`), where
-  // recovery is otherwise armed on the continuation line.
+  // Contextual keywords: class/role/method are declarations only when a name (or
+  // a block, for method) follows; otherwise they're ordinary barewords
+  // (`class($cv)`, `role { … }`, `-role`).  Decide here, before emitting, so
+  // there's no keyword-vs-call ambiguity.  The OO keywords are deferred while
+  // recovery is pending because they trigger the structural body block-close,
+  // which must fire first; async/try don't, so they're classified unconditionally.
   bool oo_kw_valid = valid_symbols[TOKEN_KW_CLASS] || valid_symbols[TOKEN_KW_ROLE] || valid_symbols[TOKEN_KW_METHOD];
   bool asynctry_valid = valid_symbols[TOKEN_KW_ASYNC] || valid_symbols[TOKEN_KW_TRY];
   bool recovery_pending = any_recovery_valid && (crossed_newline || recovery_emitted);
-  // `async`/`try` (first chars 'a'/'t') never start an OO keyword nor trigger
-  // block-close recovery, so they may be classified even mid-recovery.  The OO
-  // keywords (c/r/m) stay deferred while recovery is pending so the structural
-  // block-close fires first.
   bool enter_oo = oo_kw_valid && !recovery_pending && (c == 'c' || c == 'r' || c == 'm');
   bool enter_asynctry = asynctry_valid && (c == 'a' || c == 't');
   if (!is_ERROR && (enter_oo || enter_asynctry)) {
@@ -861,35 +846,27 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
       lexer->advance(lexer, false);
       c = lexer->lookahead;
     }
-    // OO-keyword classification stays deferred while recovery is pending (so the
-    // structural block-close fires first); async/try are never deferred.
     bool is_class  = !recovery_pending && valid_symbols[TOKEN_KW_CLASS]  && strcmp(word, "class")  == 0;
     bool is_role   = !recovery_pending && valid_symbols[TOKEN_KW_ROLE]   && strcmp(word, "role")   == 0;
     bool is_method = !recovery_pending && valid_symbols[TOKEN_KW_METHOD] && strcmp(word, "method") == 0;
     bool is_async  = valid_symbols[TOKEN_KW_ASYNC]  && strcmp(word, "async")  == 0;
     bool is_try    = valid_symbols[TOKEN_KW_TRY]    && strcmp(word, "try")    == 0;
 
-    // `try` is the try/catch STATEMENT keyword ONLY when a block `{` follows.
-    // `try(...)`, `try =>`, `try;`, `try $x` are ordinary bareword/sub calls
-    // (`catch(...)` is never over-reserved, so we only special-case `try`).
+    // `try` is the try/catch keyword only before a block `{`; `try(...)`/`try =>`
+    // /`try;` are bareword calls.  (`catch` is never over-reserved.)
     if (is_try) {
       if (c == '{') TOKEN(TOKEN_KW_TRY);
-      // otherwise fall through to autoquote/bareword handling below.
     }
 
-    // `async` is a keyword before a block — `async { … }` is threads::async,
-    // a bare block run as an anonymous sub (Future::AsyncAwait has NO bare-block
-    // form, only `async sub`) — or before a sub/method declaration (`async sub
-    // { … }`, `async method { … }`, also via the `extended` sub-extension:
-    // `async extended method { … }`).  `async(...)`, `async =>`, or a plain sub
-    // named `async` are barewords/calls.
+    // `async` is a keyword before a block (`async { … }` — threads::async, a bare
+    // block run as an anon sub; F::AA itself has only `async sub`) or before a
+    // sub/method/extended declaration.  Else it's a bareword/call.
     if (is_async) {
-      if (c == '{') TOKEN(TOKEN_KW_ASYNC);  // threads::async block
-      // peek for a following `sub`/`method`/`extended` keyword
-      if (c == 's' || c == 'm' || c == 'e') {
+      if (c == '{') TOKEN(TOKEN_KW_ASYNC);
+      if (c == 's' || c == 'm' || c == 'e') {  // peek for sub/method/extended
         char nword[9];
         int nlen = 0;
-        while (isidcont(c)) {  // read the next word (we already MARK_ENDed at `async`)
+        while (isidcont(c)) {
           if (nlen < 8) nword[nlen++] = (char)c;
           lexer->advance(lexer, false);
           c = lexer->lookahead;
@@ -898,44 +875,34 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
         if (strcmp(nword, "sub") == 0 || strcmp(nword, "method") == 0 ||
             strcmp(nword, "extended") == 0)
           TOKEN(TOKEN_KW_ASYNC);
-        // Not a decl (`async send`, `async sister => …`): `async` is an ordinary
-        // bareword/call.  Unlike the bareword path below, we must `return false`
-        // here (re-lex), NOT `goto kw_autoquote` — we've already consumed past
-        // `async` into the next word, so the autoquote handler would read the
-        // *next* word's `=>` as async's own fat comma and wrongly autoquote
-        // `async` (e.g. `async send=>1` would parse as `'async', send, => …` +
-        // ERROR).  Re-lexing lets `async` be a bareword and the next word autoquote.
+        // Not a decl: `async` is a bareword/call.  Must `return false` (re-lex),
+        // NOT `goto kw_autoquote` like the path below — we consumed past `async`
+        // into the next word, so the handler would read *that* word's `=>` as
+        // async's own fat comma and wrongly autoquote `async` (`async send=>1`).
         return false;
       }
-      // otherwise fall through to autoquote/bareword handling below.
     }
 
-    // `class NAME` / `role NAME` — a name follows => declaration.  Anything else
-    // (`role {}`, `class($x)`, `-role`) is a bareword/call.
+    // `class NAME` / `role NAME` — a name following => declaration; else bareword.
     if ((is_class || is_role) && isidfirst(c))
       TOKEN(is_class ? TOKEN_KW_CLASS : TOKEN_KW_ROLE);
 
-    // `method` is subtler: `method NAME { … }` / `method { … }` are declarations
-    // (named / anonymous), but `method NAME => sub { … }` (MooseX) is a call.
-    // Peek PAST the name for a fat comma to tell them apart.
+    // `method NAME { … }` / `method { … }` are declarations (named/anonymous);
+    // `method NAME => sub { … }` (MooseX) is a call — peek past the name for `=>`.
     if (is_method) {
       if (c == '{' || c == '(') TOKEN(TOKEN_KW_METHOD);  // anonymous method
       if (isidfirst(c)) {
         while (isidcont(c)) { lexer->advance(lexer, false); c = lexer->lookahead; }  // skip the name
         while (is_tsp_whitespace(c)) { lexer->advance(lexer, false); c = lexer->lookahead; }
-        // `method NAME =>` is a call; anything else (`{`/`(`/`:`/`;`) is a decl.
-        if (c != '=') TOKEN(TOKEN_KW_METHOD);
-        return false;  // method NAME => … : bareword call (re-lex; the name autoquotes)
+        if (c != '=') TOKEN(TOKEN_KW_METHOD);  // `{`/`(`/`:`/`;` => decl; `=>` => call
+        return false;  // method NAME => … : re-lex as a call (the name autoquotes)
       }
     }
 
-    // The word is a bareword/call, or it's an autoquoted key — fat-comma
-    // (`class => 1`, `return => 1`) or hash subscript (`$h{m}`, `$h{method}`).
-    // We can't just `return false` (that would re-lex a quote-op word `m`/`s`/`y`
-    // as a match/substitution instead of an autoquoted bareword), so fall through
-    // to the canonical autoquote handler (comment-skip + fat_comma_check) — the
-    // MARK_END above fixed the token at the word; the handler only inspects what
-    // follows, emitting the autoquote token or, on no match, returning false.
+    // Bareword/call, or an autoquoted key (`class => 1`, `$h{m}`).  Can't just
+    // `return false` — a quote-op word (`m`/`s`/`y`) would re-lex as a match — so
+    // fall through to the canonical autoquote handler; MARK_END already fixed the
+    // token at the word, and it emits the autoquote or returns false on no match.
     goto kw_autoquote;
   }
 
@@ -1554,9 +1521,8 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
 
     // NOTE - TS is annoying about skipping chars after you've hit done
     // mark_end, so we have to do the regular advance so our token actually shows up
-    // The contextual-keyword block (class/role/method/async/try) jumps to
-    // `kw_autoquote` to reuse this comment-skip + fat_comma_check rather than
-    // duplicating them.  It has already read its word and MARK_ENDed.
+    // The contextual-keyword block jumps here (after reading its word + MARK_END)
+    // to reuse this comment-skip + fat_comma_check instead of duplicating them.
     kw_autoquote:
     while (is_tsp_whitespace(c) || c == '#') {
       while (is_tsp_whitespace(c)) ADVANCE_C;

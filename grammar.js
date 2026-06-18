@@ -500,15 +500,12 @@ module.exports = grammar({
       alias($._term_rightward, $.list_expression),
       prec.right($._term)
     ),
-    /* ensure that an entire list expression's contents appear in one big flat
-    * list, while permitting multiple internal commas and an optional trailing one.
-    * The trailing-comma slot lives at the END (a final `optional($._term)`) rather
-    * than as an interior `optional` after every comma: that interior empty slot
-    * was the only thing competing with a `++`/`--` lookahead after a comma, and
-    * the gobble's `prec.right` bias resolved that shift/reduce toward closing the
-    * list (so `push @a, ++$x` read `++` as a postfix on the closed call). With the
-    * empty slot only at the end, `++` after an interior comma must shift as a
-    * prefix element. Interior `,,` empties still sit before a comma and reduce. */
+    /* one flat list: internal commas plus an optional trailing one.  The trailing
+     * slot is at the END, not an interior `optional` after every comma — an
+     * interior empty slot competes with a `++`/`--` after a comma and the
+     * `prec.right` gobble closes the list instead (so `push @a, ++$x` reads `++`
+     * as a postfix).  Slot-at-end forces `++` to shift as a prefix; `,,` empties
+     * (sitting before a comma) still reduce. */
     _term_rightward: $ => prec.right(seq(
       $._term, $._PERLY_COMMA,
       repeat(seq(optional($._term), $._PERLY_COMMA)),
@@ -795,9 +792,9 @@ module.exports = grammar({
       $._anon_sub_tail,
     ),
 
-    // Future::AsyncAwait `async { … }` block expression (e.g. `my $f = async { … }`).
-    // The scanner only emits `_KW_ASYNC` here when a `{` follows, so a plain sub
-    // named `async`/`async(...)` stays an ordinary call.
+    // `async { … }` block (threads::async — a bare block run as an anon sub).
+    // The scanner emits `_KW_ASYNC` here only before a `{`, so `async`/`async(...)`
+    // as a plain sub stays an ordinary call.
     async_block_expression: $ => seq(
       alias($._KW_ASYNC, 'async'),
       $.block,
@@ -808,9 +805,8 @@ module.exports = grammar({
     do_expression: $ => choice(seq('do', $.block)),
     eval_expression: $ => prec.left(TERMPREC.UNOP,
       choice(
-        // bare `eval`/`eval { … }`/`eval EXPR` — with no argument it defaults
-        // to `$_` (e.g. `map { eval } @list`). prec.left resolves the resulting
-        // `eval` • term shift/reduce, same as func1op's bare shift/pop.
+        // bare `eval` (no arg) defaults to `$_` (`map { eval } @list`);
+        // `prec.left` resolves the resulting `eval` • term shift/reduce.
         seq('eval', optional(choice($.block, $._term))),
         seq('do', alias($._term, $.filename))
       )
@@ -1569,9 +1565,8 @@ module.exports = grammar({
 
     bareword: $ => prec.dynamic(1, $._bareword),
     // _bareword is at the very end b/c the lexer prefers tokens defined earlier in the grammar.
-    // unicode_ranges.bareword is the unicode-aware version of the dotted/qualified bareword
-    // (XID_Start/XID_Continue), keeping package names & package-qualified identifiers
-    // consistent with the unicode-aware `_identifier` used by sub names.
+    // unicode-aware (XID_Start/XID_Continue) dotted/qualified bareword, so package
+    // names allow unicode like the `_identifier` (sub name) path already does.
     _bareword: $ => choice($._identifier, unicode_ranges.bareword),
     ...primitives,
   }
