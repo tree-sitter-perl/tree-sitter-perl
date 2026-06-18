@@ -48,8 +48,9 @@ apostrophes, …). Low ROI individually.
 
 - ~6 **intentional syntax-error test fixtures** (e.g. `DBICTest/SyntaxErrorComponent*.pm`,
   Mojo loader-exception fixtures). These *should* fail to parse.
-- A few **very large files that time out** under the benchmark's per-file limit —
-  not parse errors.
+(No timeouts: the entire corpus parses within the benchmark's per-file limit.
+The slowest parse is ~2.2s on a 9.8 MB file (`unicore/TestProp.pl`); everything
+else is well under 500ms. The grammar has no pathological slow-parse cases.)
 
 ## Recently addressed
 
