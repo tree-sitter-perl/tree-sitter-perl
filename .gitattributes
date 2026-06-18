@@ -13,3 +13,8 @@ Package.swift linguist-generated
 # Zig bindings
 build.zig linguist-generated
 build.zig.zon linguist-generated
+
+# Dev-only; keep out of git-archive source tarballs (npm/crates/PyPI/release
+# all use their own allowlists, which already exclude it)
+benchmark export-ignore
+benchmark/** export-ignore
