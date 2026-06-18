@@ -858,3 +858,25 @@ try(1, 2);
       arguments: (list_expression
         (number)
         (number)))))
+
+================================================================================
+typed lexical declaration
+================================================================================
+my Dog $spot;
+our Cache::LRU $c :shared;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (variable_declaration
+      type: (package)
+      variable: (scalar
+        (varname))))
+  (expression_statement
+    (variable_declaration
+      type: (package)
+      variable: (scalar
+        (varname))
+      attributes: (attrlist
+        (attribute
+          name: (attribute_name))))))

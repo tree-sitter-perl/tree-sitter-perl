@@ -839,7 +839,10 @@ module.exports = grammar({
       seq(
         choice('my', 'state', 'our', 'field'),
         choice(
-          field('variable', $._declared_vars),
+          // typed lexical: `my Dog $spot` — an optional class/type name (a
+          // package name, possibly `::`-qualified) before the variable.
+          // Unambiguous: the variable always starts with a sigil, never a bareword.
+          seq(optional(field('type', $.package)), field('variable', $._declared_vars)),
           field('variable', $.refalias_variable),
           field('variables', $._decl_variable_list)),
         optseq(':', optional(field('attributes', $.attrlist))))
