@@ -610,6 +610,26 @@ ITEM: while(@items) { }
       block: (block))))
 
 ================================================================================
+Labels named like phasers
+================================================================================
+CHECK: $x = 1;
+END: last;
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement_label
+    label: (identifier)
+    statement: (expression_statement
+      (assignment_expression
+        left: (scalar
+          (varname))
+        right: (number))))
+  (statement_label
+    label: (identifier)
+    statement: (expression_statement
+      (loopex_expression))))
+
+================================================================================
 phasers
 ================================================================================
 BEGIN { 123; }
@@ -706,3 +726,179 @@ class Example :isa(BaseClass) {
         (block
           (expression_statement
             (number)))))))
+
+================================================================================
+OO keywords as ordinary calls (not declarations)
+================================================================================
+role { has x => 1 };
+my $c = class($obj);
+method foo => sub { 1 };
+class Foo;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (ambiguous_function_call_expression
+      function: (function)
+      arguments: (anonymous_hash_expression
+        (ambiguous_function_call_expression
+          function: (function)
+          arguments: (list_expression
+            (autoquoted_bareword)
+            (number))))))
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      right: (function_call_expression
+        function: (function)
+        arguments: (scalar
+          (varname)))))
+  (expression_statement
+    (ambiguous_function_call_expression
+      function: (function)
+      arguments: (list_expression
+        (autoquoted_bareword)
+        (anonymous_subroutine_expression
+          body: (block
+            (expression_statement
+              (number)))))))
+  (class_statement
+    name: (package)))
+
+================================================================================
+Prefix increment as a parenless list-op element
+================================================================================
+push @a, ++$x;
+sprintf "%d", --$i, 2;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (ambiguous_function_call_expression
+      function: (function)
+      arguments: (list_expression
+        (array
+          (varname))
+        (preinc_expression
+          operand: (scalar
+            (varname))))))
+  (expression_statement
+    (ambiguous_function_call_expression
+      function: (function)
+      arguments: (list_expression
+        (interpolated_string_literal
+          content: (string_content))
+        (preinc_expression
+          operand: (scalar
+            (varname)))
+        (number)))))
+
+================================================================================
+Unicode package / qualified identifiers
+================================================================================
+package Føø::Bær;
+my $x = Ναμε::Thing->new;
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_statement
+    name: (package))
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      right: (method_call_expression
+        invocant: (bareword)
+        method: (method)))))
+
+================================================================================
+format declaration
+================================================================================
+format STDOUT =
+@<<<< @>>>>
+$l, $r
+.
+my $after = 1;
+--------------------------------------------------------------------------------
+
+(source_file
+  (format_statement
+    name: (bareword)
+    (format_content))
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      right: (number))))
+
+================================================================================
+async block and try as a function call
+================================================================================
+my $t = async { 1 };
+try(1, 2);
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      right: (async_block_expression
+        (block
+          (expression_statement
+            (number))))))
+  (expression_statement
+    (function_call_expression
+      function: (function)
+      arguments: (list_expression
+        (number)
+        (number)))))
+
+================================================================================
+typed lexical declaration
+================================================================================
+my Dog $spot;
+our Cache::LRU $c :shared;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (variable_declaration
+      type: (package)
+      variable: (scalar
+        (varname))))
+  (expression_statement
+    (variable_declaration
+      type: (package)
+      variable: (scalar
+        (varname))
+      attributes: (attrlist
+        (attribute
+          name: (attribute_name))))))
+
+================================================================================
+bare eval (no argument)
+================================================================================
+my @v = map { eval } @list;
+eval;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (array
+          (varname)))
+      right: (map_grep_expression
+        callback: (block
+          (expression_statement
+            (eval_expression)))
+        list: (array
+          (varname)))))
+  (expression_statement
+    (eval_expression)))

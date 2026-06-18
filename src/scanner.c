@@ -81,8 +81,18 @@ enum TokenType {
   TOKEN_RECOVER_BRACE_CLOSE,
   TOKEN_RECOVER_ARROW,
   TOKEN_RECOVER_BLOCK_CLOSE,
+  /* opaque body of a `format NAME = ... .` declaration: everything from the
+   * line after `=` up to and including the lone-`.` terminator line */
+  TOKEN_FORMAT_CONTENT,
   /* `x` repetition operator glued to its count (`"ab"x3`) */
   TOKEN_X_OP,
+  /* `class`/`role`/`method` emitted only in declaration position */
+  TOKEN_KW_CLASS,
+  TOKEN_KW_ROLE,
+  TOKEN_KW_METHOD,
+  /* `async`/`try` contextual keywords, emitted only in keyword position */
+  TOKEN_KW_ASYNC,
+  TOKEN_KW_TRY,
   /* error condition is always last */
   TOKEN_ERROR
 };
@@ -625,6 +635,37 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     TOKEN(TOKEN_GOBBLED_CONTENT);
   }
 
+  /* `format NAME = <newline> BODY .` — the body (line after `=` up to and
+   * including a lone `.` line) is opaque content the LR grammar can't parse, read
+   * as one TOKEN_FORMAT_CONTENT.  Lives before whitespace handling so the body's
+   * leading newline isn't skipped separately. */
+  if (!is_ERROR && valid_symbols[TOKEN_FORMAT_CONTENT]) {
+    /* swallow the remainder of the `format ... =` line, then its newline */
+    while (c != '\n' && !lexer->eof(lexer)) ADVANCE_C;
+    if (c == '\n') ADVANCE_C;
+    /* now read body lines; stop after a line consisting solely of `.`
+     * (perl: a lone `.`, trailing whitespace tolerated) */
+    while (!lexer->eof(lexer)) {
+      /* peek whether this whole line is just `.` */
+      bool only_dot = false;
+      if (c == '.') {
+        ADVANCE_C;
+        only_dot = true;
+        while (c == ' ' || c == '\t' || c == '\r') ADVANCE_C;
+        if (c != '\n' && !lexer->eof(lexer)) only_dot = false;
+      }
+      if (only_dot) {
+        if (c == '\n') ADVANCE_C; /* include the terminator's newline */
+        break;
+      }
+      /* not the terminator: consume to end of this line */
+      while (c != '\n' && !lexer->eof(lexer)) ADVANCE_C;
+      if (c == '\n') ADVANCE_C;
+    }
+    MARK_END;
+    TOKEN(TOKEN_FORMAT_CONTENT);
+  }
+
   /* we use this to force tree-sitter to stay on the error branch of a nonassoc
    * operator */
   if (!is_ERROR && valid_symbols[TOKEN_NONASSOC]) TOKEN(TOKEN_NONASSOC);
@@ -772,12 +813,6 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   // CTRL-Z must be here, b/c it cares about whitespace
   if (c == 26 && valid_symbols[TOKEN_CTRL_Z]) TOKEN(TOKEN_CTRL_Z);
 
-  // === Error recovery: close unclosed delimiters and insert semicolons ===
-  //
-  // When the scanner sees '}', ';', EOF, or a statement keyword on a new
-  // line, it emits recovery tokens to unwind open delimiters.  Each call
-  // peels one layer — the parser keeps calling until everything is closed.
-  //
   bool any_recovery_valid =
     valid_symbols[TOKEN_RECOVER_ARROW] ||
     valid_symbols[TOKEN_RECOVER_PAREN_CLOSE] ||
@@ -786,6 +821,97 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     valid_symbols[TOKEN_RECOVER_BLOCK_CLOSE] ||
     valid_symbols[PERLY_SEMICOLON];
 
+  // Contextual keywords: class/role/method are declarations only when a name (or
+  // a block, for method) follows; otherwise they're ordinary barewords
+  // (`class($cv)`, `role { … }`, `-role`).  Decide here, before emitting, so
+  // there's no keyword-vs-call ambiguity.  The OO keywords are deferred while
+  // recovery is pending because they trigger the structural body block-close,
+  // which must fire first; async/try don't, so they're classified unconditionally.
+  bool oo_kw_valid = valid_symbols[TOKEN_KW_CLASS] || valid_symbols[TOKEN_KW_ROLE] || valid_symbols[TOKEN_KW_METHOD];
+  bool asynctry_valid = valid_symbols[TOKEN_KW_ASYNC] || valid_symbols[TOKEN_KW_TRY];
+  bool recovery_pending = any_recovery_valid && (crossed_newline || recovery_emitted);
+  bool enter_oo = oo_kw_valid && !recovery_pending && (c == 'c' || c == 'r' || c == 'm');
+  bool enter_asynctry = asynctry_valid && (c == 'a' || c == 't');
+  if (!is_ERROR && (enter_oo || enter_asynctry)) {
+    char word[8];
+    int wlen = 0;
+    while (isidcont(c)) {  // consume the whole identifier (store first 7 chars)
+      if (wlen < 7) word[wlen++] = (char)c;
+      lexer->advance(lexer, false);
+      c = lexer->lookahead;
+    }
+    word[wlen] = '\0';
+    MARK_END;  // the token covers exactly the word (lookahead past here is free)
+    while (is_tsp_whitespace(c)) {  // peek past whitespace at the next token
+      lexer->advance(lexer, false);
+      c = lexer->lookahead;
+    }
+    bool is_class  = !recovery_pending && valid_symbols[TOKEN_KW_CLASS]  && strcmp(word, "class")  == 0;
+    bool is_role   = !recovery_pending && valid_symbols[TOKEN_KW_ROLE]   && strcmp(word, "role")   == 0;
+    bool is_method = !recovery_pending && valid_symbols[TOKEN_KW_METHOD] && strcmp(word, "method") == 0;
+    bool is_async  = valid_symbols[TOKEN_KW_ASYNC]  && strcmp(word, "async")  == 0;
+    bool is_try    = valid_symbols[TOKEN_KW_TRY]    && strcmp(word, "try")    == 0;
+
+    // `try` is the try/catch keyword only before a block `{`; `try(...)`/`try =>`
+    // /`try;` are bareword calls.  (`catch` is never over-reserved.)
+    if (is_try) {
+      if (c == '{') TOKEN(TOKEN_KW_TRY);
+    }
+
+    // `async` is a keyword before a block (`async { … }` — threads::async, a bare
+    // block run as an anon sub; F::AA itself has only `async sub`) or before a
+    // sub/method/extended declaration.  Else it's a bareword/call.
+    if (is_async) {
+      if (c == '{') TOKEN(TOKEN_KW_ASYNC);
+      if (c == 's' || c == 'm' || c == 'e') {  // peek for sub/method/extended
+        char nword[9];
+        int nlen = 0;
+        while (isidcont(c)) {
+          if (nlen < 8) nword[nlen++] = (char)c;
+          lexer->advance(lexer, false);
+          c = lexer->lookahead;
+        }
+        nword[nlen] = '\0';
+        if (strcmp(nword, "sub") == 0 || strcmp(nword, "method") == 0 ||
+            strcmp(nword, "extended") == 0)
+          TOKEN(TOKEN_KW_ASYNC);
+        // Not a decl: `async` is a bareword/call.  Must `return false` (re-lex),
+        // NOT `goto kw_autoquote` like the path below — we consumed past `async`
+        // into the next word, so the handler would read *that* word's `=>` as
+        // async's own fat comma and wrongly autoquote `async` (`async send=>1`).
+        return false;
+      }
+    }
+
+    // `class NAME` / `role NAME` — a name following => declaration; else bareword.
+    if ((is_class || is_role) && isidfirst(c))
+      TOKEN(is_class ? TOKEN_KW_CLASS : TOKEN_KW_ROLE);
+
+    // `method NAME { … }` / `method { … }` are declarations (named/anonymous);
+    // `method NAME => sub { … }` (MooseX) is a call — peek past the name for `=>`.
+    if (is_method) {
+      if (c == '{' || c == '(') TOKEN(TOKEN_KW_METHOD);  // anonymous method
+      if (isidfirst(c)) {
+        while (isidcont(c)) { lexer->advance(lexer, false); c = lexer->lookahead; }  // skip the name
+        while (is_tsp_whitespace(c)) { lexer->advance(lexer, false); c = lexer->lookahead; }
+        if (c != '=') TOKEN(TOKEN_KW_METHOD);  // `{`/`(`/`:`/`;` => decl; `=>` => call
+        return false;  // method NAME => … : re-lex as a call (the name autoquotes)
+      }
+    }
+
+    // Bareword/call, or an autoquoted key (`class => 1`, `$h{m}`).  Can't just
+    // `return false` — a quote-op word (`m`/`s`/`y`) would re-lex as a match — so
+    // fall through to the canonical autoquote handler; MARK_END already fixed the
+    // token at the word, and it emits the autoquote or returns false on no match.
+    goto kw_autoquote;
+  }
+
+  // === Error recovery: close unclosed delimiters and insert semicolons ===
+  //
+  // When the scanner sees '}', ';', EOF, or a statement keyword on a new
+  // line, it emits recovery tokens to unwind open delimiters.  Each call
+  // peels one layer — the parser keeps calling until everything is closed.
+  //
   // Syntactic boundary: '}', ';', or EOF
   if (!is_ERROR) {
     if (c == '}' || c == ';' || lexer->eof(lexer)) {
@@ -1395,6 +1521,9 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
 
     // NOTE - TS is annoying about skipping chars after you've hit done
     // mark_end, so we have to do the regular advance so our token actually shows up
+    // The contextual-keyword block jumps here (after reading its word + MARK_END)
+    // to reuse this comment-skip + fat_comma_check instead of duplicating them.
+    kw_autoquote:
     while (is_tsp_whitespace(c) || c == '#') {
       while (is_tsp_whitespace(c)) ADVANCE_C;
       // now we need to skip comments - we get in a funny way if we have a quotelike
