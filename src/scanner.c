@@ -877,12 +877,14 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
       // otherwise fall through to autoquote/bareword handling below.
     }
 
-    // `async` is a keyword only before a block (`async { … }`) or a sub/method
-    // declaration (`async sub { … }`, `async method { … }`, also via the
-    // `extended` sub-extension: `async extended method { … }`).  `async(...)`,
-    // `async =>`, or a plain sub named `async` are barewords/calls.
+    // `async` is a keyword before a block — `async { … }` is threads::async,
+    // a bare block run as an anonymous sub (Future::AsyncAwait has NO bare-block
+    // form, only `async sub`) — or before a sub/method declaration (`async sub
+    // { … }`, `async method { … }`, also via the `extended` sub-extension:
+    // `async extended method { … }`).  `async(...)`, `async =>`, or a plain sub
+    // named `async` are barewords/calls.
     if (is_async) {
-      if (c == '{') TOKEN(TOKEN_KW_ASYNC);  // async block expression
+      if (c == '{') TOKEN(TOKEN_KW_ASYNC);  // threads::async block
       // peek for a following `sub`/`method`/`extended` keyword
       if (c == 's' || c == 'm' || c == 'e') {
         char nword[9];
@@ -896,10 +898,13 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
         if (strcmp(nword, "sub") == 0 || strcmp(nword, "method") == 0 ||
             strcmp(nword, "extended") == 0)
           TOKEN(TOKEN_KW_ASYNC);
-        // Not a decl after all (`async send`, `async sister => …`): we've consumed
-        // past `async`'s own word, so we can't reuse the autoquote fall-through
-        // below (it would misread the *next* word's `=>`).  Re-lex `async` as an
-        // ordinary bareword/call.
+        // Not a decl (`async send`, `async sister => …`): `async` is an ordinary
+        // bareword/call.  Unlike the bareword path below, we must `return false`
+        // here (re-lex), NOT `goto kw_autoquote` — we've already consumed past
+        // `async` into the next word, so the autoquote handler would read the
+        // *next* word's `=>` as async's own fat comma and wrongly autoquote
+        // `async` (e.g. `async send=>1` would parse as `'async', send, => …` +
+        // ERROR).  Re-lexing lets `async` be a bareword and the next word autoquote.
         return false;
       }
       // otherwise fall through to autoquote/bareword handling below.
@@ -924,28 +929,14 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
       }
     }
 
-    // Word used as an autoquoted key — fat-comma (`class => 1`, `method => 1`)
-    // or hash subscript (`$h{m}`, `$h{method}`).  Handle these here because a
-    // bare `return false` would re-lex a quote-op word (`m`/`s`/`y`/…) as a
-    // match/substitution instead of the autoquoted bareword.  Skip intervening
-    // comments too, so a fat comma hidden behind a comment on a continuation
-    // line (`things\n# note\n => 1`) still autoquotes — this block intercepts
-    // the word before the recovery-gate autoquote path would, so we must
-    // replicate its comment-skip here.
-    while (is_tsp_whitespace(c) || c == '#') {
-      while (is_tsp_whitespace(c)) { lexer->advance(lexer, false); c = lexer->lookahead; }
-      if (c == '#') {
-        lexer->advance(lexer, false); c = lexer->lookahead;
-        while (lexer->get_column(lexer) && !lexer->eof(lexer)) { lexer->advance(lexer, false); c = lexer->lookahead; }
-      }
-      if (lexer->eof(lexer)) return false;
-    }
-    if (valid_symbols[TOKEN_FAT_COMMA_AUTOQUOTED] && c == '=') {
-      lexer->advance(lexer, false);
-      if (lexer->lookahead == '>') TOKEN(TOKEN_FAT_COMMA_AUTOQUOTED);
-    }
-    if (valid_symbols[TOKEN_BRACE_AUTOQUOTED] && c == '}') TOKEN(TOKEN_BRACE_AUTOQUOTED);
-    return false;
+    // The word is a bareword/call, or it's an autoquoted key — fat-comma
+    // (`class => 1`, `return => 1`) or hash subscript (`$h{m}`, `$h{method}`).
+    // We can't just `return false` (that would re-lex a quote-op word `m`/`s`/`y`
+    // as a match/substitution instead of an autoquoted bareword), so fall through
+    // to the canonical autoquote handler (comment-skip + fat_comma_check) — the
+    // MARK_END above fixed the token at the word; the handler only inspects what
+    // follows, emitting the autoquote token or, on no match, returning false.
+    goto kw_autoquote;
   }
 
   // === Error recovery: close unclosed delimiters and insert semicolons ===
@@ -1563,6 +1554,10 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
 
     // NOTE - TS is annoying about skipping chars after you've hit done
     // mark_end, so we have to do the regular advance so our token actually shows up
+    // The contextual-keyword block (class/role/method/async/try) jumps to
+    // `kw_autoquote` to reuse this comment-skip + fat_comma_check rather than
+    // duplicating them.  It has already read its word and MARK_ENDed.
+    kw_autoquote:
     while (is_tsp_whitespace(c) || c == '#') {
       while (is_tsp_whitespace(c)) ADVANCE_C;
       // now we need to skip comments - we get in a funny way if we have a quotelike
