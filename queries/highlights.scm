@@ -161,3 +161,7 @@
     "{" @punctuation.special
     "}" @punctuation.special))
 
+((_
+    (autoquoted_bareword)
+    (bareword) @constant)
+)
