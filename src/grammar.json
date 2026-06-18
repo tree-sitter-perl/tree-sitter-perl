@@ -336,7 +336,12 @@
           "type": "SEQ",
           "members": [
             {
-              "type": "STRING",
+              "type": "ALIAS",
+              "content": {
+                "type": "SYMBOL",
+                "name": "_KW_CLASS"
+              },
+              "named": false,
               "value": "class"
             },
             {
@@ -406,7 +411,12 @@
           "type": "SEQ",
           "members": [
             {
-              "type": "STRING",
+              "type": "ALIAS",
+              "content": {
+                "type": "SYMBOL",
+                "name": "_KW_CLASS"
+              },
+              "named": false,
               "value": "class"
             },
             {
@@ -481,7 +491,12 @@
           "type": "SEQ",
           "members": [
             {
-              "type": "STRING",
+              "type": "ALIAS",
+              "content": {
+                "type": "SYMBOL",
+                "name": "_KW_ROLE"
+              },
+              "named": false,
               "value": "role"
             },
             {
@@ -551,7 +566,12 @@
           "type": "SEQ",
           "members": [
             {
-              "type": "STRING",
+              "type": "ALIAS",
+              "content": {
+                "type": "SYMBOL",
+                "name": "_KW_ROLE"
+              },
+              "named": false,
               "value": "role"
             },
             {
@@ -1135,7 +1155,12 @@
           }
         },
         {
-          "type": "STRING",
+          "type": "ALIAS",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_KW_METHOD"
+          },
+          "named": false,
           "value": "method"
         },
         {
@@ -4610,7 +4635,12 @@
           }
         },
         {
-          "type": "STRING",
+          "type": "ALIAS",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_KW_METHOD"
+          },
+          "named": false,
           "value": "method"
         },
         {
@@ -10341,6 +10371,18 @@
     {
       "type": "SYMBOL",
       "name": "_x_op"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_KW_CLASS"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_KW_ROLE"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_KW_METHOD"
     },
     {
       "type": "SYMBOL",

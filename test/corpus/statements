@@ -726,3 +726,43 @@ class Example :isa(BaseClass) {
         (block
           (expression_statement
             (number)))))))
+
+================================================================================
+OO keywords as ordinary calls (not declarations)
+================================================================================
+role { has x => 1 };
+my $c = class($obj);
+method foo => sub { 1 };
+class Foo;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (ambiguous_function_call_expression
+      function: (function)
+      arguments: (anonymous_hash_expression
+        (ambiguous_function_call_expression
+          function: (function)
+          arguments: (list_expression
+            (autoquoted_bareword)
+            (number))))))
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      right: (function_call_expression
+        function: (function)
+        arguments: (scalar
+          (varname)))))
+  (expression_statement
+    (ambiguous_function_call_expression
+      function: (function)
+      arguments: (list_expression
+        (autoquoted_bareword)
+        (anonymous_subroutine_expression
+          body: (block
+            (expression_statement
+              (number)))))))
+  (class_statement
+    name: (package)))

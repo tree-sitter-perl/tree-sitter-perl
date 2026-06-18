@@ -196,6 +196,12 @@ module.exports = grammar({
     /* `x` repetition operator glued to its count (`"ab"x3`) — emitted only when
      * an operator is expected, mirroring perl's XOPERATOR-state disambiguation */
     $._x_op,
+    /* `class`/`role` emitted as keywords by the scanner ONLY in declaration
+     * position (followed by a name); otherwise the word lexes as a bareword so
+     * `role { … }`, `class($x)`, `-role` parse as ordinary calls/terms. */
+    $._KW_CLASS,
+    $._KW_ROLE,
+    $._KW_METHOD,
     /* error condition must always be last; we don't use this in the grammar */
     $._ERROR
   ],
@@ -274,24 +280,24 @@ module.exports = grammar({
       seq('package', field('name', $.package), optional(field('version', $._version)), $.block),
     ),
     class_statement: $ => choice(
-      seq('class',
+      seq(alias($._KW_CLASS, "class"),
         field('name', $.package),
         optional(field('version', $._version)),
         optseq(':', optional(field('attributes', $.attrlist))),
         $._semicolon),
-      seq('class',
+      seq(alias($._KW_CLASS, "class"),
         field('name', $.package),
         optional(field('version', $._version)),
         optseq(':', optional(field('attributes', $.attrlist))),
         $.block),
     ),
     role_statement: $ => choice(
-      seq('role',
+      seq(alias($._KW_ROLE, "role"),
         field('name', $.package),
         optional(field('version', $._version)),
         optseq(':', optional(field('attributes', $.attrlist))),
         $._semicolon),
-      seq('role',
+      seq(alias($._KW_ROLE, "role"),
         field('name', $.package),
         optional(field('version', $._version)),
         optseq(':', optional(field('attributes', $.attrlist))),
@@ -367,7 +373,7 @@ module.exports = grammar({
     method_declaration_statement: $ => seq(
       optional(field('lexical', 'my')),
       subExtensions(),
-      'method',
+      alias($._KW_METHOD, "method"),
       field('name', $.bareword),
       $._sub_decl_tail,
     ),
@@ -756,7 +762,7 @@ module.exports = grammar({
 
     anonymous_method_expression: $ => seq(
       subExtensions(),
-      'method',
+      alias($._KW_METHOD, "method"),
       $._anon_sub_tail,
     ),
 

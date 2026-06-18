@@ -83,6 +83,10 @@ enum TokenType {
   TOKEN_RECOVER_BLOCK_CLOSE,
   /* `x` repetition operator glued to its count (`"ab"x3`) */
   TOKEN_X_OP,
+  /* `class`/`role`/`method` emitted only in declaration position */
+  TOKEN_KW_CLASS,
+  TOKEN_KW_ROLE,
+  TOKEN_KW_METHOD,
   /* error condition is always last */
   TOKEN_ERROR
 };
@@ -772,12 +776,6 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   // CTRL-Z must be here, b/c it cares about whitespace
   if (c == 26 && valid_symbols[TOKEN_CTRL_Z]) TOKEN(TOKEN_CTRL_Z);
 
-  // === Error recovery: close unclosed delimiters and insert semicolons ===
-  //
-  // When the scanner sees '}', ';', EOF, or a statement keyword on a new
-  // line, it emits recovery tokens to unwind open delimiters.  Each call
-  // peels one layer — the parser keeps calling until everything is closed.
-  //
   bool any_recovery_valid =
     valid_symbols[TOKEN_RECOVER_ARROW] ||
     valid_symbols[TOKEN_RECOVER_PAREN_CLOSE] ||
@@ -786,6 +784,73 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     valid_symbols[TOKEN_RECOVER_BLOCK_CLOSE] ||
     valid_symbols[PERLY_SEMICOLON];
 
+  // Contextual OO keywords.  `class`/`role` are declaration keywords only when a
+  // name follows; otherwise the word is an ordinary bareword — a sub call
+  // (`class($cv)`), the MooseX `role { … }` block, or the `-role` import flag.
+  // Deciding here, before emitting, keeps a single parse with no keyword-vs-call
+  // ambiguity (this is how perl's toke.c does it) and avoids the GLR
+  // union-lexing that would otherwise let a quote-op-named term lex greedily.
+  // (Runs after whitespace-skip above, so `c` is the word start.)  Deferred while
+  // recovery is pending so the body block-close fires first (these keywords are
+  // the structural-recovery trigger — see below).
+  if (!is_ERROR &&
+      !(any_recovery_valid && (crossed_newline || recovery_emitted)) &&
+      (valid_symbols[TOKEN_KW_CLASS] || valid_symbols[TOKEN_KW_ROLE] || valid_symbols[TOKEN_KW_METHOD]) &&
+      (c == 'c' || c == 'r' || c == 'm')) {
+    char word[8];
+    int wlen = 0;
+    while (isidcont(c)) {  // consume the whole identifier (store first 7 chars)
+      if (wlen < 7) word[wlen++] = (char)c;
+      lexer->advance(lexer, false);
+      c = lexer->lookahead;
+    }
+    word[wlen] = '\0';
+    MARK_END;  // the token covers exactly the word (lookahead past here is free)
+    while (is_tsp_whitespace(c)) {  // peek past whitespace at the next token
+      lexer->advance(lexer, false);
+      c = lexer->lookahead;
+    }
+    bool is_class  = valid_symbols[TOKEN_KW_CLASS]  && strcmp(word, "class")  == 0;
+    bool is_role   = valid_symbols[TOKEN_KW_ROLE]   && strcmp(word, "role")   == 0;
+    bool is_method = valid_symbols[TOKEN_KW_METHOD] && strcmp(word, "method") == 0;
+
+    // `class NAME` / `role NAME` — a name follows => declaration.  Anything else
+    // (`role {}`, `class($x)`, `-role`) is a bareword/call.
+    if ((is_class || is_role) && isidfirst(c))
+      TOKEN(is_class ? TOKEN_KW_CLASS : TOKEN_KW_ROLE);
+
+    // `method` is subtler: `method NAME { … }` / `method { … }` are declarations
+    // (named / anonymous), but `method NAME => sub { … }` (MooseX) is a call.
+    // Peek PAST the name for a fat comma to tell them apart.
+    if (is_method) {
+      if (c == '{' || c == '(') TOKEN(TOKEN_KW_METHOD);  // anonymous method
+      if (isidfirst(c)) {
+        while (isidcont(c)) { lexer->advance(lexer, false); c = lexer->lookahead; }  // skip the name
+        while (is_tsp_whitespace(c)) { lexer->advance(lexer, false); c = lexer->lookahead; }
+        // `method NAME =>` is a call; anything else (`{`/`(`/`:`/`;`) is a decl.
+        if (c != '=') TOKEN(TOKEN_KW_METHOD);
+        return false;  // method NAME => … : bareword call (re-lex; the name autoquotes)
+      }
+    }
+
+    // Word used as an autoquoted key — fat-comma (`class => 1`, `method => 1`)
+    // or hash subscript (`$h{m}`, `$h{method}`).  Handle these here because a
+    // bare `return false` would re-lex a quote-op word (`m`/`s`/`y`/…) as a
+    // match/substitution instead of the autoquoted bareword.
+    if (valid_symbols[TOKEN_FAT_COMMA_AUTOQUOTED] && c == '=') {
+      lexer->advance(lexer, false);
+      if (lexer->lookahead == '>') TOKEN(TOKEN_FAT_COMMA_AUTOQUOTED);
+    }
+    if (valid_symbols[TOKEN_BRACE_AUTOQUOTED] && c == '}') TOKEN(TOKEN_BRACE_AUTOQUOTED);
+    return false;
+  }
+
+  // === Error recovery: close unclosed delimiters and insert semicolons ===
+  //
+  // When the scanner sees '}', ';', EOF, or a statement keyword on a new
+  // line, it emits recovery tokens to unwind open delimiters.  Each call
+  // peels one layer — the parser keeps calling until everything is closed.
+  //
   // Syntactic boundary: '}', ';', or EOF
   if (!is_ERROR) {
     if (c == '}' || c == ';' || lexer->eof(lexer)) {
