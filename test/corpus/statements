@@ -766,3 +766,31 @@ class Foo;
               (number)))))))
   (class_statement
     name: (package)))
+
+================================================================================
+Prefix increment as a parenless list-op element
+================================================================================
+push @a, ++$x;
+sprintf "%d", --$i, 2;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (ambiguous_function_call_expression
+      function: (function)
+      arguments: (list_expression
+        (array
+          (varname))
+        (preinc_expression
+          operand: (scalar
+            (varname))))))
+  (expression_statement
+    (ambiguous_function_call_expression
+      function: (function)
+      arguments: (list_expression
+        (interpolated_string_literal
+          content: (string_content))
+        (preinc_expression
+          operand: (scalar
+            (varname)))
+        (number)))))

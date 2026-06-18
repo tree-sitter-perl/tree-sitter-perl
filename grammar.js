@@ -482,9 +482,18 @@ module.exports = grammar({
       prec.right($._term)
     ),
     /* ensure that an entire list expression's contents appear in one big flat
-    * list, while permitting multiple internal commas and an optional trailing one */
+    * list, while permitting multiple internal commas and an optional trailing one.
+    * The trailing-comma slot lives at the END (a final `optional($._term)`) rather
+    * than as an interior `optional` after every comma: that interior empty slot
+    * was the only thing competing with a `++`/`--` lookahead after a comma, and
+    * the gobble's `prec.right` bias resolved that shift/reduce toward closing the
+    * list (so `push @a, ++$x` read `++` as a postfix on the closed call). With the
+    * empty slot only at the end, `++` after an interior comma must shift as a
+    * prefix element. Interior `,,` empties still sit before a comma and reduce. */
     _term_rightward: $ => prec.right(seq(
-      $._term, repeat1(seq($._PERLY_COMMA, optional($._term))),
+      $._term, $._PERLY_COMMA,
+      repeat(seq(optional($._term), $._PERLY_COMMA)),
+      optional($._term),
     )),
 
     subscripted: $ => choice(
