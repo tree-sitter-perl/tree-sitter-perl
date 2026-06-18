@@ -1073,12 +1073,30 @@
           "type": "CHOICE",
           "members": [
             {
-              "type": "FIELD",
-              "name": "lexical",
-              "content": {
-                "type": "STRING",
-                "value": "my"
-              }
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "FIELD",
+                  "name": "lexical",
+                  "content": {
+                    "type": "CHOICE",
+                    "members": [
+                      {
+                        "type": "STRING",
+                        "value": "my"
+                      },
+                      {
+                        "type": "STRING",
+                        "value": "state"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "type": "STRING",
+                  "value": "our"
+                }
+              ]
             },
             {
               "type": "BLANK"
@@ -1126,12 +1144,30 @@
           "type": "CHOICE",
           "members": [
             {
-              "type": "FIELD",
-              "name": "lexical",
-              "content": {
-                "type": "STRING",
-                "value": "my"
-              }
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "FIELD",
+                  "name": "lexical",
+                  "content": {
+                    "type": "CHOICE",
+                    "members": [
+                      {
+                        "type": "STRING",
+                        "value": "my"
+                      },
+                      {
+                        "type": "STRING",
+                        "value": "state"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "type": "STRING",
+                  "value": "our"
+                }
+              ]
             },
             {
               "type": "BLANK"

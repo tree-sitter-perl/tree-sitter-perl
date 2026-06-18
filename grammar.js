@@ -363,7 +363,7 @@ module.exports = grammar({
       ')'
     ),
     subroutine_declaration_statement: $ => seq(
-      optional(field('lexical', 'my')),
+      optional(choice(field('lexical', choice('my', 'state')), 'our')),
       subExtensions(),
       'sub',
       field('name', $.bareword),
@@ -371,7 +371,7 @@ module.exports = grammar({
     ),
 
     method_declaration_statement: $ => seq(
-      optional(field('lexical', 'my')),
+      optional(choice(field('lexical', choice('my', 'state')), 'our')),
       subExtensions(),
       alias($._KW_METHOD, "method"),
       field('name', $.bareword),

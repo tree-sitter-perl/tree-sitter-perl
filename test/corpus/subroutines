@@ -269,12 +269,19 @@ method m3 ($tings) { }
 Lexical named sub
 ================================================================================
 my sub abc { }
+our sub def { }
+state sub ghi;
 --------------------------------------------------------------------------------
 
 (source_file
   (subroutine_declaration_statement
     (bareword)
-    (block)))
+    (block))
+  (subroutine_declaration_statement
+    (bareword)
+    (block))
+  (subroutine_declaration_statement
+    (bareword)))
 
 ================================================================================
 Funkier Signatures
