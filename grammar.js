@@ -91,8 +91,9 @@ const recoverBrace = ($) => choice('}', alias($._RECOVER_BRACE_CLOSE, '}'))
 // Distinct from `_RECOVER_BRACE_CLOSE` so subscript-brace recovery is untouched.
 const recoverBlock = ($) => choice('}', alias($._RECOVER_BLOCK_CLOSE, '}'))
 
-// little helper just to keep things DRY
-const subExtensions = () => repeat(choice('extended', 'async'))
+// little helper just to keep things DRY.  `async` is a contextual keyword
+// emitted by the scanner (aliased so it stays queryable/highlightable).
+const subExtensions = ($) => repeat(choice('extended', alias($._KW_ASYNC, 'async')))
 
 /**
  *
@@ -205,6 +206,11 @@ module.exports = grammar({
     $._KW_CLASS,
     $._KW_ROLE,
     $._KW_METHOD,
+    /* `async` emitted as a keyword only before `{`/`sub`/`method`; `try` only
+     * before a block `{`.  Otherwise the words lex as ordinary barewords so
+     * `async(...)`/`try(1,2,3)`/`try => 1` parse as calls/terms. */
+    $._KW_ASYNC,
+    $._KW_TRY,
     /* error condition must always be last; we don't use this in the grammar */
     $._ERROR
   ],
@@ -377,7 +383,7 @@ module.exports = grammar({
     ),
     subroutine_declaration_statement: $ => seq(
       optional(choice(field('lexical', choice('my', 'state')), 'our')),
-      subExtensions(),
+      subExtensions($),
       'sub',
       field('name', $.bareword),
       $._sub_decl_tail,
@@ -385,7 +391,7 @@ module.exports = grammar({
 
     method_declaration_statement: $ => seq(
       optional(choice(field('lexical', choice('my', 'state')), 'our')),
-      subExtensions(),
+      subExtensions($),
       alias($._KW_METHOD, "method"),
       field('name', $.bareword),
       $._sub_decl_tail,
@@ -435,7 +441,7 @@ module.exports = grammar({
       ),
 
     try_statement: $ => seq(
-      'try',
+      alias($._KW_TRY, 'try'),
       field('try_block', alias($._body_block, $.block)),
       // regular perl only permits catch(VAR) but we get easy compatibility
       // with Syntax::Keyword::Try too by being a bit more flexible
@@ -591,6 +597,7 @@ module.exports = grammar({
       $.anonymous_hash_expression,
       $.anonymous_subroutine_expression,
       $.anonymous_method_expression,
+      $.async_block_expression,
       $.do_expression,
       $.eval_expression,
       $.await_expression,
@@ -777,15 +784,23 @@ module.exports = grammar({
     ),
 
     anonymous_subroutine_expression: $ => seq(
-      subExtensions(),
+      subExtensions($),
       'sub',
       $._anon_sub_tail,
     ),
 
     anonymous_method_expression: $ => seq(
-      subExtensions(),
+      subExtensions($),
       alias($._KW_METHOD, "method"),
       $._anon_sub_tail,
+    ),
+
+    // Future::AsyncAwait `async { … }` block expression (e.g. `my $f = async { … }`).
+    // The scanner only emits `_KW_ASYNC` here when a `{` follows, so a plain sub
+    // named `async`/`async(...)` stays an ordinary call.
+    async_block_expression: $ => seq(
+      alias($._KW_ASYNC, 'async'),
+      $.block,
     ),
 
     // do FILENAME is more of an eval, so we parse it as eval_expression w/ a filename

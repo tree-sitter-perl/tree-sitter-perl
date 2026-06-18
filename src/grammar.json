@@ -1150,7 +1150,12 @@
                 "value": "extended"
               },
               {
-                "type": "STRING",
+                "type": "ALIAS",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "_KW_ASYNC"
+                },
+                "named": false,
                 "value": "async"
               }
             ]
@@ -1221,7 +1226,12 @@
                 "value": "extended"
               },
               {
-                "type": "STRING",
+                "type": "ALIAS",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "_KW_ASYNC"
+                },
+                "named": false,
                 "value": "async"
               }
             ]
@@ -1721,7 +1731,12 @@
       "type": "SEQ",
       "members": [
         {
-          "type": "STRING",
+          "type": "ALIAS",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_KW_TRY"
+          },
+          "named": false,
           "value": "try"
         },
         {
@@ -3004,6 +3019,10 @@
         {
           "type": "SYMBOL",
           "name": "anonymous_method_expression"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "async_block_expression"
         },
         {
           "type": "SYMBOL",
@@ -4688,7 +4707,12 @@
                 "value": "extended"
               },
               {
-                "type": "STRING",
+                "type": "ALIAS",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "_KW_ASYNC"
+                },
+                "named": false,
                 "value": "async"
               }
             ]
@@ -4717,7 +4741,12 @@
                 "value": "extended"
               },
               {
-                "type": "STRING",
+                "type": "ALIAS",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "_KW_ASYNC"
+                },
+                "named": false,
                 "value": "async"
               }
             ]
@@ -4735,6 +4764,24 @@
         {
           "type": "SYMBOL",
           "name": "_anon_sub_tail"
+        }
+      ]
+    },
+    "async_block_expression": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "ALIAS",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_KW_ASYNC"
+          },
+          "named": false,
+          "value": "async"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "block"
         }
       ]
     },
@@ -10477,6 +10524,14 @@
     {
       "type": "SYMBOL",
       "name": "_KW_METHOD"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_KW_ASYNC"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_KW_TRY"
     },
     {
       "type": "SYMBOL",

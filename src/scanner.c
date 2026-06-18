@@ -90,6 +90,9 @@ enum TokenType {
   TOKEN_KW_CLASS,
   TOKEN_KW_ROLE,
   TOKEN_KW_METHOD,
+  /* `async`/`try` contextual keywords, emitted only in keyword position */
+  TOKEN_KW_ASYNC,
+  TOKEN_KW_TRY,
   /* error condition is always last */
   TOKEN_ERROR
 };
@@ -830,10 +833,21 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   // (Runs after whitespace-skip above, so `c` is the word start.)  Deferred while
   // recovery is pending so the body block-close fires first (these keywords are
   // the structural-recovery trigger — see below).
-  if (!is_ERROR &&
-      !(any_recovery_valid && (crossed_newline || recovery_emitted)) &&
-      (valid_symbols[TOKEN_KW_CLASS] || valid_symbols[TOKEN_KW_ROLE] || valid_symbols[TOKEN_KW_METHOD]) &&
-      (c == 'c' || c == 'r' || c == 'm')) {
+  // The recovery-pending deferral applies only to the OO keywords (class/role/
+  // method) — they ARE the structural block-close recovery trigger, so they must
+  // let recovery fire first.  `async`/`try` never trigger block recovery, so they
+  // can be classified even mid-body (e.g. `sub f { try { … } catch … }`), where
+  // recovery is otherwise armed on the continuation line.
+  bool oo_kw_valid = valid_symbols[TOKEN_KW_CLASS] || valid_symbols[TOKEN_KW_ROLE] || valid_symbols[TOKEN_KW_METHOD];
+  bool asynctry_valid = valid_symbols[TOKEN_KW_ASYNC] || valid_symbols[TOKEN_KW_TRY];
+  bool recovery_pending = any_recovery_valid && (crossed_newline || recovery_emitted);
+  // `async`/`try` (first chars 'a'/'t') never start an OO keyword nor trigger
+  // block-close recovery, so they may be classified even mid-recovery.  The OO
+  // keywords (c/r/m) stay deferred while recovery is pending so the structural
+  // block-close fires first.
+  bool enter_oo = oo_kw_valid && !recovery_pending && (c == 'c' || c == 'r' || c == 'm');
+  bool enter_asynctry = asynctry_valid && (c == 'a' || c == 't');
+  if (!is_ERROR && (enter_oo || enter_asynctry)) {
     char word[8];
     int wlen = 0;
     while (isidcont(c)) {  // consume the whole identifier (store first 7 chars)
@@ -847,9 +861,49 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
       lexer->advance(lexer, false);
       c = lexer->lookahead;
     }
-    bool is_class  = valid_symbols[TOKEN_KW_CLASS]  && strcmp(word, "class")  == 0;
-    bool is_role   = valid_symbols[TOKEN_KW_ROLE]   && strcmp(word, "role")   == 0;
-    bool is_method = valid_symbols[TOKEN_KW_METHOD] && strcmp(word, "method") == 0;
+    // OO-keyword classification stays deferred while recovery is pending (so the
+    // structural block-close fires first); async/try are never deferred.
+    bool is_class  = !recovery_pending && valid_symbols[TOKEN_KW_CLASS]  && strcmp(word, "class")  == 0;
+    bool is_role   = !recovery_pending && valid_symbols[TOKEN_KW_ROLE]   && strcmp(word, "role")   == 0;
+    bool is_method = !recovery_pending && valid_symbols[TOKEN_KW_METHOD] && strcmp(word, "method") == 0;
+    bool is_async  = valid_symbols[TOKEN_KW_ASYNC]  && strcmp(word, "async")  == 0;
+    bool is_try    = valid_symbols[TOKEN_KW_TRY]    && strcmp(word, "try")    == 0;
+
+    // `try` is the try/catch STATEMENT keyword ONLY when a block `{` follows.
+    // `try(...)`, `try =>`, `try;`, `try $x` are ordinary bareword/sub calls
+    // (`catch(...)` is never over-reserved, so we only special-case `try`).
+    if (is_try) {
+      if (c == '{') TOKEN(TOKEN_KW_TRY);
+      // otherwise fall through to autoquote/bareword handling below.
+    }
+
+    // `async` is a keyword only before a block (`async { … }`) or a sub/method
+    // declaration (`async sub { … }`, `async method { … }`, also via the
+    // `extended` sub-extension: `async extended method { … }`).  `async(...)`,
+    // `async =>`, or a plain sub named `async` are barewords/calls.
+    if (is_async) {
+      if (c == '{') TOKEN(TOKEN_KW_ASYNC);  // async block expression
+      // peek for a following `sub`/`method`/`extended` keyword
+      if (c == 's' || c == 'm' || c == 'e') {
+        char nword[9];
+        int nlen = 0;
+        while (isidcont(c)) {  // read the next word (we already MARK_ENDed at `async`)
+          if (nlen < 8) nword[nlen++] = (char)c;
+          lexer->advance(lexer, false);
+          c = lexer->lookahead;
+        }
+        nword[nlen] = '\0';
+        if (strcmp(nword, "sub") == 0 || strcmp(nword, "method") == 0 ||
+            strcmp(nword, "extended") == 0)
+          TOKEN(TOKEN_KW_ASYNC);
+        // Not a decl after all (`async send`, `async sister => …`): we've consumed
+        // past `async`'s own word, so we can't reuse the autoquote fall-through
+        // below (it would misread the *next* word's `=>`).  Re-lex `async` as an
+        // ordinary bareword/call.
+        return false;
+      }
+      // otherwise fall through to autoquote/bareword handling below.
+    }
 
     // `class NAME` / `role NAME` — a name follows => declaration.  Anything else
     // (`role {}`, `class($x)`, `-role`) is a bareword/call.
@@ -873,7 +927,19 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     // Word used as an autoquoted key — fat-comma (`class => 1`, `method => 1`)
     // or hash subscript (`$h{m}`, `$h{method}`).  Handle these here because a
     // bare `return false` would re-lex a quote-op word (`m`/`s`/`y`/…) as a
-    // match/substitution instead of the autoquoted bareword.
+    // match/substitution instead of the autoquoted bareword.  Skip intervening
+    // comments too, so a fat comma hidden behind a comment on a continuation
+    // line (`things\n# note\n => 1`) still autoquotes — this block intercepts
+    // the word before the recovery-gate autoquote path would, so we must
+    // replicate its comment-skip here.
+    while (is_tsp_whitespace(c) || c == '#') {
+      while (is_tsp_whitespace(c)) { lexer->advance(lexer, false); c = lexer->lookahead; }
+      if (c == '#') {
+        lexer->advance(lexer, false); c = lexer->lookahead;
+        while (lexer->get_column(lexer) && !lexer->eof(lexer)) { lexer->advance(lexer, false); c = lexer->lookahead; }
+      }
+      if (lexer->eof(lexer)) return false;
+    }
     if (valid_symbols[TOKEN_FAT_COMMA_AUTOQUOTED] && c == '=') {
       lexer->advance(lexer, false);
       if (lexer->lookahead == '>') TOKEN(TOKEN_FAT_COMMA_AUTOQUOTED);

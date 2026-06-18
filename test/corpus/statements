@@ -834,3 +834,27 @@ my $after = 1;
         variable: (scalar
           (varname)))
       right: (number))))
+
+================================================================================
+async block and try as a function call
+================================================================================
+my $t = async { 1 };
+try(1, 2);
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      right: (async_block_expression
+        (block
+          (expression_statement
+            (number))))))
+  (expression_statement
+    (function_call_expression
+      function: (function)
+      arguments: (list_expression
+        (number)
+        (number)))))
