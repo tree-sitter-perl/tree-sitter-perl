@@ -610,6 +610,26 @@ ITEM: while(@items) { }
       block: (block))))
 
 ================================================================================
+Labels named like phasers
+================================================================================
+CHECK: $x = 1;
+END: last;
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement_label
+    label: (identifier)
+    statement: (expression_statement
+      (assignment_expression
+        left: (scalar
+          (varname))
+        right: (number))))
+  (statement_label
+    label: (identifier)
+    statement: (expression_statement
+      (loopex_expression))))
+
+================================================================================
 phasers
 ================================================================================
 BEGIN { 123; }
