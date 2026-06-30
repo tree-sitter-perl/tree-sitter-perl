@@ -763,8 +763,16 @@ module.exports = grammar({
 
     // we use the precedence here to ensure that we turn map { q'thingy" => $_ } into a hashref
     // it just needs to be arbitrarily higher than the _literal rule.
-    _tricky_list: $ => prec(1, seq(
-      choice($.string_literal, $.interpolated_string_literal, $.command_string, $.autoquoted_bareword, $.number), $._PERLY_COMMA, $._listexpr
+    // The tail mirrors `_term_rightward` (flat list + empty/trailing slots) rather
+    // than delegating to `_listexpr` — a delegated `_listexpr` can't begin with a
+    // comma, so `{ hi =>, 'thing' }` (a fat comma followed by an empty slot, valid
+    // Perl) used to error. Inlining the empty-slot-aware repeat also flattens the
+    // list instead of nesting a second `list_expression` after the first comma.
+    _tricky_list: $ => prec.right(1, seq(
+      choice($.string_literal, $.interpolated_string_literal, $.command_string, $.autoquoted_bareword, $.number),
+      $._PERLY_COMMA,
+      repeat(seq(optional($._term), $._PERLY_COMMA)),
+      optional($._term),
     )),
     anonymous_hash_expression: $ => choice(
       seq($._PERLY_BRACE_OPEN, $._expr, '}'),
