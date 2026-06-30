@@ -9936,7 +9936,7 @@
         },
         {
           "type": "PATTERN",
-          "value": "((::)|([_\\p{XID_Start}][\\p{XID_Continue}]*))+",
+          "value": "(::)*[_\\p{XID_Start}][\\p{XID_Continue}]*((::)+[_\\p{XID_Start}][\\p{XID_Continue}]*)*(::)*|(::)+",
           "flags": "v"
         }
       ]
