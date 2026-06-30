@@ -346,3 +346,40 @@ $thing ? -hi:-there;      # but single colon is not included in the quote
       (autoquoted_bareword)
       (autoquoted_bareword)))
   (comment))
+
+================================================================================
+Fat comma followed by empty list slots (valid Perl, flattens away)
+================================================================================
+{ hi =>, 'thing' };
+{ hi =>, };
+{ 'a', 'b', 'c' };
+{ 'a',, 'b' };
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (anonymous_hash_expression
+      (list_expression
+        (autoquoted_bareword)
+        (string_literal
+          (string_content)))))
+  (expression_statement
+    (anonymous_hash_expression
+      (list_expression
+        (autoquoted_bareword))))
+  (expression_statement
+    (anonymous_hash_expression
+      (list_expression
+        (string_literal
+          (string_content))
+        (string_literal
+          (string_content))
+        (string_literal
+          (string_content)))))
+  (expression_statement
+    (anonymous_hash_expression
+      (list_expression
+        (string_literal
+          (string_content))
+        (string_literal
+          (string_content))))))

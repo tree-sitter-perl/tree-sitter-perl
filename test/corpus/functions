@@ -309,10 +309,9 @@ for_sure_a_hash { hi => 'there' }, 9001;
       (anonymous_hash_expression
         (list_expression
           (number)
-          (list_expression
-            (number)
-            (number)
-            (number))))))
+          (number)
+          (number)
+          (number)))))
   (expression_statement
     (ambiguous_function_call_expression
       (function)
