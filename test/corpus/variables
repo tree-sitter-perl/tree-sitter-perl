@@ -100,7 +100,8 @@ my ${ spaced };
       left: (variable_declaration
         variable: (array
           (varname)))
-      right: (number)))
+      right: (parenthesized_expression
+        (number))))
   (expression_statement
     (assignment_expression
       left: (variable_declaration
@@ -183,17 +184,19 @@ my %h = (6, 7);
       (variable_declaration
         (array
           (varname)))
-      (list_expression
-        (number)
-        (number))))
+      (parenthesized_expression
+        (list_expression
+          (number)
+          (number)))))
   (expression_statement
     (assignment_expression
       (variable_declaration
         (hash
           (varname)))
-      (list_expression
-        (number)
-        (number)))))
+      (parenthesized_expression
+        (list_expression
+          (number)
+          (number))))))
 
 ================================================================================
 variable declarations with attributes
