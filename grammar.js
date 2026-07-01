@@ -431,7 +431,7 @@ module.exports = grammar({
     _for_initializer: $ => choice(
       seq(optional(choice('my', 'state', 'our')), field('variable', $.scalar)),
       seq(optional(choice('my', 'state', 'our')), field('variable', $.refalias_variable)),
-      seq('my', field('variables', paren_list_of($.scalar))),
+      seq('my', paren_list_of(field('variables', $.scalar))),
     ),
     for_statement: $ =>
       seq($._KW_FOR,
