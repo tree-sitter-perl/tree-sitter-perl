@@ -1,7 +1,7 @@
 [package]
 name = "ts-parser-perl"
 description = "Actively maintained tree-sitter grammar for Perl"
-version = "1.2.1"
+version = "1.3.0"
 license = "MIT"
 readme = "README.md"
 keywords = ["incremental", "parsing", "tree-sitter", "perl"]

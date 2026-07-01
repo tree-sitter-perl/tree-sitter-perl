@@ -269,16 +269,18 @@ EXPR < EXPR - list/non assoc
     (number))
   (expression_statement
     (relational_expression
-      (relational_expression
-        (number)
-        (number))
+      (parenthesized_expression
+        (relational_expression
+          (number)
+          (number)))
       (number)))
   (expression_statement
     (relational_expression
       (number)
-      (relational_expression
-        (number)
-        (number)))))
+      (parenthesized_expression
+        (relational_expression
+          (number)
+          (number))))))
 
 ================================================================================
 < and eq - list/non assoc corner cases
@@ -448,9 +450,10 @@ EXPR ** EXPR
   (expression_statement
     (binary_expression
       left: (number)
-      right: (binary_expression
-        left: (number)
-        right: (number)))))
+      right: (parenthesized_expression
+        (binary_expression
+          left: (number)
+          right: (number))))))
 
 ================================================================================
 !EXPR
@@ -563,9 +566,10 @@ range ops
   (expression_statement
     (binary_expression
       (number)
-      (binary_expression
-        (number)
-        (number)))))
+      (parenthesized_expression
+        (binary_expression
+          (number)
+          (number))))))
 
 ================================================================================
 range ops - nonassoc
@@ -899,7 +903,8 @@ my $c = $s x 3;
         (array
           (varname)))
       (binary_expression
-        (interpolated_string_literal)
+        (parenthesized_expression
+          (interpolated_string_literal))
         (number))))
   (expression_statement
     (assignment_expression

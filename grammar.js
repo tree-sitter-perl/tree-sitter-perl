@@ -580,6 +580,13 @@ module.exports = grammar({
         seq(field('hashref', $._term), '->', '%', $._slice_key_subscript)),
     ),
 
+    // A parenthesized expression is its own node rather than a transparent
+    // `('(' _expr ')')`: a field wrapping a transparent-paren term (e.g. binop's
+    // `right:`) otherwise splats onto the `(`/`)` tokens, since tree-sitter
+    // attaches a field to every child spliced up from a hidden/inline rule (see
+    // upstream tree-sitter#1526). Every mature grammar (js/python/c/rust) gives
+    // parens a named node for exactly this reason. Costs zero extra parser states.
+    parenthesized_expression: $ => seq('(', $._expr, ')'),
     _term: $ => choice(
       $.readline_expression,
       $.fileglob_expression,
@@ -601,7 +608,7 @@ module.exports = grammar({
       $.conditional_expression,
       $.refgen_expression,
       $.localization_expression,
-      seq('(', $._expr, ')'),
+      $.parenthesized_expression,
       $.quoted_word_list,
       $.heredoc_token,
       $.command_heredoc_token,
