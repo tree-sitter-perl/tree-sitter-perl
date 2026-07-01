@@ -41,13 +41,14 @@ map { lc($_) => 1 } @array;        # and this.
     (map_grep_expression
       (block
         (expression_statement
-          (list_expression
-            (interpolated_string_literal
-              (string_content
-                (escape_sequence)
-                (scalar
-                  (varname))))
-            (number))))
+          (parenthesized_expression
+            (list_expression
+              (interpolated_string_literal
+                (string_content
+                  (escape_sequence)
+                  (scalar
+                    (varname))))
+              (number)))))
       (array
         (varname))))
   (comment)
@@ -78,11 +79,12 @@ map { even_this   => $_ }, @array;     # perl guesses EXPR; slightly more SURPRI
   (expression_statement
     (map_grep_expression
       (unary_expression
-        (list_expression
-          (func1op_call_expression
-            (scalar
-              (varname)))
-          (number)))
+        (parenthesized_expression
+          (list_expression
+            (func1op_call_expression
+              (scalar
+                (varname)))
+            (number))))
       (array
         (varname))))
   (comment)
@@ -174,11 +176,12 @@ map +(lc($_) => 1 ), (1, 2), 3;
   (expression_statement
     (map_grep_expression
       callback: (unary_expression
-        operand: (list_expression
-          (func1op_call_expression
-            (scalar
-              (varname)))
-          (number)))
+        operand: (parenthesized_expression
+          (list_expression
+            (func1op_call_expression
+              (scalar
+                (varname)))
+            (number))))
       list: (list_expression
         (number)
         (number)
@@ -192,22 +195,25 @@ map +(lc($_) => 1 ), (1, 2), 3;
               (scalar
                 (varname)))
             (number))))
-      list: (list_expression
-        (number)
-        (number)
-        (number))))
+      list: (parenthesized_expression
+        (list_expression
+          (number)
+          (number)
+          (number)))))
   (expression_statement
     (map_grep_expression
       callback: (unary_expression
-        operand: (list_expression
-          (func1op_call_expression
-            (scalar
-              (varname)))
-          (number)))
+        operand: (parenthesized_expression
+          (list_expression
+            (func1op_call_expression
+              (scalar
+                (varname)))
+            (number))))
       list: (list_expression
-        (list_expression
-          (number)
-          (number))
+        (parenthesized_expression
+          (list_expression
+            (number)
+            (number)))
         (number)))))
 
 ================================================================================
@@ -260,10 +266,11 @@ sort $not_subref, 1;
   (expression_statement
     (sort_expression
       callback: (function)
-      list: (list_expression
-        (number)
-        (number)
-        (number))))
+      list: (parenthesized_expression
+        (list_expression
+          (number)
+          (number)
+          (number)))))
   (expression_statement
     (sort_expression
       list: (unary_expression

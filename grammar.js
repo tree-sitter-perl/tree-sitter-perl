@@ -431,7 +431,7 @@ module.exports = grammar({
     _for_initializer: $ => choice(
       seq(optional(choice('my', 'state', 'our')), field('variable', $.scalar)),
       seq(optional(choice('my', 'state', 'our')), field('variable', $.refalias_variable)),
-      seq('my', field('variables', paren_list_of($.scalar))),
+      seq('my', paren_list_of(field('variables', $.scalar))),
     ),
     for_statement: $ =>
       seq($._KW_FOR,
@@ -580,6 +580,13 @@ module.exports = grammar({
         seq(field('hashref', $._term), '->', '%', $._slice_key_subscript)),
     ),
 
+    // A parenthesized expression is its own node rather than a transparent
+    // `('(' _expr ')')`: a field wrapping a transparent-paren term (e.g. binop's
+    // `right:`) otherwise splats onto the `(`/`)` tokens, since tree-sitter
+    // attaches a field to every child spliced up from a hidden/inline rule (see
+    // upstream tree-sitter#1526). Every mature grammar (js/python/c/rust) gives
+    // parens a named node for exactly this reason. Costs zero extra parser states.
+    parenthesized_expression: $ => seq('(', $._expr, ')'),
     _term: $ => choice(
       $.readline_expression,
       $.fileglob_expression,
@@ -601,7 +608,7 @@ module.exports = grammar({
       $.conditional_expression,
       $.refgen_expression,
       $.localization_expression,
-      seq('(', $._expr, ')'),
+      $.parenthesized_expression,
       $.quoted_word_list,
       $.heredoc_token,
       $.command_heredoc_token,
@@ -851,7 +858,7 @@ module.exports = grammar({
           // Unambiguous: the variable always starts with a sigil, never a bareword.
           seq(optional(field('type', $.package)), field('variable', $._declared_vars)),
           field('variable', $.refalias_variable),
-          field('variables', $._decl_variable_list)),
+          $._decl_variable_list),
         optseq(':', optional(field('attributes', $.attrlist))))
     ),
 
@@ -863,8 +870,8 @@ module.exports = grammar({
     // first element (while still allowing empty/trailing slots after a comma)
     // keeps the nested-group `(` unambiguous.
     _decl_variable_list_body: $ => seq(
-      $._decl_variable_list_element,
-      repeat(seq(',', optional($._decl_variable_list_element)))
+      field('variables', $._decl_variable_list_element),
+      repeat(seq(',', optional(field('variables', $._decl_variable_list_element))))
     ),
 
     _decl_variable_list_element: $ => choice(
