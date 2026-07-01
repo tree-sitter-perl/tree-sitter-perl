@@ -851,7 +851,7 @@ module.exports = grammar({
           // Unambiguous: the variable always starts with a sigil, never a bareword.
           seq(optional(field('type', $.package)), field('variable', $._declared_vars)),
           field('variable', $.refalias_variable),
-          field('variables', $._decl_variable_list)),
+          $._decl_variable_list),
         optseq(':', optional(field('attributes', $.attrlist))))
     ),
 
@@ -863,8 +863,8 @@ module.exports = grammar({
     // first element (while still allowing empty/trailing slots after a comma)
     // keeps the nested-group `(` unambiguous.
     _decl_variable_list_body: $ => seq(
-      $._decl_variable_list_element,
-      repeat(seq(',', optional($._decl_variable_list_element)))
+      field('variables', $._decl_variable_list_element),
+      repeat(seq(',', optional(field('variables', $._decl_variable_list_element))))
     ),
 
     _decl_variable_list_element: $ => choice(
