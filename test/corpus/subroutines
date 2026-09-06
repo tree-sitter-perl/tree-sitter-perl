@@ -192,11 +192,12 @@ sub barN ($x, $y, @z) { }
       (optional_parameter
         (scalar
           (varname))
-        (binary_expression
-          (scalar
-            (varname))
-          (scalar
-            (varname)))))
+        (parenthesized_expression
+          (binary_expression
+            (scalar
+              (varname))
+            (scalar
+              (varname))))))
     (block))
   (subroutine_declaration_statement
     (bareword)
@@ -392,6 +393,7 @@ lexical method calls experimental Object::Pad syntax
 ================================================================================
 $sner->&over_9000
 --------------------------------------------------------------------------------
+
 (source_file
   (expression_statement
     (method_call_expression
