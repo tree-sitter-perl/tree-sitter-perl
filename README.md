@@ -77,11 +77,20 @@ tree-sitter generate src/grammar.json
 ### Releasing
 
 ```bash
-script/bump-version 0.2.0          # syncs version across package.json, Cargo.toml, pyproject.toml
-git add -A && git commit -m 'chore: bump version to 0.2.0'
-git tag v0.2.0
-git push origin master v0.2.0      # tag push triggers publish to npm, crates.io, PyPI, GitHub
+script/schema-diff                 # what changed in the public node schema, and the bump it implies
+script/bump-version 2.0.0          # syncs version across all four manifests
+git add -A && git commit           # NOTE: no -m — see below
+git tag v2.0.0
+git push origin master v2.0.0      # tag push triggers publish to npm, crates.io, PyPI, GitHub
 ```
+
+**The tag commit's message body becomes the GitHub release notes** — `publish.yml`
+extracts it with `git log -1 --format=%b`. Committing with `-m 'chore: bump …'`
+alone therefore publishes a release with no notes; write the notes into the
+commit body. CI fails the publish if that body is empty.
+
+`script/bump-version --check` verifies every manifest agrees; CI runs it on each
+pull request.
 
 ### Tests
 
