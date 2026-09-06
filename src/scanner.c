@@ -137,6 +137,43 @@ static int32_t close_for_open(int32_t c) {
   }
 }
 
+/* Pure lookahead: does an unescaped `closer` occur before EOF?
+ *
+ * An unterminated quote-like otherwise swallows the entire rest of the file
+ * into one ERROR, which is exactly what the recovery machinery is supposed to
+ * prevent.  The tempting fix -- bail out of the string when a statement
+ * keyword shows up -- is wrong: `eval 'package Foo; sub bar {...}'` is
+ * perfectly legal Perl, and so is any SQL or template blob, so a keyword
+ * inside a string proves nothing.
+ *
+ * "Is there a closing delimiter at all" is a fact rather than a guess, and it
+ * has the property the keyword heuristic lacks: VALID CODE ALWAYS HAS THE
+ * CLOSER.  So a real string -- metaprogramming included -- always takes the
+ * unchanged path, and only input that is definitively unterminated is treated
+ * differently.  This is also what perl itself does ("Can't find string
+ * terminator ... anywhere before EOF").
+ *
+ * MUST be called after MARK_END, so the advancing here stays pure lookahead
+ * and does not extend the token (same trick as the fileglob heuristic).
+ */
+static bool has_closer_ahead(TSLexer *lexer, int32_t closer) {
+  while (!lexer->eof(lexer)) {
+    int32_t c = lexer->lookahead;
+    if (c == '\\') {
+      /* backslash escapes the next char, whatever it is */
+      lexer->advance(lexer, false);
+      if (lexer->eof(lexer))
+        return false;
+      lexer->advance(lexer, false);
+      continue;
+    }
+    if (c == closer)
+      return true;
+    lexer->advance(lexer, false);
+  }
+  return false;
+}
+
 typedef struct {
   int32_t open, close, count;
   /* Recognises a pattern-LEADING '['/'{' -- the quote's own opening delimiter
@@ -1093,11 +1130,17 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   }
   if (valid_symbols[TOKEN_APOSTROPHE] && c == '\'') {
     ADVANCE_C;
+    MARK_END; /* token is just the quote; the rest below is pure lookahead */
+    if (!has_closer_ahead(lexer, '\''))
+      return false; /* definitively unterminated -- don't eat the file */
     lexerstate_push_quote(state, '\'');
     TOKEN(TOKEN_APOSTROPHE);
   }
   if (valid_symbols[TOKEN_DOUBLE_QUOTE] && c == '"') {
     ADVANCE_C;
+    MARK_END;
+    if (!has_closer_ahead(lexer, '"'))
+      return false;
     lexerstate_push_quote(state, '"');
     TOKEN(TOKEN_DOUBLE_QUOTE);
   }
