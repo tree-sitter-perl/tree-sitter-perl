@@ -1,39 +1,124 @@
 #!/usr/bin/env perl
+# Sync the package version across every manifest that carries one.
+#
+# `--check` verifies they already agree (and match a version, if given) without
+# writing anything — that's the mode CI runs, so a half-applied bump can't reach
+# a tag.
 
 use v5.20;
 use warnings;
-use File::Slurp qw(read_file write_file);
 
-my $version = shift or die "Usage: $0 <version>\n  e.g. $0 0.2.0\n";
-$version =~ /^\d+\.\d+\.\d+$/ or die "Version must be semver (e.g. 0.2.0), got: $version\n";
+# Core-only file IO: this script is a CI guard, so it must run on a bare perl
+# with nothing installed.
+sub slurp {
+    my ($path) = @_;
+    open my $fh, '<:encoding(UTF-8)', $path or die "open $path: $!\n";
+    local $/;
+    return <$fh>;
+}
 
+sub spew {
+    my ($path, $content) = @_;
+    open my $fh, '>:encoding(UTF-8)', $path or die "open $path: $!\n";
+    print {$fh} $content;
+    close $fh or die "close $path: $!\n";
+}
+
+# Keep this list exhaustive. A missing entry drifts silently: tree-sitter.json
+# was absent here and sat at 1.0.0 through every release up to 1.2.1 before
+# anyone noticed.
 my @files = (
     {
-        file    => 'package.json',
-        pattern => qr/"version":\s*"[^"]*"/,
-        replace => qq("version": "$version"),
+        file     => 'package.json',
+        pattern  => qr/"version":\s*"([^"]*)"/,
+        template => '"version": "%s"',
     },
     {
-        file    => 'Cargo.toml',
-        pattern => qr/^version\s*=\s*"[^"]*"/m,
-        replace => qq(version = "$version"),
+        file     => 'Cargo.toml',
+        pattern  => qr/^version\s*=\s*"([^"]*)"/m,
+        template => 'version = "%s"',
     },
     {
-        file    => 'pyproject.toml',
-        pattern => qr/^version\s*=\s*"[^"]*"/m,
-        replace => qq(version = "$version"),
+        file     => 'pyproject.toml',
+        pattern  => qr/^version\s*=\s*"([^"]*)"/m,
+        template => 'version = "%s"',
+    },
+    {
+        # metadata.version — the only "version" key in the file.
+        file     => 'tree-sitter.json',
+        pattern  => qr/"version":\s*"([^"]*)"/,
+        template => '"version": "%s"',
     },
 );
 
+my $check = 0;
+my @args;
+for (@ARGV) {
+    if ($_ eq '--check') { $check = 1 }
+    else                 { push @args, $_ }
+}
+my $version = shift @args;
+
+die "Usage: $0 <version>      e.g. $0 2.0.0\n" .
+    "       $0 --check [<version>]\n"
+    unless $check || defined $version;
+
+die "Version must be semver (e.g. 2.0.0), got: $version\n"
+    if defined $version && $version !~ /^\d+\.\d+\.\d+$/;
+
+# Read what each file currently claims.
+my %found;
 for my $spec (@files) {
-    my $content = read_file($spec->{file});
-    my $count = ($content =~ s/$spec->{pattern}/$spec->{replace}/);
-    die "Failed to find version in $spec->{file}\n" unless $count;
-    write_file($spec->{file}, $content);
-    say "Updated $spec->{file} → $version";
+    my $content = slurp($spec->{file});
+    my ($current) = $content =~ $spec->{pattern};
+    die "Failed to find a version in $spec->{file}\n" unless defined $current;
+    $found{ $spec->{file} } = $current;
 }
 
-say "\nDone. To release:\n  git add package.json Cargo.toml pyproject.toml";
-say "  git commit -m 'chore: bump version to $version'";
-say "  git tag v$version";
-say "  git push origin master v$version";
+if ($check) {
+    my %distinct = map { $_ => 1 } values %found;
+    my @versions = keys %distinct;
+
+    my $ok = 1;
+    if (@versions > 1) {
+        say STDERR "Version mismatch across manifests:";
+        $ok = 0;
+    }
+    elsif (defined $version && $versions[0] ne $version) {
+        say STDERR "Manifests are at $versions[0], expected $version:";
+        $ok = 0;
+    }
+
+    unless ($ok) {
+        printf STDERR "  %-18s %s\n", $_->{file}, $found{ $_->{file} } for @files;
+        say STDERR "\nRun: script/bump-version <version>";
+        exit 1;
+    }
+
+    say "All manifests at $versions[0]:";
+    printf "  %-18s %s\n", $_->{file}, $found{ $_->{file} } for @files;
+    exit 0;
+}
+
+for my $spec (@files) {
+    my $content     = slurp($spec->{file});
+    my $replacement = sprintf $spec->{template}, $version;
+
+    my $count = ($content =~ s/$spec->{pattern}/$replacement/);
+    die "Failed to find a version in $spec->{file}\n" unless $count;
+
+    spew($spec->{file}, $content);
+    say "Updated $spec->{file}  $found{$spec->{file}} -> $version";
+}
+
+# The tag commit's BODY becomes the GitHub release notes (publish.yml runs
+# `git log -1 --format=%b`), so `git commit -m '...'` alone ships an empty
+# release. Hence `git commit` with no -m.
+say <<~"END";
+
+    Done. To release:
+      git add @{[ join ' ', map { $_->{file} } @files ]}
+      git commit          # NO -m: the body becomes the GitHub release notes
+      git tag v$version
+      git push origin master v$version
+    END

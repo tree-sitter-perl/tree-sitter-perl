@@ -19,7 +19,16 @@ jobs:
       - uses: actions/checkout@v6
       - id: notes
         run: |
+          # The tag commit's BODY is the release body. `git commit -m '...'`
+          # leaves it empty, which would publish a release with no notes at all
+          # -- fail loudly here instead, while it can still be re-tagged.
           body=$(git log -1 --format=%b)
+          if [ -z "${body//[[:space:]]/}" ]; then
+            echo "::error::Tag commit has an empty body, so the release notes" \
+                 "would be empty. Amend the tag commit with the release notes" \
+                 "in its body (git commit --amend, no -m) and re-tag."
+            exit 1
+          fi
           echo "body<<EOF" >> "$GITHUB_OUTPUT"
           echo "$body" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
@@ -50,6 +59,8 @@ jobs:
           node-version: 24
           registry-url: https://registry.npmjs.org
       - uses: tree-sitter/setup-action/cli@v2
+        with:
+          tree-sitter-ref: v0.26.9   # pinned; see the note in ci.yml
       - run: tree-sitter generate src/grammar.json
       - run: npm install --ignore-scripts
       - run: npm publish
@@ -64,6 +75,8 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions-rust-lang/setup-rust-toolchain@v1
       - uses: tree-sitter/setup-action/cli@v2
+        with:
+          tree-sitter-ref: v0.26.9   # pinned; see the note in ci.yml
       - run: tree-sitter generate src/grammar.json
       - name: Authenticate with crates.io
         id: auth
@@ -81,6 +94,8 @@ jobs:
         with:
           python-version: "3.11"
       - uses: tree-sitter/setup-action/cli@v2
+        with:
+          tree-sitter-ref: v0.26.9   # pinned; see the note in ci.yml
       - run: tree-sitter generate src/grammar.json
       - run: pip install --upgrade build setuptools wheel
       - run: python -mbuild -n -s
@@ -99,6 +114,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: tree-sitter/setup-action/cli@v2
+        with:
+          tree-sitter-ref: v0.26.9   # pinned; see the note in ci.yml
       - run: tree-sitter generate src/grammar.json
       - uses: pypa/cibuildwheel@v2.22
         with:
