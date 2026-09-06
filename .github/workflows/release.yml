@@ -14,6 +14,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: tree-sitter/setup-action/cli@v2
+        with:
+          tree-sitter-ref: v0.26.9   # pinned; see the note in ci.yml
       - run: tree-sitter generate
       - run: tree-sitter test
       - run: ./copy-to-release

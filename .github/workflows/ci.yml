@@ -34,6 +34,13 @@ jobs:
         with:
           node-version: 20
       - uses: tree-sitter/setup-action/cli@v2
+        with:
+          # Pinned deliberately. The action's default is `latest`, so CI would
+          # silently follow every CLI release -- and v0.27.0 changed error
+          # recovery, turning a green corpus red with no change on our side.
+          # Keep this in step with the tree-sitter-cli devDependency in
+          # package.json, and bump both together on purpose.
+          tree-sitter-ref: v0.26.9
       - run: tree-sitter generate
       - run: tree-sitter test
       - name: C unit tests (regex heuristic)
