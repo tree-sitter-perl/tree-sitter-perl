@@ -137,37 +137,57 @@ static int32_t close_for_open(int32_t c) {
   }
 }
 
-/* Pure lookahead: does an unescaped `closer` occur before EOF?
+/* Pure lookahead: matching closer before EOF?  Covers ' and " (non-paired:
+ * closer == opener) and the quote-likes.  Without it an unterminated quote
+ * eats the rest of the file.
  *
- * An unterminated quote-like otherwise swallows the entire rest of the file
- * into one ERROR, which is exactly what the recovery machinery is supposed to
- * prevent.  The tempting fix -- bail out of the string when a statement
- * keyword shows up -- is wrong: `eval 'package Foo; sub bar {...}'` is
- * perfectly legal Perl, and so is any SQL or template blob, so a keyword
- * inside a string proves nothing.
+ * NOT "should this have ended" -- undecidable, `eval 'package Foo;...'` is
+ * legal -- but "is there a closer", which valid code always has.
  *
- * "Is there a closing delimiter at all" is a fact rather than a guess, and it
- * has the property the keyword heuristic lacks: VALID CODE ALWAYS HAS THE
- * CLOSER.  So a real string -- metaprogramming included -- always takes the
- * unchanged path, and only input that is definitively unterminated is treated
- * differently.  This is also what perl itself does ("Can't find string
- * terminator ... anywhere before EOF").
+ * Depth counting matches perl, quoting inside the body included: `q(a ( b)`
+ * and `m{ "{" }` are unterminated to perl too.  Backslash-as-delimiter
+ * (`q\...\`) cannot also escape.
  *
- * MUST be called after MARK_END, so the advancing here stays pure lookahead
- * and does not extend the token (same trick as the fileglob heuristic).
+ * leads_with_delim: optional, paired only -- body's first non-space char is
+ * the opener again (m{{...}}); see TSPQuote.body_leads_with_delim.
+ *
+ * MUST follow MARK_END, or the lookahead extends the token.
  */
-static bool has_closer_ahead(TSLexer *lexer, int32_t closer) {
+static bool quote_terminated(TSLexer *lexer, int32_t opener,
+                             bool *leads_with_delim) {
+  int32_t closer = close_for_open(opener);
+  bool paired = closer != 0;
+  if (!paired)
+    closer = opener;
+
+  if (leads_with_delim)
+    *leads_with_delim = false;
+  int depth = 1;
+
+  bool backslash_escapes = opener != '\\';
+
+  if (paired && leads_with_delim) {
+    while (!lexer->eof(lexer) && is_tsp_whitespace(lexer->lookahead))
+      lexer->advance(lexer, false);
+    if (!lexer->eof(lexer) && lexer->lookahead == opener)
+      *leads_with_delim = true;
+  }
+
   while (!lexer->eof(lexer)) {
     int32_t c = lexer->lookahead;
-    if (c == '\\') {
-      /* backslash escapes the next char, whatever it is */
+    if (backslash_escapes && c == '\\') {
       lexer->advance(lexer, false);
       if (lexer->eof(lexer))
         return false;
       lexer->advance(lexer, false);
       continue;
     }
-    if (c == closer)
+    if (paired && c == opener) {
+      depth++;
+      lexer->advance(lexer, false);
+      continue;
+    }
+    if (c == closer && (!paired || --depth == 0))
       return true;
     lexer->advance(lexer, false);
   }
@@ -1130,16 +1150,16 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   }
   if (valid_symbols[TOKEN_APOSTROPHE] && c == '\'') {
     ADVANCE_C;
-    MARK_END; /* token is just the quote; the rest below is pure lookahead */
-    if (!has_closer_ahead(lexer, '\''))
-      return false; /* definitively unterminated -- don't eat the file */
+    MARK_END; /* token is just the quote */
+    if (!quote_terminated(lexer, '\'', NULL))
+      return false;
     lexerstate_push_quote(state, '\'');
     TOKEN(TOKEN_APOSTROPHE);
   }
   if (valid_symbols[TOKEN_DOUBLE_QUOTE] && c == '"') {
     ADVANCE_C;
     MARK_END;
-    if (!has_closer_ahead(lexer, '"'))
+    if (!quote_terminated(lexer, '"', NULL))
       return false;
     lexerstate_push_quote(state, '"');
     TOKEN(TOKEN_DOUBLE_QUOTE);
@@ -1362,21 +1382,20 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     // we scan the replacement. Now that the second pair is opening, retire it.
     // MIDDLE_SKIP being a valid symbol here means we're at the middle choice
     // point (between pattern and replacement) rather than an initial begin.
+    //
+    // Decide before the pop/push below: bailing out after it would strand the
+    // pattern's quote in a multi-part s{}{}.
+    bool leads_with_delim = false;
+    if (!quote_terminated(lexer, delim, &leads_with_delim))
+      return false;
+
     if (valid_symbols[TOKEN_QUOTELIKE_MIDDLE_SKIP] && state->quotes.size) {
       lexerstate_pop_quote(state, state->quotes.size);
     }
 
     lexerstate_push_quote(state, delim);
-    /* Pattern-leading bracket lookahead (see TSPQuote.body_leads_with_delim):
-     * for a paired delimiter, peek past any leading whitespace -- if the body's
-     * first real char is the delimiter again (m{{...}}, qr{ {...} }, m[[...]]),
-     * it's a literal leading group, not a subscript.  This is pure lookahead:
-     * MARK_END already covers just the opener, so these advances don't extend
-     * the emitted token and the body is re-scanned from the opener's end. */
-    if (close_for_open(delim)) {
-      while (is_tsp_whitespace(c)) ADVANCE_C;
-      if (c == delim) array_back(&state->quotes)->body_leads_with_delim = true;
-    }
+    if (leads_with_delim)
+      array_back(&state->quotes)->body_leads_with_delim = true;
     TOKEN(TOKEN_QUOTELIKE_BEGIN);
   }
 
