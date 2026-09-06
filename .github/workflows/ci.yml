@@ -14,6 +14,14 @@ on:
       - test/**
 
 jobs:
+  # Cheap guard: a half-applied version bump must never reach a tag.
+  versions:
+    name: Manifest versions agree
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - run: script/bump-version --check   # core-only perl, no setup needed
+
   test:
     runs-on: ${{ matrix.os }}
     strategy:

@@ -1,0 +1,128 @@
+#!/usr/bin/env perl
+# Diff the public node-types schema against the last shipped release and
+# recommend a semver bump.
+#
+#   script/schema-diff                # vs origin/release (the last shipped tree)
+#   script/schema-diff v1.2.1         # vs any ref that carries src/node-types.json
+#
+# Why origin/release and not a tag: master gitignores the generated
+# src/node-types.json, so tags don't carry it. The release branch does.
+#
+# The bump rule (see CLAUDE.md):
+#   * a node type REMOVED, or an existing node type that LOSES a child/field
+#     type, is BREAKING -- a query naming that child directly stops matching,
+#     which is exactly what inserting a wrapper node does.
+#   * purely additive (new node types, new child/field types) is MINOR.
+#   * no schema change at all is PATCH.
+
+use v5.20;
+use warnings;
+use JSON::PP;
+
+my $ref = shift // 'origin/release';
+
+my $current_file = 'src/node-types.json';
+die "$current_file not found -- run `./tree-sitter generate` first\n"
+    unless -e $current_file;
+
+my $old_json = qx{git show $ref:src/node-types.json 2>/dev/null};
+die "Could not read src/node-types.json at '$ref'.\n" .
+    "That ref may not carry the generated files; try origin/release.\n"
+    if $? != 0 || !length $old_json;
+
+# type => { "child:foo" => 1, "field:bar:foo" => 1, ... }
+sub shape_of {
+    my ($json) = @_;
+    my %shape;
+    for my $node (@{ decode_json($json) }) {
+        next unless $node->{named};
+        my %entries;
+        for my $t (@{ $node->{children}{types} // [] }) {
+            $entries{"child:$t->{type}"} = 1;
+        }
+        for my $field (sort keys %{ $node->{fields} // {} }) {
+            for my $t (@{ $node->{fields}{$field}{types} // [] }) {
+                $entries{"field:$field:$t->{type}"} = 1;
+            }
+        }
+        $shape{ $node->{type} } = \%entries;
+    }
+    return \%shape;
+}
+
+my $old = shape_of($old_json);
+my $new = shape_of(scalar do { open my $fh, '<', $current_file or die $!; local $/; <$fh> });
+
+my @added   = sort grep { !exists $old->{$_} } keys %$new;
+my @removed = sort grep { !exists $new->{$_} } keys %$old;
+my @common  = sort grep {  exists $new->{$_} } keys %$old;
+
+my (@changed, $gain_count, $loss_count);
+my %lost_tally;
+for my $type (@common) {
+    my @gained = sort grep { !exists $old->{$type}{$_} } keys %{ $new->{$type} };
+    my @lost   = sort grep { !exists $new->{$type}{$_} } keys %{ $old->{$type} };
+    next unless @gained || @lost;
+
+    $gain_count += @gained;
+    $loss_count += @lost;
+    # Tally which child types stopped being directly reachable -- that names
+    # the queries that break.
+    $lost_tally{ (split /:/, $_)[-1] }++ for @lost;
+
+    push @changed, { type => $type, gained => \@gained, lost => \@lost };
+}
+
+say "Comparing src/node-types.json  HEAD  vs  $ref\n";
+
+if (@added) {
+    say "Node types added (" . @added . "):";
+    say "  + $_" for @added;
+    say '';
+}
+if (@removed) {
+    say "Node types REMOVED (" . @removed . "):";
+    say "  - $_" for @removed;
+    say '';
+}
+
+if (@changed) {
+    say "Existing node types with a changed child/field set: " . @changed;
+    say "  $gain_count entries gained, $loss_count lost\n";
+
+    if (%lost_tally) {
+        say "No longer directly reachable (a fieldless query naming these breaks):";
+        for my $t (sort { $lost_tally{$b} <=> $lost_tally{$a} || $a cmp $b } keys %lost_tally) {
+            printf "  %4d x  %s\n", $lost_tally{$t}, $t;
+        }
+        say '';
+    }
+
+    if ($ENV{VERBOSE}) {
+        for my $c (@changed) {
+            say "  $c->{type}";
+            say "    + $_" for @{ $c->{gained} };
+            say "    - $_" for @{ $c->{lost} };
+        }
+        say '';
+    }
+    else {
+        say "(VERBOSE=1 for the per-node breakdown)\n";
+    }
+}
+
+my $verdict =
+      (@removed || $loss_count) ? 'MAJOR'
+    : (@added   || $gain_count) ? 'MINOR'
+    :                             'PATCH';
+
+my %why = (
+    MAJOR => @removed
+        ? "node types were removed"
+        : "$loss_count child/field entries stopped being directly reachable",
+    MINOR => "purely additive",
+    PATCH => "no schema change",
+);
+
+say "Recommended bump: $verdict  ($why{$verdict})";
+exit 0;
