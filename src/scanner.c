@@ -1375,6 +1375,13 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     }
     MARK_END;
 
+
+    // Decide before the pop/push below: bailing out after it would strand the
+    // pattern's quote in a multi-part s{}{}.
+    bool leads_with_delim = false;
+    if (!quote_terminated(lexer, delim, &leads_with_delim))
+      return false;
+
     // In a paired multi-part quote (s{}{}, tr[][], ...), the replacement pair
     // opens a fresh quote whose delimiter may differ from the pattern's. The
     // pattern's quote is still on top of the stack (middle_close consumes its
@@ -1382,13 +1389,6 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     // we scan the replacement. Now that the second pair is opening, retire it.
     // MIDDLE_SKIP being a valid symbol here means we're at the middle choice
     // point (between pattern and replacement) rather than an initial begin.
-    //
-    // Decide before the pop/push below: bailing out after it would strand the
-    // pattern's quote in a multi-part s{}{}.
-    bool leads_with_delim = false;
-    if (!quote_terminated(lexer, delim, &leads_with_delim))
-      return false;
-
     if (valid_symbols[TOKEN_QUOTELIKE_MIDDLE_SKIP] && state->quotes.size) {
       lexerstate_pop_quote(state, state->quotes.size);
     }
