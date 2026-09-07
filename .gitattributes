@@ -18,3 +18,7 @@ build.zig.zon linguist-generated
 # all use their own allowlists, which already exclude it)
 benchmark export-ignore
 benchmark/** export-ignore
+
+# Deliberate 0x00 bytes (NUL-is-not-EOF regression fixtures).  Keep git from
+# normalising them, but still diff the file as text.
+test/corpus/nul_bytes -text diff
