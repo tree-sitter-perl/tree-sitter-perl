@@ -7,6 +7,12 @@
 
 // grumble grumble no stdlib
 static char *tsp_strchr(register const char *s, int c) {
+  /* Unlike libc strchr, a NUL needle never matches the terminator.  Every
+   * caller feeds this a `lexer->lookahead`, and a lookahead of 0 is either
+   * real EOF or a literal NUL byte in the source -- neither is a member of
+   * any of our needle sets.  Matching the terminator made is_interpolation_escape
+   * and the filetest-letter check both say "yes" on a NUL. */
+  if (!c) return (0);
   do {
     if (*s == c) {
       return (char *)s;
@@ -513,7 +519,7 @@ static void skip_braced(TSLexer *lexer) {
   if (c != '{') return;
 
   ADVANCE_C;
-  while (c && c != '}') ADVANCE_C;
+  while (!lexer->eof(lexer) && c != '}') ADVANCE_C;
 
   ADVANCE_C;
 }
@@ -1161,8 +1167,8 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
      * out of room / input.  These advances past MARK_END are pure lookahead;
      * the token stays one char wide.  Non-ASCII collapses to a placeholder
      * since the heuristic is ASCII-only by design (a best-effort gap). */
-    while (n < (int)sizeof(buf) && c != 0 && !lexer->eof(lexer)) {
-      buf[n++] = (c < 0x80) ? (char)c : (char)0x7f;
+    while (n < (int)sizeof(buf) && !lexer->eof(lexer)) {
+      buf[n++] = (c > 0 && c < 0x80) ? (char)c : (char)0x7f;
       if (c == close) break;
       ADVANCE_C;
     }
@@ -1402,7 +1408,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     bool is_qq = valid_symbols[TOKEN_QQ_STRING_CONTENT];
     bool valid = false;
 
-    while (c) {
+    while (!lexer->eof(lexer)) {
       if (c == '\\') break;
       int32_t quote_index = lexerstate_is_quote_opener(state, c);
       if (quote_index)
