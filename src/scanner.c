@@ -143,6 +143,63 @@ static int32_t close_for_open(int32_t c) {
   }
 }
 
+/* Pure lookahead: matching closer before EOF?  Covers ' and " (non-paired:
+ * closer == opener) and the quote-likes.  Without it an unterminated quote
+ * eats the rest of the file.
+ *
+ * NOT "should this have ended" -- undecidable, `eval 'package Foo;...'` is
+ * legal -- but "is there a closer", which valid code always has.
+ *
+ * Depth counting matches perl, quoting inside the body included: `q(a ( b)`
+ * and `m{ "{" }` are unterminated to perl too.  Backslash-as-delimiter
+ * (`q\...\`) cannot also escape.
+ *
+ * leads_with_delim: optional, paired only -- body's first non-space char is
+ * the opener again (m{{...}}); see TSPQuote.body_leads_with_delim.
+ *
+ * MUST follow MARK_END, or the lookahead extends the token.
+ */
+static bool quote_terminated(TSLexer *lexer, int32_t opener,
+                             bool *leads_with_delim) {
+  int32_t closer = close_for_open(opener);
+  bool paired = closer != 0;
+  if (!paired)
+    closer = opener;
+
+  if (leads_with_delim)
+    *leads_with_delim = false;
+  int depth = 1;
+
+  bool backslash_escapes = opener != '\\';
+
+  if (paired && leads_with_delim) {
+    while (!lexer->eof(lexer) && is_tsp_whitespace(lexer->lookahead))
+      lexer->advance(lexer, false);
+    if (!lexer->eof(lexer) && lexer->lookahead == opener)
+      *leads_with_delim = true;
+  }
+
+  while (!lexer->eof(lexer)) {
+    int32_t c = lexer->lookahead;
+    if (backslash_escapes && c == '\\') {
+      lexer->advance(lexer, false);
+      if (lexer->eof(lexer))
+        return false;
+      lexer->advance(lexer, false);
+      continue;
+    }
+    if (paired && c == opener) {
+      depth++;
+      lexer->advance(lexer, false);
+      continue;
+    }
+    if (c == closer && (!paired || --depth == 0))
+      return true;
+    lexer->advance(lexer, false);
+  }
+  return false;
+}
+
 typedef struct {
   int32_t open, close, count;
   /* Recognises a pattern-LEADING '['/'{' -- the quote's own opening delimiter
@@ -1099,11 +1156,17 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   }
   if (valid_symbols[TOKEN_APOSTROPHE] && c == '\'') {
     ADVANCE_C;
+    MARK_END; /* token is just the quote */
+    if (!quote_terminated(lexer, '\'', NULL))
+      return false;
     lexerstate_push_quote(state, '\'');
     TOKEN(TOKEN_APOSTROPHE);
   }
   if (valid_symbols[TOKEN_DOUBLE_QUOTE] && c == '"') {
     ADVANCE_C;
+    MARK_END;
+    if (!quote_terminated(lexer, '"', NULL))
+      return false;
     lexerstate_push_quote(state, '"');
     TOKEN(TOKEN_DOUBLE_QUOTE);
   }
@@ -1318,6 +1381,13 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     }
     MARK_END;
 
+
+    // Decide before the pop/push below: bailing out after it would strand the
+    // pattern's quote in a multi-part s{}{}.
+    bool leads_with_delim = false;
+    if (!quote_terminated(lexer, delim, &leads_with_delim))
+      return false;
+
     // In a paired multi-part quote (s{}{}, tr[][], ...), the replacement pair
     // opens a fresh quote whose delimiter may differ from the pattern's. The
     // pattern's quote is still on top of the stack (middle_close consumes its
@@ -1330,16 +1400,8 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     }
 
     lexerstate_push_quote(state, delim);
-    /* Pattern-leading bracket lookahead (see TSPQuote.body_leads_with_delim):
-     * for a paired delimiter, peek past any leading whitespace -- if the body's
-     * first real char is the delimiter again (m{{...}}, qr{ {...} }, m[[...]]),
-     * it's a literal leading group, not a subscript.  This is pure lookahead:
-     * MARK_END already covers just the opener, so these advances don't extend
-     * the emitted token and the body is re-scanned from the opener's end. */
-    if (close_for_open(delim)) {
-      while (is_tsp_whitespace(c)) ADVANCE_C;
-      if (c == delim) array_back(&state->quotes)->body_leads_with_delim = true;
-    }
+    if (leads_with_delim)
+      array_back(&state->quotes)->body_leads_with_delim = true;
     TOKEN(TOKEN_QUOTELIKE_BEGIN);
   }
 
