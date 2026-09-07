@@ -29,6 +29,14 @@ things.
   for `reduce sym:`, `detect_error`, `recover`, `process version` and strip the
   noisy `[row,col]` spans. Pairs well with a `perl -ce '…'` oracle to confirm
   whether the input is even valid Perl before chasing a "bug."
+- **Slow parse: attribute it before optimising.** libtree-sitter's error recovery
+  is quadratic in the length of the error region (`my $x = ` + `'|' x 40000` +
+  `;` takes 5.7 s), so the fix is usually to kill the mis-lex that opened the
+  region, not to touch the grammar. Tell them apart by counting scanner entries
+  and `ADVANCE_C`s behind an `#ifdef`: linear counts against quadratic wall time
+  means the cost is upstream. A `-d` trace says the same when `skip_token` /
+  `recover_to_previous` / `condense` grow linearly with a tiny version count —
+  repeated recovery, not GLR forking.
 
 ## Parser size
 
@@ -82,6 +90,12 @@ Other scanner responsibilities:
   let the scanner inject a missing closer when a statement keyword shows up on the
   next line, and it can insert semicolons — so an unterminated line still yields a
   usable tree instead of one giant ERROR.
+- **A NUL byte is not EOF.** `lexer->lookahead` is `0` at real EOF *and* on a
+  literal `0x00`, which perl takes as content everywhere. Never end a scan loop
+  on `while (c)` / `if (!c)` / `c != 0` — ask `lexer->eof(lexer)`. `tsp_strchr`
+  hides the same trap and returns NULL for `c == 0`; keep it that way. Cover in
+  `test/corpus/nul_bytes`. A NUL in a comment or bare between statements stays
+  broken: tree-sitter's codegen reserves `0` as its EOF sentinel.
 
 ## Homegrown grammar tricks (`grammar.js`)
 
