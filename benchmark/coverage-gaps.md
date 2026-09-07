@@ -19,76 +19,30 @@ parse each, **walk to the innermost** ERROR/MISSING node (skip the whole-file
   error (we are right to flag them) and 50 syntax OK; the remaining 65 it can't
   judge for want of dependencies. So the real gap ceiling is ~50 files.
 
-### Slow parses — diagnosed and fixed (2026-09-07)
+### Slow parses
 
-One file blew the "everything parses fast" claim: `perl5/t/re/bigfuzzy_not_utf8.t`
-took **622 ms** on 36 KB (0.058 MB/s, ~100x off our clean-path 5–7 MB/s; a 9.6 MB
-`TestProp.pl` parses in 1.81 s). It was an **error-path** cost, not a size cost.
-Root-caused; it now parses **clean in 0.9 ms**.
+None outstanding. The 622 ms `perl5/t/re/bigfuzzy_not_utf8.t` outlier was a
+literal NUL byte ending a string early (see below); fixed 2026-09-07, now 0.9 ms
+and clean. Next-slowest are `B/Deparse.pm` (34 ms) and `overload.t` (18 ms).
+Across ERROR-bearing files p50 is 1.4 ms, p99 33 ms — the heavy tail lives
+entirely on error paths.
 
-The chain, in order:
+Standing constraint: libtree-sitter's error recovery is **quadratic in the length
+of the error region**, so any mis-lex that errors across tens of thousands of
+tokens is slow regardless of the grammar (`my $x = ` + `'|' x 40000` + `;` takes
+5.7 s). The only lever is not entering the error region.
 
-1. **A literal NUL byte was read as end-of-input.** `lexer->lookahead` is `0`
-   both at real EOF and on a `0x00` byte in the source, so the scanner's
-   `while (c)` string-content loop ended the string at the NUL. Despite the
-   filename, invalid UTF-8 had nothing to do with it — replacing the NULs with
-   `X` gave a clean 1.07 ms parse, replacing every high byte but keeping the
-   NULs still took 620 ms.
-2. **That dumped 35 KB of fuzz into the expression parser.** Line 37 is a single
-   35,726-byte line, `fresh_perl_is('qr/…fuzz…/', …)`. With the string broken 47
-   bytes in, the rest lexes as Perl code — and **32,218 of its 35,727 bytes are
-   `|`**.
-3. **A long run of `|` binary operators makes error recovery quadratic**, and
-   that part is **upstream, not ours**. Instrumented counters show external
-   scanner calls and lexer advances scaling exactly linearly (4,011 / 8,011 /
-   16,011 calls and 2,008 / 4,008 / 8,008 advances for n = 2,000 / 4,000 / 8,000
-   pipes) while parse time goes 14 / 62 / 252 ms. The `parse -d` trace agrees:
-   `skip_token`, `recover_to_previous` and `condense` counts are all linear and
-   only four GLR versions ever exist — so it is neither version forking nor a
-   scan-to-EOL in our scanner, but libtree-sitter's per-skipped-token error-node
-   accumulation. It reproduces with no NUL and no fuzz: `my $x = ` + `'|' x n` +
-   `;` is n² (n = 40,000 → 5.7 s), and spreading the pipes over separate lines
-   does not help.
+### NUL bytes (fixed 2026-09-07)
 
-So the lever available to us is step 1: don't enter a 35 KB error region in the
-first place. Steps 2–3 stay latent — any input that error-recovers across tens of
-thousands of tokens will still be quadratic until upstream changes.
+`perl -c` accepts `0x00` as content in every construct tested; the scanner read
+it as EOF in four places, breaking `''`, `q()`, `""`, `qq()`, `qx()`, `m//`,
+`s///`, `tr///` and braced escapes. All fixed — see `CLAUDE.md` for the rule.
+Cover: `test/corpus/nul_bytes`. Corpus delta +2 (`bigfuzzy_not_utf8.t`,
+`t/re/reg_mesg.t`), no regressions.
 
-Among the remaining ERROR-bearing files p50 is 1.4 ms and p99 is 33 ms, so the
-heavy tail lives entirely on error paths. Next-slowest are `perl5/lib/B/Deparse.pm`
-(34 ms) and `perl5/lib/overload.t` (18 ms) — both fine.
-
-### NUL-is-not-EOF sweep (2026-09-07)
-
-Chasing the above turned up a family of the same bug. `perl -c` accepts a `0x00`
-byte as ordinary content in **every** construct tested, so each of these was a
-real defect:
-
-| site | symptom | status |
-| --- | --- | --- |
-| `while (c)` in the q/qq content loop | `'a\0b'`, `q(a\0b)` end at the NUL | fixed |
-| `tsp_strchr` matching its own terminator | NUL reads as an interpolation escape *and* as a filetest letter — broke `"…"`, `qq()`, `qx()`, `m//`, `s///`, `tr///` | fixed |
-| `skip_braced`'s `while (c && c != '}')` | `"\x{4\0 1}"` braced escape truncated | fixed |
-| `intuit_more` lookahead buffer's `c != 0` | charclass/quantifier heuristic buffer truncated at a NUL | fixed |
-
-`tsp_strchr` was the big one — as with libc `strchr`, a `0` needle matched the
-string terminator, so every caller feeding it a lookahead got a false positive.
-Fixing that one primitive cleared seven of the nine failing constructs at once.
-
-Regression cover: `test/corpus/nul_bytes` (real 0x00 bytes; see `.gitattributes`).
-Seven of its eight cases fail without the fix.
-
-**Still broken, and upstream:** a NUL in a *comment* (`# a\0b`) or standing bare
-between statements truncates the token, because tree-sitter's generated lexer
-emits `lookahead != 0 && …` for a negated character class — it reserves `0` as
-its EOF sentinel, so no grammar-level regex can match a NUL. perl treats a NUL in
-code as whitespace (`$h{a\0b}` parses as the indirect call `a b`); we do not.
-All three degrade gracefully to a one-character ERROR node with the surrounding
-code parsed normally, so this is a curiosity, not a gap worth chasing.
-
-Corpus delta from the fix: re-parsing the 382-file known-failing list, **+2 files
-now parse clean** (`bigfuzzy_not_utf8.t`, `t/re/reg_mesg.t`) with **zero
-regressions**.
+Still broken, upstream, not worth chasing: a NUL in a comment or bare between
+statements. tree-sitter's codegen reserves `0` as its EOF sentinel, so no
+grammar regex can match one. Degrades to a one-character ERROR node.
 
 ## Open clusters (genuine gaps, ranked by file count)
 
@@ -158,20 +112,16 @@ nonstandard modifier) · `tr` with `\` delimiter · string-bitwise `&.`/`|.` ·
 
 - **9 intentional syntax-error test fixtures** (e.g. `DBICTest/SyntaxErrorComponent*.pm`,
   Mojo loader-exception stubs, EOF-error tests). These *should* fail to parse.
-- **non-UTF-8 / binary** inputs (UTF-16BE BOM, ISO-8859, raw blobs). Was 5;
-  the two whose only problem was an embedded NUL byte (`t/re/bigfuzzy_not_utf8.t`,
-  `t/re/reg_mesg.t`) were real bugs and are now fixed — see the **NUL-is-not-EOF
-  sweep** above. Do not file a file here just because it holds a `0x00`.
-- (No timeouts, and as of 2026-09-07 no slow parses either: the 622 ms
-  `bigfuzzy_not_utf8.t` outlier is fixed and now parses clean in 0.9 ms.)
+- **3 non-UTF-8 / binary** inputs (UTF-16BE BOM, ISO-8859, raw blobs). Was 5 —
+  a `0x00` alone does not belong here; the two NUL files were real bugs.
+- (No timeouts, no slow parses.)
 
 ## Recently addressed
 
 class/role/method barewords · prefix `++`/`--` in parenless list-ops · phaser
 labels · `our`/`state sub` · unicode **package** identifiers · `format … .` ·
 `async { }` + `try(...)` · typed lexicals (`my Dog $spot`) · bare `eval` ·
-**literal NUL bytes in strings, regexes, quote-likes and braced escapes**
-(which also removed the 622 ms `bigfuzzy_not_utf8.t` outlier).
+literal NUL bytes in strings, regexes, quote-likes and braced escapes.
 
 ## Head-to-head vs the perl-lsp pure-Rust parser (2026-09-06)
 

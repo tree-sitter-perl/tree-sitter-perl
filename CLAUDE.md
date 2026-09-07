@@ -29,14 +29,14 @@ things.
   for `reduce sym:`, `detect_error`, `recover`, `process version` and strip the
   noisy `[row,col]` spans. Pairs well with a `perl -ce '…'` oracle to confirm
   whether the input is even valid Perl before chasing a "bug."
-- **Slow parses: libtree-sitter's error recovery is quadratic in the length of
-  the error region** (it re-accumulates the growing ERROR node per skipped
-  token). `my $x = ` + `'|' x 40000` + `;` takes 5.7 s. Attribute before
-  optimising: count scanner entries and `ADVANCE_C`s behind an `#ifdef`. Linear
-  counts + quadratic wall time = upstream, and the only lever is to stop
-  entering the error region (fix the mis-lex that opened it). Same signal in a
-  `-d` trace: linear `skip_token` / `recover_to_previous` / `condense` with a
-  tiny version count means repeated recovery, not GLR forking.
+- **Slow parse: attribute it before optimising.** libtree-sitter's error recovery
+  is quadratic in the length of the error region (`my $x = ` + `'|' x 40000` +
+  `;` takes 5.7 s), so the fix is usually to kill the mis-lex that opened the
+  region, not to touch the grammar. Tell them apart by counting scanner entries
+  and `ADVANCE_C`s behind an `#ifdef`: linear counts against quadratic wall time
+  means the cost is upstream. A `-d` trace says the same when `skip_token` /
+  `recover_to_previous` / `condense` grow linearly with a tiny version count —
+  repeated recovery, not GLR forking.
 
 ## Parser size
 
@@ -91,16 +91,11 @@ Other scanner responsibilities:
   next line, and it can insert semicolons — so an unterminated line still yields a
   usable tree instead of one giant ERROR.
 - **A NUL byte is not EOF.** `lexer->lookahead` is `0` at real EOF *and* on a
-  literal `0x00`; perl takes `0x00` as content everywhere (`perl -c` accepts it
-  in strings, regexes, quote-likes, heredocs, comments). Never end a scan loop
-  on `while (c)` / `if (!c)` / `c != 0` — ask `lexer->eof(lexer)`. Same trap in
-  `tsp_strchr`: a `0` needle matched the terminator (libc `strchr` semantics),
-  so `is_interpolation_escape` and the filetest-letter check both said yes on a
-  NUL; it returns NULL for `c == 0` now, keep it that way. Cover:
-  `test/corpus/nul_bytes` (real `0x00` bytes, see `.gitattributes`). Out of our
-  hands: a NUL in a comment or bare between statements — tree-sitter's codegen
-  emits `lookahead != 0 && …` for negated character classes, reserving `0` as
-  its EOF sentinel.
+  literal `0x00`, which perl takes as content everywhere. Never end a scan loop
+  on `while (c)` / `if (!c)` / `c != 0` — ask `lexer->eof(lexer)`. `tsp_strchr`
+  hides the same trap and returns NULL for `c == 0`; keep it that way. Cover in
+  `test/corpus/nul_bytes`. A NUL in a comment or bare between statements stays
+  broken: tree-sitter's codegen reserves `0` as its EOF sentinel.
 
 ## Homegrown grammar tricks (`grammar.js`)
 
