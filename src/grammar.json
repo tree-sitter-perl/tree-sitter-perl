@@ -5997,10 +5997,6 @@
         "members": [
           {
             "type": "SYMBOL",
-            "name": "_bareword"
-          },
-          {
-            "type": "SYMBOL",
             "name": "_listop_keyword"
           },
           {
@@ -6099,13 +6095,8 @@
               "type": "FIELD",
               "name": "function",
               "content": {
-                "type": "ALIAS",
-                "content": {
-                  "type": "SYMBOL",
-                  "name": "_indirob_listop"
-                },
-                "named": true,
-                "value": "function"
+                "type": "SYMBOL",
+                "name": "function"
               }
             },
             {
@@ -6117,16 +6108,20 @@
               "name": "_NONASSOC"
             },
             {
-              "type": "SYMBOL",
-              "name": "indirect_object"
-            },
-            {
-              "type": "FIELD",
-              "name": "arguments",
-              "content": {
-                "type": "SYMBOL",
-                "name": "_expr"
-              }
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "FIELD",
+                  "name": "arguments",
+                  "content": {
+                    "type": "SYMBOL",
+                    "name": "_expr"
+                  }
+                },
+                {
+                  "type": "BLANK"
+                }
+              ]
             },
             {
               "type": "CHOICE",
@@ -6155,8 +6150,13 @@
               "type": "FIELD",
               "name": "function",
               "content": {
-                "type": "SYMBOL",
-                "name": "function"
+                "type": "ALIAS",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "_indirob_listop"
+                },
+                "named": true,
+                "value": "function"
               }
             },
             {
@@ -10361,10 +10361,6 @@
     [
       "function",
       "bareword"
-    ],
-    [
-      "function",
-      "function_call_expression"
     ],
     [
       "_variables",

@@ -225,7 +225,6 @@ module.exports = grammar({
     // all of the following go GLR b/c they need extra tokens to allow postfixy autoquotes
     [$.return_expression],
     [$.function, $.bareword],
-    [$.function, $.function_call_expression],
     [$._variables, $.indirect_object],
     // a builtin filehandle after a list-op is ambiguous between the indirect
     // object slot (`print STDERR LIST`) and a plain term argument
@@ -985,22 +984,24 @@ module.exports = grammar({
     // filehandles (in the indirect-object slot and as filetest/func1 operands)
     // can't collide with a user sub. Non-standard bareword handles are punted.
     _builtin_filehandle: $ => choice('STDIN', 'STDOUT', 'STDERR'),
-    _unambiguous_function: $ => alias(choice($._bareword, $._listop_keyword, $._indirob_listop, $.amper_sub), $.function),
+    _unambiguous_function: $ => alias(choice($._listop_keyword, $._indirob_listop, $.amper_sub), $.function),
     function_call_expression: $ => choice(
       seq(field('function', alias($.amper_sub, $.function))),
       // the usage of NONASSOC here is to make it that any parse of a paren after a func
       // automatically becomes a non-ambiguous function call
       seq(field('function', $._unambiguous_function), '(', $._NONASSOC, optional(field('arguments', $._expr)), recoverParen($)),
+      // A userland bareword reduces through the named `function` rule here, the
+      // same symbol the no-paren form uses, so `foo(` never forks into two
+      // stacks; the _NONASSOC then settles it as a paren call rather than a
+      // no-paren call whose first argument is parenthesized.
+      seq(field('function', $.function), '(', $._NONASSOC, optional(field('arguments', $._expr)), recoverParen($)),
       // The indirect-object call form `FUNC(INDIROB ARGS)` is only valid for the
-      // indirob set (print/printf/say/exec/system) and userland barewords — NOT
-      // the other builtin list-ops. Otherwise `bless({%$arg}, $class)` reads its
-      // leading `{…}` as a block indirect-object instead of a hashref argument.
-      // Listed as the disjoint pieces (`_indirob_listop` direct, the named
-      // `function` rule for barewords) rather than one combined alias, so a
-      // keyword reduces to a single hidden rule (no reduce/reduce that would
-      // starve print's indirob in favor of the hashref reading).
+      // indirob set (print/printf/say/exec/system) — NOT the other builtin
+      // list-ops, and not userland subs (perl rejects `myfunc($fh "x")`).
+      // Otherwise `bless({%$arg}, $class)` reads its leading `{…}` as a block
+      // indirect-object instead of a hashref argument, and `foo($h{x})` reads
+      // `$h` as an indirect object followed by a `{x}` hashref.
       seq(field('function', alias($._indirob_listop, $.function)), '(', $._NONASSOC, $.indirect_object, field('arguments', $._expr), recoverParen($)),
-      seq(field('function', $.function), '(', $._NONASSOC, $.indirect_object, field('arguments', $._expr), recoverParen($)),
     ),
     _tricky_indirob_hashref: $ => seq($._PERLY_BRACE_OPEN, $._expr, $._PERLY_SEMICOLON, '}'),
     ambiguous_function_call_expression: $ =>
