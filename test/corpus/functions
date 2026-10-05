@@ -365,6 +365,47 @@ print({ $sner{boppers} } 'herro');
         (string_content)))))
 
 ================================================================================
+paren call to a user sub takes no indirect object
+================================================================================
+foo($h{x}, 1);
+foo($h{x});
+foo($a), $b;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (function_call_expression
+      (function)
+      (list_expression
+        (hash_element_expression
+          (container_variable
+            (varname))
+          (autoquoted_bareword))
+        (number))))
+  (expression_statement
+    (function_call_expression
+      (function)
+      (hash_element_expression
+        (container_variable
+          (varname))
+        (autoquoted_bareword))))
+  (expression_statement
+    (list_expression
+      (function_call_expression
+        (function)
+        (scalar
+          (varname)))
+      (scalar
+        (varname)))))
+
+================================================================================
+paren call to a user sub with an indirect object is an error
+:error
+================================================================================
+myfunc($fh "x");
+--------------------------------------------------------------------------------
+
+================================================================================
 Bareword filehandle in indirect-object slot - standard handles only (G4)
 ================================================================================
 print STDERR "oops";
