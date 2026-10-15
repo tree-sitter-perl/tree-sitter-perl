@@ -426,3 +426,60 @@ $h{-e $f};
       (func1op_call_expression
         (scalar
           (varname))))))
+
+================================================================================
+comments between a ${...} punctuation variable and its closing brace
+================================================================================
+${- # why would you
+};
+@{- #c
+};
+${
+  # leading
+  -
+};
+${! #c
+};
+${$ #c
+};
+${- #c
+}[0];
+${ $x # still a deref
+};
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (scalar
+      (varname)
+      (comment)))
+  (expression_statement
+    (array
+      (varname)
+      (comment)))
+  (expression_statement
+    (scalar
+      (comment)
+      (varname)))
+  (expression_statement
+    (scalar
+      (varname)
+      (comment)))
+  (expression_statement
+    (scalar
+      (varname)
+      (comment)))
+  (expression_statement
+    (array_element_expression
+      (container_variable
+        (varname)
+        (comment))
+      (number)))
+  (expression_statement
+    (scalar
+      (varname
+        (block
+          (expression_statement
+            (scalar
+              (varname)))
+          (comment))))))

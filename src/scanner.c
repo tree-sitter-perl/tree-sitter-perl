@@ -583,6 +583,19 @@ static void skip_braced(TSLexer *lexer) {
 
 static bool isidfirst(int32_t c) { return c == '_' || is_tsp_id_start(c); }
 
+/* Skip whitespace and `#` comments without consuming anything else. */
+static void skip_ws_and_comments(TSLexer *lexer) {
+  while (!lexer->eof(lexer)) {
+    if (is_tsp_whitespace(lexer->lookahead)) {
+      lexer->advance(lexer, false);
+    } else if (lexer->lookahead == '#') {
+      while (!lexer->eof(lexer) && lexer->lookahead != '\n') lexer->advance(lexer, false);
+    } else {
+      return;
+    }
+  }
+}
+
 static bool isidcont(int32_t c) { return c == '_' || is_tsp_id_continue(c); }
 
 // in any interpolatable case, we wanna stop parsing on these chars
@@ -1567,10 +1580,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
         return false;
       }
       // `${-}` names the punctuation variable `$-`
-      MARK_END;
-      while (is_tsp_whitespace(c)) ADVANCE_C;
-      if (c == '}') TOKEN(TOKEN_BRACE_AUTOQUOTED);
-      return false;
+      goto punct_var_name;
     }
     if (tsp_strchr("rwxoRWXOezsfdlpSbctugkTBMAC", c)) {
       ADVANCE_C;
@@ -1590,8 +1600,11 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
       c > ' ' && c != '}' && c != '{' && c != '^' && c != '#' &&
       !(c >= '0' && c <= '9')) {
     ADVANCE_C;
+  punct_var_name:
     MARK_END;
-    while (is_tsp_whitespace(c)) ADVANCE_C;
+    // perl allows comments here too: `${- # why\n}` is `$-`
+    skip_ws_and_comments(lexer);
+    c = lexer->lookahead;
     if (c == '}') TOKEN(TOKEN_BRACE_AUTOQUOTED);
     return false;
   }
