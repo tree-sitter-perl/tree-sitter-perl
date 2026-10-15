@@ -31,3 +31,5 @@ s/^pattern$/replacement/;
 # <- operator
 #  ^^ string.regex
 #              ^^ string
+qr{\b{wb}};
+#  ^^^^^^ string.escape
