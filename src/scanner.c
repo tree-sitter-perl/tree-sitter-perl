@@ -1265,7 +1265,10 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     }
   }
 
-  if (valid_symbols[TOKEN_POD]) {
+  // A column-0 `=` that opens a quote-like (`q\n=x=`) or ends part of one
+  // (`s=a\n=b=`) is the delimiter, not POD, even before a letter
+  if (valid_symbols[TOKEN_POD] && !valid_symbols[TOKEN_QUOTELIKE_BEGIN] &&
+      !lexerstate_is_quote_closer(state, '=')) {
     int column = lexer->get_column(lexer);
     if (column == 0 && c == '=') {
       // perl only starts POD on `=` followed by a letter (`=head1`, `=pod`); a

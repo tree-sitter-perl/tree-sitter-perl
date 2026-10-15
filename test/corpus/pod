@@ -113,3 +113,35 @@ my $z
         (scalar
           (varname)))
       (bareword))))
+
+================================================================================
+a line-initial = that delimits a quote-like is not POD
+================================================================================
+print q
+=head1 x=;
+s=a
+=b=;
+tr=a
+=X=;
+s{a}
+=b=;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (ambiguous_function_call_expression
+      (function)
+      (string_literal
+        (string_content))))
+  (expression_statement
+    (substitution_regexp
+      (regexp_content)
+      (replacement)))
+  (expression_statement
+    (transliteration_expression
+      (transliteration_content)
+      (replacement)))
+  (expression_statement
+    (substitution_regexp
+      (regexp_content)
+      (replacement))))
