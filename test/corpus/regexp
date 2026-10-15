@@ -444,3 +444,30 @@ $s =~ s{\w{2,}}{x}g;
           (escape_sequence))
         (replacement)
         modifiers: (substitution_regexp_modifiers)))))
+
+================================================================================
+Braced escapes do not close a brace-delimited pattern
+================================================================================
+qr{(a)\g{-1}(?<n>b)\k{n}};
+qr{\p{L}\N{U+41}\x{41}\b{wb}};
+m{^\g{-1}$}x;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (quoted_regexp
+      (regexp_content
+        (escape_sequence)
+        (escape_sequence))))
+  (expression_statement
+    (quoted_regexp
+      (regexp_content
+        (escape_sequence)
+        (escape_sequence)
+        (escape_sequence)
+        (escape_sequence))))
+  (expression_statement
+    (match_regexp
+      (regexp_content
+        (escape_sequence))
+      (match_regexp_modifiers))))
