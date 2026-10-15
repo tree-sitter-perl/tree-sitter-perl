@@ -571,15 +571,25 @@ static void _skip_chars(TSLexer *lexer, int maxlen, const char *allow) {
 #define skip_digits(lexer, maxlen) _skip_chars(lexer, maxlen, "0123456789")
 #define skip_octdigits(lexer, maxlen) _skip_chars(lexer, maxlen, "01234567")
 
-static void skip_braced(TSLexer *lexer) {
+/* Extend an escape over its braced argument (`\x{41}`, `\N{U+41}`, `\g{-1}`,
+ * `\k{name}`, `\p{L}`), moving the token end past the `}`. Otherwise the `{`
+ * is lexed on its own and, inside `qr{...}`, the `}` closes the quote. Anything
+ * that could interpolate or end the quote leaves the end where it was. */
+static void skip_braced(TSLexer *lexer, LexerState *state) {
   int32_t c = lexer->lookahead;
 
   if (c != '{') return;
 
   ADVANCE_C;
-  while (!lexer->eof(lexer) && c != '}') ADVANCE_C;
-
-  ADVANCE_C;
+  for (int n = 0; n < 256 && !lexer->eof(lexer); n++) {
+    if (c == '}') {
+      ADVANCE_C;
+      MARK_END;
+      return;
+    }
+    if (tsp_strchr("{\\$@\n", c) || lexerstate_is_quote_closer(state, c)) return;
+    ADVANCE_C;
+  }
 }
 
 static bool isidfirst(int32_t c) { return c == '_' || is_tsp_id_start(c); }
@@ -1464,18 +1474,20 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
       switch (esc_c) {
         case 'x':
           if (c == '{')
-            skip_braced(lexer);
+            skip_braced(lexer, state);
           else
             skip_hexdigits(lexer, 2);
           break;
 
         case 'N':
-          skip_braced(lexer);
-          break;
-
         case 'o':
-          /* TODO: contents should just be octal */
-          skip_braced(lexer);
+        case 'g':
+        case 'k':
+        case 'p':
+        case 'P':
+        case 'b':
+        case 'B':
+          skip_braced(lexer, state);
           break;
 
         case '0':
