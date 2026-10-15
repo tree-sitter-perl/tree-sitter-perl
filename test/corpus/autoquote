@@ -383,3 +383,46 @@ Fat comma followed by empty list slots (valid Perl, flattens away)
           (string_content))
         (string_literal
           (string_content))))))
+
+================================================================================
+dash-prefixed hash keys autoquote, keywords included
+================================================================================
+$h{-field};
+$h{-my};
+$h{-q};
+$h{ -bareword };
+${-};
+$h{-e $f};
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (hash_element_expression
+      (container_variable
+        (varname))
+      (autoquoted_bareword)))
+  (expression_statement
+    (hash_element_expression
+      (container_variable
+        (varname))
+      (autoquoted_bareword)))
+  (expression_statement
+    (hash_element_expression
+      (container_variable
+        (varname))
+      (autoquoted_bareword)))
+  (expression_statement
+    (hash_element_expression
+      (container_variable
+        (varname))
+      (autoquoted_bareword)))
+  (expression_statement
+    (scalar
+      (varname)))
+  (expression_statement
+    (hash_element_expression
+      (container_variable
+        (varname))
+      (func1op_call_expression
+        (scalar
+          (varname))))))
