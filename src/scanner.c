@@ -1551,8 +1551,27 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   // we hold on to the current char in case we need to do some fancy stuff w/ it in 2 char
   // lookaheads below
   int32_t c1 = c;
-  if (c == '-' && valid_symbols[TOKEN_FILETEST]) {
+  if (c == '-' && (valid_symbols[TOKEN_FILETEST] || valid_symbols[TOKEN_BRACE_AUTOQUOTED])) {
     ADVANCE_C;
+    if (valid_symbols[TOKEN_BRACE_AUTOQUOTED]) {
+      // `{-word}` autoquotes the whole `-word`, keywords and quote-like names included
+      // (`$h{-field}`, `$h{-my}`, `$h{-q}`), exactly as toke.c does.
+      if (isidfirst(c)) {
+        int len = 0;
+        bool filetest = tsp_strchr("rwxoRWXOezsfdlpSbctugkTBMAC", c) != NULL;
+        do { ADVANCE_C; len++; } while (isidcont(c));
+        MARK_END;
+        while (is_tsp_whitespace(c)) ADVANCE_C;
+        if (c == '}') TOKEN(TOKEN_BRACE_AUTOQUOTED);
+        if (len == 1 && filetest && valid_symbols[TOKEN_FILETEST]) TOKEN(TOKEN_FILETEST);
+        return false;
+      }
+      // `${-}` names the punctuation variable `$-`
+      MARK_END;
+      while (is_tsp_whitespace(c)) ADVANCE_C;
+      if (c == '}') TOKEN(TOKEN_BRACE_AUTOQUOTED);
+      return false;
+    }
     if (tsp_strchr("rwxoRWXOezsfdlpSbctugkTBMAC", c)) {
       ADVANCE_C;
       if (!isidcont(c)) TOKEN(TOKEN_FILETEST);
@@ -1581,7 +1600,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     // we zip until the end of the identifier; then we do a lookeahed to see if it's autoquoted
     do {
       ADVANCE_C;
-    } while (c && isidcont(c));
+    } while (isidcont(c));
     MARK_END;
     // TODO - carefully check if we got a 2 char quote such that we need to guard against
     // the comment char here - the quoting is space-sensitive so we'll have to track that
