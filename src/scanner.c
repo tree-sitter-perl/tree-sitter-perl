@@ -583,6 +583,19 @@ static void skip_braced(TSLexer *lexer) {
 
 static bool isidfirst(int32_t c) { return c == '_' || is_tsp_id_start(c); }
 
+/* Skip whitespace and `#` comments without consuming anything else. */
+static void skip_ws_and_comments(TSLexer *lexer) {
+  while (!lexer->eof(lexer)) {
+    if (is_tsp_whitespace(lexer->lookahead)) {
+      lexer->advance(lexer, false);
+    } else if (lexer->lookahead == '#') {
+      while (!lexer->eof(lexer) && lexer->lookahead != '\n') lexer->advance(lexer, false);
+    } else {
+      return;
+    }
+  }
+}
+
 static bool isidcont(int32_t c) { return c == '_' || is_tsp_id_continue(c); }
 
 // in any interpolatable case, we wanna stop parsing on these chars
@@ -1252,9 +1265,16 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     }
   }
 
-  if (valid_symbols[TOKEN_POD]) {
+  // A column-0 `=` that opens a quote-like (`q\n=x=`) or ends part of one
+  // (`s=a\n=b=`) is the delimiter, not POD, even before a letter
+  if (valid_symbols[TOKEN_POD] && !valid_symbols[TOKEN_QUOTELIKE_BEGIN] &&
+      !lexerstate_is_quote_closer(state, '=')) {
     int column = lexer->get_column(lexer);
     if (column == 0 && c == '=') {
+      // perl only starts POD on `=` followed by a letter (`=head1`, `=pod`); a
+      // line-initial `=>`, `==`, `=~`, `= 5` or `=_x` is still code
+      ADVANCE_C;
+      if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'))) return false;
       DEBUG("POD started...\n", 0);
 
       /* Keep going until the linefeed after a line beginning `=cut` */
@@ -1561,16 +1581,18 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
         bool filetest = tsp_strchr("rwxoRWXOezsfdlpSbctugkTBMAC", c) != NULL;
         do { ADVANCE_C; len++; } while (isidcont(c));
         MARK_END;
-        while (is_tsp_whitespace(c)) ADVANCE_C;
+        // toke.c looks only past spaces and tabs for the `}`: `$h{-e }` is the
+        // key '-e' but `$h{-e\n}` is a filetest on $_
+        while (c == ' ' || c == '\t') ADVANCE_C;
         if (c == '}') TOKEN(TOKEN_BRACE_AUTOQUOTED);
         if (len == 1 && filetest && valid_symbols[TOKEN_FILETEST]) TOKEN(TOKEN_FILETEST);
+        // a longer word is the same string either way (unary minus on a bareword)
+        while (is_tsp_whitespace(c)) ADVANCE_C;
+        if (c == '}') TOKEN(TOKEN_BRACE_AUTOQUOTED);
         return false;
       }
       // `${-}` names the punctuation variable `$-`
-      MARK_END;
-      while (is_tsp_whitespace(c)) ADVANCE_C;
-      if (c == '}') TOKEN(TOKEN_BRACE_AUTOQUOTED);
-      return false;
+      goto punct_var_name;
     }
     if (tsp_strchr("rwxoRWXOezsfdlpSbctugkTBMAC", c)) {
       ADVANCE_C;
@@ -1590,8 +1612,11 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
       c > ' ' && c != '}' && c != '{' && c != '^' && c != '#' &&
       !(c >= '0' && c <= '9')) {
     ADVANCE_C;
+  punct_var_name:
     MARK_END;
-    while (is_tsp_whitespace(c)) ADVANCE_C;
+    // perl allows comments here too: `${- # why\n}` is `$-`
+    skip_ws_and_comments(lexer);
+    c = lexer->lookahead;
     if (c == '}') TOKEN(TOKEN_BRACE_AUTOQUOTED);
     return false;
   }
@@ -1611,16 +1636,13 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     // The contextual-keyword block jumps here (after reading its word + MARK_END)
     // to reuse this comment-skip + fat_comma_check instead of duplicating them.
     kw_autoquote:
-    while (is_tsp_whitespace(c) || c == '#') {
-      while (is_tsp_whitespace(c)) ADVANCE_C;
-      // now we need to skip comments - we get in a funny way if we have a quotelike
-      // operator followed by a comment as the quote char
-      if (c == '#') {
-        ADVANCE_C;
-        while (lexer->get_column(lexer) && !lexer->eof(lexer)) ADVANCE_C;
-      }
+    // now we need to skip comments - we get in a funny way if we have a quotelike
+    // operator followed by a comment as the quote char
+    // TODO - in theory there could be POD here that we needa skip over (EYES ROLL)
+    if (is_tsp_whitespace(c) || c == '#') {
+      skip_ws_and_comments(lexer);
+      c = lexer->lookahead;
       if (lexer->eof(lexer)) return false;
-      // TODO - in theory there could be POD here that we needa skip over (EYES ROLL)
     }
     // The keyword peek's fat comma detection gotos here when it finds a
     // statement keyword followed by '=' on a new line.  The peek has already
