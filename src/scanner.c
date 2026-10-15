@@ -1481,13 +1481,18 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
 
         case 'N':
         case 'o':
+          skip_braced(lexer, state);
+          break;
+
         case 'g':
         case 'k':
         case 'p':
         case 'P':
         case 'b':
         case 'B':
-          skip_braced(lexer, state);
+          // only a regex gives these a braced argument; in a string `"\b{x}"`
+          // is a backspace then `{x}`, and `"\p{L}"` is `p{L}`
+          if (valid_symbols[TOKEN_DOLLAR_IN_REGEXP]) skip_braced(lexer, state);
           break;
 
         case '0':
