@@ -471,3 +471,31 @@ m{^\g{-1}$}x;
       (regexp_content
         (escape_sequence))
       (match_regexp_modifiers))))
+
+================================================================================
+braced \b \p \g \k arguments only in a regex, not in a string
+================================================================================
+"\b{foo} \p{L} \g{x} \k{n}";
+qr{\p{L}\b{wb}};
+s{(a)\g{-1}}{\p{x}};
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (interpolated_string_literal
+      (string_content
+        (escape_sequence)
+        (escape_sequence)
+        (escape_sequence)
+        (escape_sequence))))
+  (expression_statement
+    (quoted_regexp
+      (regexp_content
+        (escape_sequence)
+        (escape_sequence))))
+  (expression_statement
+    (substitution_regexp
+      (regexp_content
+        (escape_sequence))
+      (replacement
+        (escape_sequence)))))

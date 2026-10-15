@@ -82,3 +82,6 @@ q # this is a comment
 #             ^ variable.scalar
 qx(command);
 # <- string
+"\b{foo}";
+#^^ string.escape
+#  ^ string
