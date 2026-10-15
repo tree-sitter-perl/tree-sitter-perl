@@ -483,3 +483,44 @@ ${ $x # still a deref
             (scalar
               (varname)))
           (comment))))))
+
+================================================================================
+a lone filetest letter before a newline is a filetest, not a key
+================================================================================
+$h{-e };
+$h{-e	};
+$h{-e
+};
+$h{-e #c
+};
+$h{-ee
+};
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (hash_element_expression
+      (container_variable
+        (varname))
+      (autoquoted_bareword)))
+  (expression_statement
+    (hash_element_expression
+      (container_variable
+        (varname))
+      (autoquoted_bareword)))
+  (expression_statement
+    (hash_element_expression
+      (container_variable
+        (varname))
+      (func1op_call_expression)))
+  (expression_statement
+    (hash_element_expression
+      (container_variable
+        (varname))
+      (func1op_call_expression)
+      (comment)))
+  (expression_statement
+    (hash_element_expression
+      (container_variable
+        (varname))
+      (autoquoted_bareword))))

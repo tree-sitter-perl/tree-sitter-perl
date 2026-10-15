@@ -1574,9 +1574,14 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
         bool filetest = tsp_strchr("rwxoRWXOezsfdlpSbctugkTBMAC", c) != NULL;
         do { ADVANCE_C; len++; } while (isidcont(c));
         MARK_END;
-        while (is_tsp_whitespace(c)) ADVANCE_C;
+        // toke.c looks only past spaces and tabs for the `}`: `$h{-e }` is the
+        // key '-e' but `$h{-e\n}` is a filetest on $_
+        while (c == ' ' || c == '\t') ADVANCE_C;
         if (c == '}') TOKEN(TOKEN_BRACE_AUTOQUOTED);
         if (len == 1 && filetest && valid_symbols[TOKEN_FILETEST]) TOKEN(TOKEN_FILETEST);
+        // a longer word is the same string either way (unary minus on a bareword)
+        while (is_tsp_whitespace(c)) ADVANCE_C;
+        if (c == '}') TOKEN(TOKEN_BRACE_AUTOQUOTED);
         return false;
       }
       // `${-}` names the punctuation variable `$-`
