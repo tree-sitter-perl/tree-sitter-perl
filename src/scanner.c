@@ -79,6 +79,7 @@ enum TokenType {
   TOKEN_BRACE_END_ZW,
   TOKEN_DOLLAR_IDENT_ZW,
   TOKEN_NO_INTERP_WHITESPACE_ZW,
+  TOKEN_NO_INTERP_BACKSLASH_ZW,
   /* zero-width high priority token */
   TOKEN_NONASSOC,
   /* synthetic tokens for error recovery */
@@ -575,18 +576,41 @@ static void _skip_chars(TSLexer *lexer, int maxlen, const char *allow) {
 #define skip_digits(lexer, maxlen) _skip_chars(lexer, maxlen, "0123456789")
 #define skip_octdigits(lexer, maxlen) _skip_chars(lexer, maxlen, "01234567")
 
-static void skip_braced(TSLexer *lexer) {
+/* Extend an escape over its braced argument (`\x{41}`, `\N{U+41}`, `\g{-1}`,
+ * `\k{name}`, `\p{L}`), moving the token end past the `}`. Otherwise the `{`
+ * is lexed on its own and, inside `qr{...}`, the `}` closes the quote. Anything
+ * that could interpolate or end the quote leaves the end where it was. */
+static void skip_braced(TSLexer *lexer, LexerState *state) {
   int32_t c = lexer->lookahead;
 
   if (c != '{') return;
 
   ADVANCE_C;
-  while (!lexer->eof(lexer) && c != '}') ADVANCE_C;
-
-  ADVANCE_C;
+  for (int n = 0; n < 256 && !lexer->eof(lexer); n++) {
+    if (c == '}') {
+      ADVANCE_C;
+      MARK_END;
+      return;
+    }
+    if (tsp_strchr("{\\$@\n", c) || lexerstate_is_quote_closer(state, c)) return;
+    ADVANCE_C;
+  }
 }
 
 static bool isidfirst(int32_t c) { return c == '_' || is_tsp_id_start(c); }
+
+/* Skip whitespace and `#` comments without consuming anything else. */
+static void skip_ws_and_comments(TSLexer *lexer) {
+  while (!lexer->eof(lexer)) {
+    if (is_tsp_whitespace(lexer->lookahead)) {
+      lexer->advance(lexer, false);
+    } else if (lexer->lookahead == '#') {
+      while (!lexer->eof(lexer) && lexer->lookahead != '\n') lexer->advance(lexer, false);
+    } else {
+      return;
+    }
+  }
+}
 
 static bool isidcont(int32_t c) { return c == '_' || is_tsp_id_continue(c); }
 
@@ -829,6 +853,9 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
 
   if (!is_ERROR && iswspace(c) && valid_symbols[TOKEN_NO_INTERP_WHITESPACE_ZW]) {
     TOKEN(TOKEN_NO_INTERP_WHITESPACE_ZW);
+  }
+  if (!is_ERROR && c == '\\' && valid_symbols[TOKEN_NO_INTERP_BACKSLASH_ZW]) {
+    TOKEN(TOKEN_NO_INTERP_BACKSLASH_ZW);
   }
   crossed_newline = skip_ws_to_eol(lexer);
   /* heredocs override everything, so they must be here before */
@@ -1269,9 +1296,16 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     }
   }
 
-  if (valid_symbols[TOKEN_POD]) {
+  // A column-0 `=` that opens a quote-like (`q\n=x=`) or ends part of one
+  // (`s=a\n=b=`) is the delimiter, not POD, even before a letter
+  if (valid_symbols[TOKEN_POD] && !valid_symbols[TOKEN_QUOTELIKE_BEGIN] &&
+      !lexerstate_is_quote_closer(state, '=')) {
     int column = lexer->get_column(lexer);
     if (column == 0 && c == '=') {
+      // perl only starts POD on `=` followed by a letter (`=head1`, `=pod`); a
+      // line-initial `=>`, `==`, `=~`, `= 5` or `=_x` is still code
+      ADVANCE_C;
+      if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'))) return false;
       DEBUG("POD started...\n", 0);
 
       /* Keep going until the linefeed after a line beginning `=cut` */
@@ -1468,18 +1502,20 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
       switch (esc_c) {
         case 'x':
           if (c == '{')
-            skip_braced(lexer);
+            skip_braced(lexer, state);
           else
             skip_hexdigits(lexer, 2);
           break;
 
         case 'N':
-          skip_braced(lexer);
-          break;
-
         case 'o':
-          /* TODO: contents should just be octal */
-          skip_braced(lexer);
+        case 'g':
+        case 'k':
+        case 'p':
+        case 'P':
+        case 'b':
+        case 'B':
+          skip_braced(lexer, state);
           break;
 
         case '0':
@@ -1579,8 +1615,29 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   // we hold on to the current char in case we need to do some fancy stuff w/ it in 2 char
   // lookaheads below
   int32_t c1 = c;
-  if (c == '-' && valid_symbols[TOKEN_FILETEST]) {
+  if (c == '-' && (valid_symbols[TOKEN_FILETEST] || valid_symbols[TOKEN_BRACE_AUTOQUOTED])) {
     ADVANCE_C;
+    if (valid_symbols[TOKEN_BRACE_AUTOQUOTED]) {
+      // `{-word}` autoquotes the whole `-word`, keywords and quote-like names included
+      // (`$h{-field}`, `$h{-my}`, `$h{-q}`), exactly as toke.c does.
+      if (isidfirst(c)) {
+        int len = 0;
+        bool filetest = tsp_strchr("rwxoRWXOezsfdlpSbctugkTBMAC", c) != NULL;
+        do { ADVANCE_C; len++; } while (isidcont(c));
+        MARK_END;
+        // toke.c looks only past spaces and tabs for the `}`: `$h{-e }` is the
+        // key '-e' but `$h{-e\n}` is a filetest on $_
+        while (c == ' ' || c == '\t') ADVANCE_C;
+        if (c == '}') TOKEN(TOKEN_BRACE_AUTOQUOTED);
+        if (len == 1 && filetest && valid_symbols[TOKEN_FILETEST]) TOKEN(TOKEN_FILETEST);
+        // a longer word is the same string either way (unary minus on a bareword)
+        while (is_tsp_whitespace(c)) ADVANCE_C;
+        if (c == '}') TOKEN(TOKEN_BRACE_AUTOQUOTED);
+        return false;
+      }
+      // `${-}` names the punctuation variable `$-`
+      goto punct_var_name;
+    }
     if (tsp_strchr("rwxoRWXOezsfdlpSbctugkTBMAC", c)) {
       ADVANCE_C;
       if (!isidcont(c)) TOKEN(TOKEN_FILETEST);
@@ -1599,8 +1656,11 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
       c > ' ' && c != '}' && c != '{' && c != '^' && c != '#' &&
       !(c >= '0' && c <= '9')) {
     ADVANCE_C;
+  punct_var_name:
     MARK_END;
-    while (is_tsp_whitespace(c)) ADVANCE_C;
+    // perl allows comments here too: `${- # why\n}` is `$-`
+    skip_ws_and_comments(lexer);
+    c = lexer->lookahead;
     if (c == '}') TOKEN(TOKEN_BRACE_AUTOQUOTED);
     return false;
   }
@@ -1609,7 +1669,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     // we zip until the end of the identifier; then we do a lookeahed to see if it's autoquoted
     do {
       ADVANCE_C;
-    } while (c && isidcont(c));
+    } while (isidcont(c));
     MARK_END;
     // TODO - carefully check if we got a 2 char quote such that we need to guard against
     // the comment char here - the quoting is space-sensitive so we'll have to track that
@@ -1620,16 +1680,13 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     // The contextual-keyword block jumps here (after reading its word + MARK_END)
     // to reuse this comment-skip + fat_comma_check instead of duplicating them.
     kw_autoquote:
-    while (is_tsp_whitespace(c) || c == '#') {
-      while (is_tsp_whitespace(c)) ADVANCE_C;
-      // now we need to skip comments - we get in a funny way if we have a quotelike
-      // operator followed by a comment as the quote char
-      if (c == '#') {
-        ADVANCE_C;
-        while (lexer->get_column(lexer) && !lexer->eof(lexer)) ADVANCE_C;
-      }
+    // now we need to skip comments - we get in a funny way if we have a quotelike
+    // operator followed by a comment as the quote char
+    // TODO - in theory there could be POD here that we needa skip over (EYES ROLL)
+    if (is_tsp_whitespace(c) || c == '#') {
+      skip_ws_and_comments(lexer);
+      c = lexer->lookahead;
       if (lexer->eof(lexer)) return false;
-      // TODO - in theory there could be POD here that we needa skip over (EYES ROLL)
     }
     // The keyword peek's fat comma detection gotos here when it finds a
     // statement keyword followed by '=' on a new line.  The peek has already
