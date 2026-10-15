@@ -79,6 +79,7 @@ enum TokenType {
   TOKEN_BRACE_END_ZW,
   TOKEN_DOLLAR_IDENT_ZW,
   TOKEN_NO_INTERP_WHITESPACE_ZW,
+  TOKEN_NO_INTERP_BACKSLASH_ZW,
   /* zero-width high priority token */
   TOKEN_NONASSOC,
   /* synthetic tokens for error recovery */
@@ -837,6 +838,9 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
 
   if (!is_ERROR && iswspace(c) && valid_symbols[TOKEN_NO_INTERP_WHITESPACE_ZW]) {
     TOKEN(TOKEN_NO_INTERP_WHITESPACE_ZW);
+  }
+  if (!is_ERROR && c == '\\' && valid_symbols[TOKEN_NO_INTERP_BACKSLASH_ZW]) {
+    TOKEN(TOKEN_NO_INTERP_BACKSLASH_ZW);
   }
   crossed_newline = skip_ws_to_eol(lexer);
   /* heredocs override everything, so they must be here before */
