@@ -1629,16 +1629,13 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     // The contextual-keyword block jumps here (after reading its word + MARK_END)
     // to reuse this comment-skip + fat_comma_check instead of duplicating them.
     kw_autoquote:
-    while (is_tsp_whitespace(c) || c == '#') {
-      while (is_tsp_whitespace(c)) ADVANCE_C;
-      // now we need to skip comments - we get in a funny way if we have a quotelike
-      // operator followed by a comment as the quote char
-      if (c == '#') {
-        ADVANCE_C;
-        while (lexer->get_column(lexer) && !lexer->eof(lexer)) ADVANCE_C;
-      }
+    // now we need to skip comments - we get in a funny way if we have a quotelike
+    // operator followed by a comment as the quote char
+    // TODO - in theory there could be POD here that we needa skip over (EYES ROLL)
+    if (is_tsp_whitespace(c) || c == '#') {
+      skip_ws_and_comments(lexer);
+      c = lexer->lookahead;
       if (lexer->eof(lexer)) return false;
-      // TODO - in theory there could be POD here that we needa skip over (EYES ROLL)
     }
     // The keyword peek's fat comma detection gotos here when it finds a
     // statement keyword followed by '=' on a new line.  The peek has already
