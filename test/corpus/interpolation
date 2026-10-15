@@ -361,6 +361,8 @@ Deeply nested interpolation does not overflow serialize buffer (X1)
 my $z = qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{x}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}};
 --------------------------------------------------------------------------------
 
+
+
 ================================================================================
 Punctuation-variable block interpolation ${@} vs array deref ${@foo} (G7)
 ================================================================================
@@ -417,3 +419,71 @@ my $s = "$h->{a}->{b} $_[0]->{k}";
                 (varname))
               index: (number))
             key: (autoquoted_bareword)))))))
+
+================================================================================
+Escaped double quotes in an interpolated block open a nested string
+================================================================================
+$code .= "vmovdqu64 $Z,@{[HashKeyByIdx($i,\"%rsp\")]}\n";
+my $s = "${\ join(\",\", @x)} @{[ f(\"$y\") ]}";
+print "$h{\"k\"}";
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      (scalar
+        (varname))
+      (interpolated_string_literal
+        (string_content
+          (scalar
+            (varname))
+          (array
+            (block
+              (expression_statement
+                (anonymous_array_expression
+                  (function_call_expression
+                    (function)
+                    (list_expression
+                      (scalar
+                        (varname))
+                      (interpolated_string_literal
+                        (string_content))))))))
+          (escape_sequence)))))
+  (expression_statement
+    (assignment_expression
+      (variable_declaration
+        (scalar
+          (varname)))
+      (interpolated_string_literal
+        (string_content
+          (scalar
+            (block
+              (expression_statement
+                (refgen_expression
+                  (function_call_expression
+                    (function)
+                    (list_expression
+                      (interpolated_string_literal
+                        (string_content))
+                      (array
+                        (varname))))))))
+          (array
+            (block
+              (expression_statement
+                (anonymous_array_expression
+                  (function_call_expression
+                    (function)
+                    (interpolated_string_literal
+                      (string_content
+                        (scalar
+                          (varname)))))))))))))
+  (expression_statement
+    (ambiguous_function_call_expression
+      (function)
+      (interpolated_string_literal
+        (string_content
+          (hash_element_expression
+            (container_variable
+              (varname))
+            (interpolated_string_literal
+              (string_content))))))))
