@@ -186,6 +186,7 @@ module.exports = grammar({
     $._brace_end_zw,
     $._dollar_ident_zw,
     $._no_interp_whitespace_zw,
+    $._no_interp_backslash_zw,
     /* zero-width high priority token */
     $._NONASSOC,
     /* synthetic tokens for error recovery */
@@ -1335,10 +1336,12 @@ module.exports = grammar({
       )
     ),
     _interpolation_fallbacks: $ => choice(
-      seq('@', $._no_interp_whitespace_zw),
+      // a lone `@` before whitespace or a backslash stays literal; the backslash
+      // is left for the escape that follows ("\"@\"", m/[@\/]/)
+      seq('@', choice($._no_interp_whitespace_zw, $._no_interp_backslash_zw)),
       // Most array punctuation vars do not interpolate
       // we need the zw quote-end for "" (we leave regular _end so the scanner looks for it)
-      seq('@', choice(/[^A-Za-z0-9_\$'+:-]/, $._quotelike_end_zw, $._quotelike_end)),
+      seq('@', choice(/[^A-Za-z0-9_\$'+:\\-]/, $._quotelike_end_zw, $._quotelike_end)),
       // handling space sensitivity more correctly re deref-ing interps
       seq(
         $.scalar,
@@ -1482,7 +1485,7 @@ module.exports = grammar({
       choice(
         $._qq_string_content,
         $._nonvar_interpolation_fallbacks,
-        seq(choice('$', '@'), /./), // no variables interpolate AT ALL
+        seq(choice('$', '@'), choice(/[^\\]/, $._no_interp_backslash_zw)), // no variables interpolate AT ALL
         $.escape_sequence,
         $.escaped_delimiter,
       )

@@ -361,6 +361,8 @@ Deeply nested interpolation does not overflow serialize buffer (X1)
 my $z = qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{${\ qq{x}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}};
 --------------------------------------------------------------------------------
 
+
+
 ================================================================================
 Punctuation-variable block interpolation ${@} vs array deref ${@foo} (G7)
 ================================================================================
@@ -417,3 +419,39 @@ my $s = "$h->{a}->{b} $_[0]->{k}";
                 (varname))
               index: (number))
             key: (autoquoted_bareword)))))))
+
+================================================================================
+Lone @ before an escaped character stays literal
+================================================================================
+my $s = "split(\$NF, sym_lib, \"@\");";
+$line =~ m/\G[^@\/\{\"]*/g;
+tr/@\//x/;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      (variable_declaration
+        (scalar
+          (varname)))
+      (interpolated_string_literal
+        (string_content
+          (escape_sequence)
+          (escaped_delimiter)
+          (escaped_delimiter)))))
+  (expression_statement
+    (binary_expression
+      (scalar
+        (varname))
+      (match_regexp
+        (regexp_content
+          (escape_sequence)
+          (escaped_delimiter)
+          (escape_sequence)
+          (escape_sequence))
+        (match_regexp_modifiers))))
+  (expression_statement
+    (transliteration_expression
+      (transliteration_content
+        (escaped_delimiter))
+      (replacement))))
