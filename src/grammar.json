@@ -1,4 +1,5 @@
 {
+  "$schema": "https://tree-sitter.github.io/tree-sitter/assets/schemas/grammar.schema.json",
   "name": "perl",
   "word": "_identifier",
   "rules": {
@@ -10660,5 +10661,6 @@
     "postfix_deref",
     "subscripted",
     "slices"
-  ]
+  ],
+  "reserved": {}
 }
