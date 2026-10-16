@@ -219,9 +219,14 @@ typedef struct {
    *
    * Set at the opener, consumed (cleared) by that first bracket. */
   bool body_leads_with_delim;
+  /* A `"` string opened by `\"` in code interpolated into an outer `"` string
+   * (`"@{[ f(\"x\") ]}"`). perl strips the backslash from an escaped
+   * delimiter before it parses the block, so the code sees `f("x")`. Such a
+   * string closes on `\"` as well. */
+  bool escaped;
 } TSPQuote;
 
-static TSPQuote tspquote_new() { return (TSPQuote){0, 0, 0, false}; }
+static TSPQuote tspquote_new() { return (TSPQuote){0, 0, 0, false, false}; }
 
 enum HeredocState { HEREDOC_NONE, HEREDOC_START, HEREDOC_UNKNOWN, HEREDOC_CONTINUE, HEREDOC_END };
 
@@ -1189,6 +1194,18 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     lexerstate_push_quote(state, '\'');
     TOKEN(TOKEN_APOSTROPHE);
   }
+  if (!is_ERROR && valid_symbols[TOKEN_DOUBLE_QUOTE] && c == '\\' && state->quotes.size) {
+    TSPQuote *outer = array_back(&state->quotes);
+    if (!outer->open && outer->close == '"') {
+      ADVANCE_C;
+      if (c != '"') return false;
+      ADVANCE_C;
+      MARK_END;
+      lexerstate_push_quote(state, '"');
+      array_back(&state->quotes)->escaped = true;
+      TOKEN(TOKEN_DOUBLE_QUOTE);
+    }
+  }
   if (valid_symbols[TOKEN_DOUBLE_QUOTE] && c == '"') {
     ADVANCE_C;
     MARK_END;
@@ -1443,12 +1460,23 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
       // If we're inside a quotelike that is using the `\` as a delimiter then
       // this doesn't count
       !(valid_symbols[TOKEN_QUOTELIKE_END] && lexerstate_is_quote_closer(state, '\\'))) {
+    bool escaped_quote = valid_symbols[TOKEN_QUOTELIKE_END] && state->quotes.size &&
+                         array_back(&state->quotes)->escaped;
+    // a zero-width end has to end before the backslash
+    if (escaped_quote && valid_symbols[TOKEN_QUOTELIKE_END_ZW]) MARK_END;
     // eat the reverse-solidus
     ADVANCE_C;
     // let's see what that reverse-solidus was hiding!
     // note that we may have fallen through here from a HEREDOC_MIDDLE, so we
     // need to accept the token explicitly after we've read our heart's content
     int esc_c = c;
+    if (escaped_quote && esc_c == '"') {
+      if (valid_symbols[TOKEN_QUOTELIKE_END_ZW]) TOKEN(TOKEN_QUOTELIKE_END_ZW);
+      ADVANCE_C;
+      MARK_END;
+      lexerstate_pop_quote(state, state->quotes.size);
+      TOKEN(TOKEN_QUOTELIKE_END);
+    }
     // if we escaped a whitespace, the space comes through, it just hides the
     // \ char
     if (!is_tsp_whitespace(c)) ADVANCE_C;
