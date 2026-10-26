@@ -17,7 +17,7 @@
     }
   ],
   "metadata": {
-    "version": "2.0.1",
+    "version": "2.0.2",
     "license": "MIT",
     "description": "A tree-sitter parser, for Perl!",
     "authors": [
