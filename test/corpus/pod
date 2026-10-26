@@ -145,3 +145,19 @@ s{a}
     (substitution_regexp
       (regexp_content)
       (replacement))))
+
+================================================================================
+a line-initial = inside a string is content, not POD
+================================================================================
+print "\n
+=head1 not pod
+";
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (ambiguous_function_call_expression
+      (function)
+      (interpolated_string_literal
+        (string_content
+          (escape_sequence))))))
