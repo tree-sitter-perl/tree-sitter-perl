@@ -2,11 +2,14 @@
 # Diff the public node-types schema against the last shipped release and
 # recommend a semver bump.
 #
-#   script/schema-diff                # vs origin/release (the last shipped tree)
-#   script/schema-diff v1.2.1         # vs any ref that carries src/node-types.json
+#   script/schema-diff                # vs the latest tag (the last shipped tree)
+#   script/schema-diff v1.2.1         # vs another tag
+#   script/schema-diff 3c917ae        # vs any ref that carries src/node-types.json
 #
-# Why origin/release and not a tag: master gitignores the generated
-# src/node-types.json, so tags don't carry it. The release branch does.
+# master gitignores the generated src/node-types.json, so tags don't carry it.
+# The release branch does, but it is redeployed on every push to master, so
+# its tip is just HEAD again. A tag is mapped to its own deploy commit on
+# origin/release instead ("deploy: <sha of the tag commit>").
 #
 # The bump rule (see CLAUDE.md):
 #   * a node type REMOVED, or an existing node type that LOSES a child/field
@@ -19,15 +22,33 @@ use v5.20;
 use warnings;
 use JSON::PP;
 
-my $ref = shift // 'origin/release';
+my $ref = shift // do {
+    chomp(my $tag = qx{git describe --tags --abbrev=0 HEAD 2>/dev/null});
+    die "No tag reachable from HEAD; pass a ref to compare against.\n"
+        unless length $tag;
+    $tag;
+};
 
 my $current_file = 'src/node-types.json';
 die "$current_file not found -- run `./tree-sitter generate` first\n"
     unless -e $current_file;
 
+# A ref without the generated files (a tag, a master commit) is looked up as
+# its deploy commit on origin/release.
+my $label = $ref;
+if (system("git cat-file -e $ref:src/node-types.json 2>/dev/null") != 0) {
+    chomp(my $sha = qx{git rev-parse --verify --quiet $ref^{commit}});
+    die "Unknown ref '$ref'.\n" unless length $sha;
+    chomp(my $deploy = qx{git log origin/release -1 --format=%h --grep='^deploy: $sha'});
+    die "No deploy of $ref ($sha) on origin/release.\n" .
+        "Try `git fetch origin release`, or pass an origin/release commit directly.\n"
+        unless length $deploy;
+    $label = "$ref (origin/release $deploy)";
+    $ref   = $deploy;
+}
+
 my $old_json = qx{git show $ref:src/node-types.json 2>/dev/null};
-die "Could not read src/node-types.json at '$ref'.\n" .
-    "That ref may not carry the generated files; try origin/release.\n"
+die "Could not read src/node-types.json at '$ref'.\n"
     if $? != 0 || !length $old_json;
 
 # type => { "child:foo" => 1, "field:bar:foo" => 1, ... }
@@ -57,7 +78,8 @@ my @added   = sort grep { !exists $old->{$_} } keys %$new;
 my @removed = sort grep { !exists $new->{$_} } keys %$old;
 my @common  = sort grep {  exists $new->{$_} } keys %$old;
 
-my (@changed, $gain_count, $loss_count);
+my @changed;
+my ($gain_count, $loss_count) = (0, 0);
 my %lost_tally;
 for my $type (@common) {
     my @gained = sort grep { !exists $old->{$type}{$_} } keys %{ $new->{$type} };
@@ -73,7 +95,7 @@ for my $type (@common) {
     push @changed, { type => $type, gained => \@gained, lost => \@lost };
 }
 
-say "Comparing src/node-types.json  HEAD  vs  $ref\n";
+say "Comparing src/node-types.json  HEAD  vs  $label\n";
 
 if (@added) {
     say "Node types added (" . @added . "):";
