@@ -117,7 +117,7 @@ jobs:
         with:
           tree-sitter-ref: v0.26.9   # pinned; see the note in ci.yml
       - run: tree-sitter generate src/grammar.json
-      - uses: pypa/cibuildwheel@v2.22
+      - uses: pypa/cibuildwheel@v4.3
         with:
           output-dir: dist
         env:
