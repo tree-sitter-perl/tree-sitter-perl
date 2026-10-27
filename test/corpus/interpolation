@@ -117,6 +117,54 @@ Method calls don't interpolate
           (varname))))))
 
 ================================================================================
+A dangling arrow after an interpolated element stays literal
+================================================================================
+"a $x->";
+"a $h{A}->B!";
+qq($c{E}->new);
+"$x->[0]->m $x->{a}->";
+"$x->\n";
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (interpolated_string_literal
+      (string_content
+        (scalar
+          (varname)))))
+  (expression_statement
+    (interpolated_string_literal
+      (string_content
+        (hash_element_expression
+          (container_variable
+            (varname))
+          (autoquoted_bareword)))))
+  (expression_statement
+    (interpolated_string_literal
+      (string_content
+        (hash_element_expression
+          (container_variable
+            (varname))
+          (autoquoted_bareword)))))
+  (expression_statement
+    (interpolated_string_literal
+      (string_content
+        (array_element_expression
+          (scalar
+            (varname))
+          (number))
+        (hash_element_expression
+          (scalar
+            (varname))
+          (autoquoted_bareword)))))
+  (expression_statement
+    (interpolated_string_literal
+      (string_content
+        (scalar
+          (varname))
+        (escape_sequence)))))
+
+================================================================================
 Space skips interpolation
 ================================================================================
 "an array $elem [0]";
