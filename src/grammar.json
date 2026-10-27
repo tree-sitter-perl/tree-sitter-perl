@@ -8783,8 +8783,17 @@
           "type": "SEQ",
           "members": [
             {
-              "type": "SYMBOL",
-              "name": "scalar"
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "SYMBOL",
+                  "name": "scalar"
+                },
+                {
+                  "type": "SYMBOL",
+                  "name": "_subscripted_interpolations"
+                }
+              ]
             },
             {
               "type": "ALIAS",
@@ -8833,11 +8842,23 @@
                 },
                 {
                   "type": "SYMBOL",
+                  "name": "_quotelike_end_zw"
+                },
+                {
+                  "type": "SYMBOL",
+                  "name": "_quotelike_end"
+                },
+                {
+                  "type": "SYMBOL",
+                  "name": "_no_interp_backslash_zw"
+                },
+                {
+                  "type": "SYMBOL",
                   "name": "scalar"
                 },
                 {
                   "type": "PATTERN",
-                  "value": "[^@${\\[]"
+                  "value": "[^@${\\[\\\\]"
                 }
               ]
             }

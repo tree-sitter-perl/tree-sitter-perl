@@ -1344,15 +1344,20 @@ module.exports = grammar({
       seq('@', choice(/[^A-Za-z0-9_\$'+:\\-]/, $._quotelike_end_zw, $._quotelike_end)),
       // handling space sensitivity more correctly re deref-ing interps
       seq(
-        $.scalar,
+        choice($.scalar, $._subscripted_interpolations),
         alias(token.immediate('->'), 'not-interpolated'),
         choice(
           // handle "$ting->@ {blah}" and "$ting-> {blah}"
           seq(optional(choice('@', '$')), $._no_interp_whitespace_zw),
+          // "$ting->" at the end of the string (listing the real end too makes the
+          // scanner consider the zero-width one, as for "@" above), and "$ting->\n"
+          // (the escape stays an escape)
+          $._quotelike_end_zw, $._quotelike_end,
+          $._no_interp_backslash_zw,
           // handle dynamic method calls like $scalar->$scalar
           $.scalar,
-          // handle method calls "$ting->call" by taking anything other than @, {, and [
-          /[^@${\[]/
+          // handle method calls "$ting->call" by taking anything other than @, {, [ and \
+          /[^@${\[\\]/
         )
       ),
       $._nonvar_interpolation_fallbacks
