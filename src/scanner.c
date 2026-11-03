@@ -100,6 +100,9 @@ enum TokenType {
   /* `async`/`try` contextual keywords, emitted only in keyword position */
   TOKEN_KW_ASYNC,
   TOKEN_KW_TRY,
+  /* a subscript opener glued to an interpolated variable */
+  TOKEN_INTERP_OPEN_BRACKET,
+  TOKEN_INTERP_OPEN_BRACE,
   /* error condition is always last */
   TOKEN_ERROR
 };
@@ -720,6 +723,24 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   state->recovery_emitted = false;
 
   int32_t c = lexer->lookahead;
+
+  /* In a string, a `[`/`{` glued to an interpolated variable always
+   * subscripts it (perl's intuit_more answers yes outside a pattern). When
+   * that bracket also quotes the string (`qq{$h{k}}`, `qq[$a[0]]`), take it
+   * here: the content scanner would count it as a nested delimiter and
+   * swallow the subscript. Any other quote leaves it to the grammar's
+   * immediate opener. A pattern guesses instead (tsp_intuit_more, below). */
+  if (!is_ERROR && !valid_symbols[TOKEN_NONASSOC] && !valid_symbols[TOKEN_REGEXP_OPEN_BRACKET] &&
+      !valid_symbols[TOKEN_REGEXP_OPEN_BRACE] && lexerstate_is_quote_opener(state, c)) {
+    if (c == '[' && valid_symbols[TOKEN_INTERP_OPEN_BRACKET]) {
+      ADVANCE_C;
+      TOKEN(TOKEN_INTERP_OPEN_BRACKET);
+    }
+    if (c == '{' && valid_symbols[TOKEN_INTERP_OPEN_BRACE]) {
+      ADVANCE_C;
+      TOKEN(TOKEN_INTERP_OPEN_BRACE);
+    }
+  }
 
   if (!is_ERROR && valid_symbols[TOKEN_GOBBLED_CONTENT]) {
     while (!lexer->eof(lexer)) ADVANCE_C;
