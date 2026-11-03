@@ -536,7 +536,6 @@ print "$h{\"k\"}";
             (interpolated_string_literal
               (string_content))))))))
 
-
 ================================================================================
 Lone @ before an escaped character stays literal
 ================================================================================
@@ -572,3 +571,60 @@ tr/@\//x/;
       (transliteration_content
         (escaped_delimiter))
       (replacement))))
+
+================================================================================
+Subscripts inside a bracket-quoted string (qq{$h{k}}, qq[$a[0]])
+================================================================================
+qq{$h{a}};
+qq{$h{$k}{x} {y}};
+qq[$a[0]];
+qq{@h{a}};
+qq{[{"a":1}]};
+qq{\n{x}};
+qq{$a {x}};
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (interpolated_string_literal
+      (string_content
+        (hash_element_expression
+          (container_variable
+            (varname))
+          (autoquoted_bareword)))))
+  (expression_statement
+    (interpolated_string_literal
+      (string_content
+        (hash_element_expression
+          (hash_element_expression
+            (container_variable
+              (varname))
+            (scalar
+              (varname)))
+          (autoquoted_bareword)))))
+  (expression_statement
+    (interpolated_string_literal
+      (string_content
+        (array_element_expression
+          (container_variable
+            (varname))
+          (number)))))
+  (expression_statement
+    (interpolated_string_literal
+      (string_content
+        (slice_expression
+          (slice_container_variable
+            (varname))
+          (autoquoted_bareword)))))
+  (expression_statement
+    (interpolated_string_literal
+      (string_content)))
+  (expression_statement
+    (interpolated_string_literal
+      (string_content
+        (escape_sequence))))
+  (expression_statement
+    (interpolated_string_literal
+      (string_content
+        (scalar
+          (varname))))))

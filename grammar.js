@@ -90,6 +90,11 @@ const recoverBrace = ($) => choice('}', alias($._RECOVER_BRACE_CLOSE, '}'))
 // against ~2.4k modern-OO modules) — so a half-typed body closes just itself.
 // Distinct from `_RECOVER_BRACE_CLOSE` so subscript-brace recovery is untouched.
 const recoverBlock = ($) => choice('}', alias($._RECOVER_BLOCK_CLOSE, '}'))
+// Subscript openers glued to an interpolated variable. The external wins only
+// when the bracket is also the string's own delimiter (`qq{$h{k}}`), which the
+// content scanner would otherwise count as a nested delimiter.
+const interpOpenBracket = ($) => choice(token.immediate('['), alias($._interp_open_bracket, '['))
+const interpOpenBrace = ($) => choice(token.immediate('{'), alias($._interp_open_brace, '{'))
 
 // little helper just to keep things DRY.  `async` is a contextual keyword
 // emitted by the scanner (aliased so it stays queryable/highlightable).
@@ -212,6 +217,11 @@ module.exports = grammar({
      * `async(...)`/`try(1,2,3)`/`try => 1` parse as calls/terms. */
     $._KW_ASYNC,
     $._KW_TRY,
+    /* `[`/`{` glued to an interpolated variable, in a string quoted with that
+     * bracket (`qq{$h{k}}`): its subscript, taken before the content scanner
+     * can count it as a nested delimiter. */
+    $._interp_open_bracket,
+    $._interp_open_brace,
     /* error condition must always be last; we don't use this in the grammar */
     $._ERROR
   ],
@@ -1296,20 +1306,20 @@ module.exports = grammar({
     _interp_arrow: $ => token.immediate('->'),
 
     _array_element_interpolation: $ => choice(
-      seq(field('array', alias($.scalar, $.container_variable)), token.immediate('['), field('index', $._expr), ']'),
+      seq(field('array', alias($.scalar, $.container_variable)), interpOpenBracket($), field('index', $._expr), ']'),
       prec.left(TERMPREC.ARROW, seq($.scalar, $._interp_arrow, '[', field('index', $._expr), ']')),
       // chained subscript: implicit (`$h{a}[0]`) or with an explicit arrow (`$h->{a}->[0]`)
-      seq($._subscripted_interpolations, optional($._interp_arrow), token.immediate('['), field('index', $._expr), ']'),
+      seq($._subscripted_interpolations, optional($._interp_arrow), interpOpenBracket($), field('index', $._expr), ']'),
     ),
     _hash_element_interpolation: $ => choice(
-      seq(field('hash', alias($.scalar, $.container_variable)), token.immediate('{'), field('key', $._hash_key), '}'),
+      seq(field('hash', alias($.scalar, $.container_variable)), interpOpenBrace($), field('key', $._hash_key), '}'),
       prec.left(TERMPREC.ARROW, seq($.scalar, $._interp_arrow, '{', field('key', $._hash_key), '}')),
       // chained subscript: implicit (`$h{a}{b}`) or with an explicit arrow (`$h->{a}->{b}`)
-      seq($._subscripted_interpolations, optional($._interp_arrow), token.immediate('{'), field('key', $._hash_key), '}'),
+      seq($._subscripted_interpolations, optional($._interp_arrow), interpOpenBrace($), field('key', $._hash_key), '}'),
     ),
     _slice_expression_interpolation: $ => choice(
-      seq(field('array', alias($.array, $.slice_container_variable)), token.immediate('['), $._expr, ']'),
-      seq(field('hash', alias($.array, $.slice_container_variable)), token.immediate('{'), $._hash_key, '}'),
+      seq(field('array', alias($.array, $.slice_container_variable)), interpOpenBracket($), $._expr, ']'),
+      seq(field('hash', alias($.array, $.slice_container_variable)), interpOpenBrace($), $._hash_key, '}'),
       prec.left(TERMPREC.ARROW,
         seq(field('arrayref', $.scalar), $._interp_arrow, '@', '[', $._expr, ']')),
       prec.left(TERMPREC.ARROW,
