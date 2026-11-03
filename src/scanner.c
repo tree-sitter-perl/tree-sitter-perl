@@ -100,6 +100,9 @@ enum TokenType {
   /* `async`/`try` contextual keywords, emitted only in keyword position */
   TOKEN_KW_ASYNC,
   TOKEN_KW_TRY,
+  /* a subscript opener glued to an interpolated variable */
+  TOKEN_INTERP_OPEN_BRACKET,
+  TOKEN_INTERP_OPEN_BRACE,
   /* error condition is always last */
   TOKEN_ERROR
 };
@@ -721,6 +724,23 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
 
   int32_t c = lexer->lookahead;
 
+  /* In a string, a `[`/`{` glued to an interpolated variable always
+   * subscripts it (perl's intuit_more answers yes outside a pattern). Taken
+   * before the content scanner, which would otherwise count it as a nested
+   * delimiter of `qq{…}` / `qq[…]` and swallow the subscript. A pattern
+   * guesses instead (tsp_intuit_more, below). */
+  if (!is_ERROR && !valid_symbols[TOKEN_NONASSOC] && !valid_symbols[TOKEN_REGEXP_OPEN_BRACKET] &&
+      !valid_symbols[TOKEN_REGEXP_OPEN_BRACE]) {
+    if (c == '[' && valid_symbols[TOKEN_INTERP_OPEN_BRACKET]) {
+      ADVANCE_C;
+      TOKEN(TOKEN_INTERP_OPEN_BRACKET);
+    }
+    if (c == '{' && valid_symbols[TOKEN_INTERP_OPEN_BRACE]) {
+      ADVANCE_C;
+      TOKEN(TOKEN_INTERP_OPEN_BRACE);
+    }
+  }
+
   if (!is_ERROR && valid_symbols[TOKEN_GOBBLED_CONTENT]) {
     while (!lexer->eof(lexer)) ADVANCE_C;
 
@@ -1291,7 +1311,9 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
       if (qi) lexerstate_saw_opener(state, qi);
       TOKEN(open == '[' ? TOKEN_REGEXP_OPEN_BRACKET : TOKEN_REGEXP_OPEN_BRACE);
     }
-    /* subscript: let the grammar's immediate '[' / '{' win */
+    /* subscript */
+    if (open == '[' && valid_symbols[TOKEN_INTERP_OPEN_BRACKET]) TOKEN(TOKEN_INTERP_OPEN_BRACKET);
+    if (open == '{' && valid_symbols[TOKEN_INTERP_OPEN_BRACE]) TOKEN(TOKEN_INTERP_OPEN_BRACE);
     return false;
     }
   }
