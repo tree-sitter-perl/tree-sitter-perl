@@ -725,12 +725,13 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   int32_t c = lexer->lookahead;
 
   /* In a string, a `[`/`{` glued to an interpolated variable always
-   * subscripts it (perl's intuit_more answers yes outside a pattern). Taken
-   * before the content scanner, which would otherwise count it as a nested
-   * delimiter of `qq{…}` / `qq[…]` and swallow the subscript. A pattern
-   * guesses instead (tsp_intuit_more, below). */
+   * subscripts it (perl's intuit_more answers yes outside a pattern). When
+   * that bracket also quotes the string (`qq{$h{k}}`, `qq[$a[0]]`), take it
+   * here: the content scanner would count it as a nested delimiter and
+   * swallow the subscript. Any other quote leaves it to the grammar's
+   * immediate opener. A pattern guesses instead (tsp_intuit_more, below). */
   if (!is_ERROR && !valid_symbols[TOKEN_NONASSOC] && !valid_symbols[TOKEN_REGEXP_OPEN_BRACKET] &&
-      !valid_symbols[TOKEN_REGEXP_OPEN_BRACE]) {
+      !valid_symbols[TOKEN_REGEXP_OPEN_BRACE] && lexerstate_is_quote_opener(state, c)) {
     if (c == '[' && valid_symbols[TOKEN_INTERP_OPEN_BRACKET]) {
       ADVANCE_C;
       TOKEN(TOKEN_INTERP_OPEN_BRACKET);
@@ -1311,9 +1312,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
       if (qi) lexerstate_saw_opener(state, qi);
       TOKEN(open == '[' ? TOKEN_REGEXP_OPEN_BRACKET : TOKEN_REGEXP_OPEN_BRACE);
     }
-    /* subscript */
-    if (open == '[' && valid_symbols[TOKEN_INTERP_OPEN_BRACKET]) TOKEN(TOKEN_INTERP_OPEN_BRACKET);
-    if (open == '{' && valid_symbols[TOKEN_INTERP_OPEN_BRACE]) TOKEN(TOKEN_INTERP_OPEN_BRACE);
+    /* subscript: let the grammar's immediate '[' / '{' win */
     return false;
     }
   }
