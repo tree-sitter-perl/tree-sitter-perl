@@ -87,6 +87,7 @@
 (require_expression (bareword) @type)
 
 (subroutine_declaration_statement name: (bareword) @function)
+(subroutine_declaration_statement name: (bareword) (prototype) @punctuation.bracket)
 (method_declaration_statement name: (bareword) @method)
 (attribute_name) @attribute
 (attribute_value) @string
