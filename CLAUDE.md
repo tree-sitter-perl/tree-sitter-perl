@@ -110,7 +110,7 @@ Other scanner responsibilities:
   helper functions so every subscript/call site shares one grammar node (no extra
   states) and plugs into the scanner's recovery closers above.
 - **Zero-width lookahead externals** (`_brace_end_zw`, `_dollar_ident_zw`,
-  `_no_interp_whitespace_zw`, `_NONASSOC`): disambiguation markers that consume no
+  `_no_interp_extra_zw`, `_NONASSOC`): disambiguation markers that consume no
   input — e.g. `$hash{q}` (brace-end vs. a `q//` quote) and interpolation
   boundaries.
 - **Autoquote tokens** (`_fat_comma_autoquoted`, `_brace_autoquoted`): barewords
