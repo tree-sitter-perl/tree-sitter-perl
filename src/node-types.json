@@ -13064,7 +13064,7 @@
       },
       "condition": {
         "multiple": false,
-        "required": true,
+        "required": false,
         "types": [
           {
             "type": "ambiguous_function_call_expression",
