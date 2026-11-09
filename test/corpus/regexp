@@ -499,3 +499,36 @@ s{(a)\g{-1}}{\p{x}};
         (escape_sequence))
       (replacement
         (escape_sequence)))))
+
+================================================================================
+A dollar delimiter closes the pattern rather than anchoring or interpolating
+================================================================================
+$t =~ m$abc$g;
+my $r = qr$a\$b$i;
+$t =~ s$a$b$;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (binary_expression
+      (scalar
+        (varname))
+      (match_regexp
+        (regexp_content)
+        (match_regexp_modifiers))))
+  (expression_statement
+    (assignment_expression
+      (variable_declaration
+        (scalar
+          (varname)))
+      (quoted_regexp
+        (regexp_content
+          (escaped_delimiter))
+        (quoted_regexp_modifiers))))
+  (expression_statement
+    (binary_expression
+      (scalar
+        (varname))
+      (substitution_regexp
+        (regexp_content)
+        (replacement)))))
