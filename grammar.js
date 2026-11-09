@@ -412,8 +412,7 @@ module.exports = grammar({
     // `sub foo ($sig);`. Anonymous subs always need a body, so they keep
     // `_anon_sub_tail`; here we allow either a body or a terminating `;`.
     _sub_decl_tail: $ => seq(
-      optseq(':', optional(field('attributes', $.attrlist))),
-      optional(choice($.prototype, $.signature)),
+      optional($._sub_attrs_and_params),
       choice(field('body', alias($._body_block, $.block)), $._semicolon),
     ),
 
@@ -800,9 +799,17 @@ module.exports = grammar({
     ),
 
     _anon_sub_tail: $ => seq(
-      optseq(':', optional(field('attributes', $.attrlist))),
-      optional(choice($.prototype, $.signature)),
+      optional($._sub_attrs_and_params),
       field('body', $.block),
+    ),
+
+    // perly.y puts a prototype before the attributes (`sub f ($) :lvalue`) and
+    // a signature after them (`sub f :lvalue ($x)`); one shared rule keeps the
+    // named and anonymous tails from drifting apart.
+    _sub_attrs_and_params: $ => choice(
+      seq(':', optional(field('attributes', $.attrlist)), optional(choice($.prototype, $.signature))),
+      choice($.prototype, $.signature),
+      seq($.prototype, ':', optional(field('attributes', $.attrlist))),
     ),
 
     anonymous_subroutine_expression: $ => seq(
