@@ -610,6 +610,38 @@ ITEM: while(@items) { }
       block: (block))))
 
 ================================================================================
+A label before a closing brace or EOF labels an empty statement
+================================================================================
+if ($x) {
+  goto DONE if $y;
+  DONE:
+}
+{ A: B: }
+END_OF_FILE:
+--------------------------------------------------------------------------------
+
+(source_file
+  (conditional_statement
+    condition: (scalar
+      (varname))
+    block: (block
+      (expression_statement
+        (postfix_conditional_expression
+          (goto_expression
+            (label))
+          condition: (scalar
+            (varname))))
+      (statement_label
+        label: (identifier))))
+  (block_statement
+    (statement_label
+      label: (identifier)
+      statement: (statement_label
+        label: (identifier))))
+  (statement_label
+    label: (identifier)))
+
+================================================================================
 Labels named like phasers
 ================================================================================
 CHECK: $x = 1;
