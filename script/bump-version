@@ -28,30 +28,29 @@ sub spew {
 
 # Keep this list exhaustive. A missing entry drifts silently: tree-sitter.json
 # was absent here and sat at 1.0.0 through every release up to 1.2.1 before
-# anyone noticed.
+# anyone noticed, and package-lock.json sat at 1.0.0 until 2.0.5. Each
+# pattern's first match carries the version in its capture group, and a bump
+# rewrites only that group.
 my @files = (
+    { file => 'package.json',      pattern => qr/"version":\s*"([^"]*)"/ },
+    { file => 'Cargo.toml',        pattern => qr/^version\s*=\s*"([^"]*)"/m },
+    { file => 'pyproject.toml',    pattern => qr/^version\s*=\s*"([^"]*)"/m },
+    # metadata.version — the only "version" key in the file.
+    { file => 'tree-sitter.json',  pattern => qr/"version":\s*"([^"]*)"/ },
+    # The lockfile names the root package twice: at the top, and again as
+    # packages[""]. Its dependencies' versions sit deeper in that object.
     {
-        file     => 'package.json',
-        pattern  => qr/"version":\s*"([^"]*)"/,
-        template => '"version": "%s"',
+        file    => 'package-lock.json',
+        where   => 'root',
+        pattern => qr/\A\{\s*"name":\s*"tree-sitter-perl",\s*"version":\s*"([^"]*)"/,
     },
     {
-        file     => 'Cargo.toml',
-        pattern  => qr/^version\s*=\s*"([^"]*)"/m,
-        template => 'version = "%s"',
-    },
-    {
-        file     => 'pyproject.toml',
-        pattern  => qr/^version\s*=\s*"([^"]*)"/m,
-        template => 'version = "%s"',
-    },
-    {
-        # metadata.version — the only "version" key in the file.
-        file     => 'tree-sitter.json',
-        pattern  => qr/"version":\s*"([^"]*)"/,
-        template => '"version": "%s"',
+        file    => 'package-lock.json',
+        where   => 'packages[""]',
+        pattern => qr/"":\s*\{\s*"name":\s*"tree-sitter-perl",\s*"version":\s*"([^"]*)"/,
     },
 );
+$_->{label} = join ' ', grep defined, @$_{qw(file where)} for @files;
 
 my ($check, $release) = (0, 0);
 my @args;
@@ -75,8 +74,8 @@ my %found;
 for my $spec (@files) {
     my $content = slurp($spec->{file});
     my ($current) = $content =~ $spec->{pattern};
-    die "Failed to find a version in $spec->{file}\n" unless defined $current;
-    $found{ $spec->{file} } = $current;
+    die "Failed to find a version in $spec->{label}\n" unless defined $current;
+    $found{ $spec->{label} } = $current;
 }
 
 if ($check) {
@@ -94,7 +93,7 @@ if ($check) {
     }
 
     unless ($ok) {
-        printf STDERR "  %-18s %s\n", $_->{file}, $found{ $_->{file} } for @files;
+        printf STDERR "  %-30s %s\n", $_->{label}, $found{ $_->{label} } for @files;
         say STDERR "\nRun: script/bump-version <version>";
         exit 1;
     }
@@ -105,19 +104,17 @@ if ($check) {
     }
 
     say "All manifests at $versions[0]:";
-    printf "  %-18s %s\n", $_->{file}, $found{ $_->{file} } for @files;
+    printf "  %-30s %s\n", $_->{label}, $found{ $_->{label} } for @files;
     exit 0;
 }
 
 for my $spec (@files) {
-    my $content     = slurp($spec->{file});
-    my $replacement = sprintf $spec->{template}, $version;
-
-    my $count = ($content =~ s/$spec->{pattern}/$replacement/);
-    die "Failed to find a version in $spec->{file}\n" unless $count;
+    my $content = slurp($spec->{file});
+    die "Failed to find a version in $spec->{label}\n" unless $content =~ $spec->{pattern};
+    substr($content, $-[1], $+[1] - $-[1]) = $version;
 
     spew($spec->{file}, $content);
-    say "Updated $spec->{file}  $found{$spec->{file}} -> $version";
+    say "Updated $spec->{label}  $found{$spec->{label}} -> $version";
 }
 
 say <<~"END";

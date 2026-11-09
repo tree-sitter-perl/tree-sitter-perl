@@ -80,7 +80,7 @@ Releases are cut by CI. Merging a version bump to `master` releases it.
 
 ```bash
 script/schema-diff                 # what changed in the public node schema, and the bump it implies
-script/bump-version 2.0.5          # syncs version across all four manifests
+script/bump-version 2.0.5          # syncs the version across every manifest and package-lock.json
 ```
 
 Then add a `## v2.0.5 — <date>` section to `CHANGELOG.md`, the release notes,
