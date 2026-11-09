@@ -1241,7 +1241,10 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     TOKEN(TOKEN_BACKTICK);
   }
 
-  if (valid_symbols[TOKEN_DOLLAR_IN_REGEXP] && c == '$') {
+  /* A '$' that closes the quote (m$...$, qr$...$, s$...$...$) is the closer,
+   * never an anchor or a sigil: leave it for QUOTELIKE_END below. */
+  if (valid_symbols[TOKEN_DOLLAR_IN_REGEXP] && c == '$' &&
+      !lexerstate_is_quote_closer(state, c)) {
     DEBUG("Dollar in regexp\n", 0);
     ADVANCE_C;
 
