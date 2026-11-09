@@ -431,7 +431,12 @@ module.exports = grammar({
         optional($._else)
       ),
     _loop_body: $ => seq(field('block', alias($._body_block, $.block)), optseq('continue', field('continue', alias($._body_block, $.block)))),
-    loop_statement: $ => seq($._loops, '(', field('condition', $._expr), ')', $._loop_body),
+    // perly.y gives `while` a texpr, which may be empty (`while () {}` loops
+    // forever), and `until` an iexpr, which may not
+    loop_statement: $ => choice(
+      seq('while', '(', optional(field('condition', $._expr)), ')', $._loop_body),
+      seq('until', '(', field('condition', $._expr), ')', $._loop_body),
+    ),
     cstyle_for_statement: $ =>
       seq($._KW_FOR,
         '(',
