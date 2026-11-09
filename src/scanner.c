@@ -78,7 +78,7 @@ enum TokenType {
   /* zero-width lookahead tokens */
   TOKEN_BRACE_END_ZW,
   TOKEN_DOLLAR_IDENT_ZW,
-  TOKEN_NO_INTERP_WHITESPACE_ZW,
+  TOKEN_NO_INTERP_EXTRA_ZW,
   TOKEN_NO_INTERP_BACKSLASH_ZW,
   /* zero-width high priority token */
   TOKEN_NONASSOC,
@@ -872,8 +872,11 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     }
   }
 
-  if (!is_ERROR && iswspace(c) && valid_symbols[TOKEN_NO_INTERP_WHITESPACE_ZW]) {
-    TOKEN(TOKEN_NO_INTERP_WHITESPACE_ZW);
+  /* A sigil (or `->`) followed by whitespace or `#` stays literal: perl reads
+   * on as string content, but the lexer would skip either as an extra (a `#`
+   * as a comment that eats the rest of the line, "a@#b"). */
+  if (!is_ERROR && (iswspace(c) || c == '#') && valid_symbols[TOKEN_NO_INTERP_EXTRA_ZW]) {
+    TOKEN(TOKEN_NO_INTERP_EXTRA_ZW);
   }
   if (!is_ERROR && c == '\\' && valid_symbols[TOKEN_NO_INTERP_BACKSLASH_ZW]) {
     TOKEN(TOKEN_NO_INTERP_BACKSLASH_ZW);
