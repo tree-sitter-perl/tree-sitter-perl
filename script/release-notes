@@ -1,0 +1,36 @@
+#!/usr/bin/env perl
+# Print the CHANGELOG.md section for a release tag -- the exact body of its
+# GitHub release (publish.yml runs this). Run it to preview a release:
+#
+#   script/release-notes v2.0.5
+#
+# A section runs from its `## <tag>` header to the next `## `. Headers carry
+# a date (`## v2.0.5 — 2026-11-09`), so the tag matches as a prefix.
+# A tag with no section exits non-zero rather than publish empty notes.
+
+use v5.20;
+use warnings;
+
+my $tag = shift // die "Usage: $0 <tag> [changelog]\n";
+my $changelog = shift // 'CHANGELOG.md';
+
+open my $fh, '<:encoding(UTF-8)', $changelog or die "open $changelog: $!\n";
+binmode STDOUT, ':encoding(UTF-8)';
+
+my ($found, @lines);
+while (my $line = <$fh>) {
+    if ($line =~ /^## /) {
+        last if $found;
+        $found = $line =~ /^## \Q$tag\E(?:\s|$)/;
+        next;
+    }
+    push @lines, $line if $found;
+}
+
+die "No '## $tag' section in $changelog\n" unless $found;
+
+my $body = join '', @lines;
+$body =~ s/\A\s+//;
+$body =~ s/\s+\z/\n/;
+die "The '## $tag' section in $changelog is empty\n" unless length $body;
+print $body;
