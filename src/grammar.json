@@ -131,8 +131,22 @@
           "type": "FIELD",
           "name": "statement",
           "content": {
-            "type": "SYMBOL",
-            "name": "_fullstmt"
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "SYMBOL",
+                "name": "_fullstmt"
+              },
+              {
+                "type": "ALIAS",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "_PERLY_SEMICOLON"
+                },
+                "named": false,
+                "value": ";"
+              }
+            ]
           }
         }
       ]
