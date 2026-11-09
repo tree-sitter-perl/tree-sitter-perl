@@ -9,12 +9,10 @@ notes. Releases before 2.0.0 are described on the
 ## v2.0.5 — 2026-11-09
 
 A fixes-only release: no node type, child or field was added or removed
-since 2.0.4, so no query needs to change. One field became optional:
-`loop_statement`'s `condition` is absent for `while () { ... }`. Code that
-reads that field should allow for it. These fixes come from parsing every
-`.pl` and `.pm` file in about 30 large open-source repos (Linux, OpenSSL,
-PostgreSQL, curl, Emacs, po4a and others). Each one either broke a whole
-file or left MISSING nodes.
+since 2.0.4, so no query needs to change. These fixes come from parsing
+every `.pl` and `.pm` file in about 30 large open-source repos (Linux,
+OpenSSL, PostgreSQL, curl, Emacs, po4a and others). Each one either broke a
+whole file or left MISSING nodes.
 
 ### Fixed: patterns and strings
 
@@ -32,8 +30,9 @@ file or left MISSING nodes.
 - A label may stand right before a closing brace or the end of the file:
   `if ($x) { ...; DONE: }`. perl reads the `}` as an implied `;`, so the
   label marks an empty statement, the same tree as `DONE: ;`. (#280)
-- `while () { ... }`, perl's infinite loop, parses with no condition.
-  `until ()` stays an error, as in perl. (#281)
+- `while () { ... }`, perl's infinite loop, parses as a `loop_statement`
+  with no `condition` field, where it used to error with a MISSING
+  condition. `until ()` stays an error, as in perl. (#281)
 - A prototype may come before a sub's attributes:
   `sub f ($) :lvalue { ... }`, the order perl uses without the signatures
   feature. This works for named, forward-declared and anonymous subs.
