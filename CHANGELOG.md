@@ -6,6 +6,46 @@ published package versions (npm `tree-sitter-perl`, crates.io
 notes. Releases before 2.0.0 are described on the
 [GitHub releases page](https://github.com/tree-sitter-perl/tree-sitter-perl/releases).
 
+## v2.0.5 — 2026-11-09
+
+A fixes-only release: no node type, child or field was added or removed
+since 2.0.4, so no query needs to change. One field became optional:
+`loop_statement`'s `condition` is absent for `while () { ... }`. Code that
+reads that field should allow for it. These fixes come from parsing every
+`.pl` and `.pm` file in about 30 large open-source repos (Linux, OpenSSL,
+PostgreSQL, curl, Emacs, po4a and others). Each one either broke a whole
+file or left MISSING nodes.
+
+### Fixed: patterns and strings
+
+- A `$` used as the pattern delimiter closes the pattern. In `m$...$`,
+  `qr$...$` and `s$...$...$` the closing `$` was read as the start of a
+  variable, so the pattern never ended; Linux's
+  `scripts/get_maintainer.pl` parsed as one ERROR node. (#279)
+- A sigil before `#` in a string or pattern stays literal. In `"a@#b"` or
+  `/[~!@#%&*]/` the `#` was taken as a comment, which ate the rest of the
+  line, closing quote and all. `#`-delimited quotes (`qq#a@#`,
+  `s#a@#b#`) still close on their `#`. (#283)
+
+### Fixed: statements and subs
+
+- A label may stand right before a closing brace or the end of the file:
+  `if ($x) { ...; DONE: }`. perl reads the `}` as an implied `;`, so the
+  label marks an empty statement, the same tree as `DONE: ;`. (#280)
+- `while () { ... }`, perl's infinite loop, parses with no condition.
+  `until ()` stays an error, as in perl. (#281)
+- A prototype may come before a sub's attributes:
+  `sub f ($) :lvalue { ... }`, the order perl uses without the signatures
+  feature. This works for named, forward-declared and anonymous subs.
+  (#282)
+
+### Fixed: highlighting
+
+- An empty prototype, as in `sub test() { ... }`, is highlighted as
+  punctuation. (#278)
+
+Thanks to @gx089 for a contribution to this release.
+
 ## v2.0.4 — 2026-11-03
 
 A fixes-only release: the node schema (node types and fields) is
