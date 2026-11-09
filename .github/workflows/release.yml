@@ -4,9 +4,11 @@ on:
     branches:
       - master
 
+# Queue, never cancel: a run cancelled between creating a tag and starting
+# the publish would leave a tag that later runs skip as already released.
 concurrency:
   group: release-master
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   test-and-release:
@@ -27,3 +29,48 @@ jobs:
           publish_branch: release
           user_name: GH Actions [beep-boop]
           user_email: release-flow@beep.boop
+
+  # Merging a version bump releases it: a manifest version with no tag yet is
+  # tagged here and handed to publish.yml. A tag made with GITHUB_TOKEN starts
+  # no workflow on its own, so the publish is started by dispatch, which
+  # GITHUB_TOKEN may do. Every other push to master stops at `decide`.
+  tag:
+    name: Tag and publish a version bump
+    needs: test-and-release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # create the tag
+      actions: write    # dispatch publish.yml
+    steps:
+      - uses: actions/checkout@v6
+
+      # Every manifest agrees, and CHANGELOG.md has the section the release
+      # notes come from. A bump that missed either stops here, untagged.
+      - name: Versions and changelog agree
+        run: script/bump-version --check --release
+
+      - id: decide
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
+          TAG="v$VERSION"
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then
+            echo "$TAG already exists; nothing to release."
+            exit 0
+          fi
+          # Losing a race to a hand-pushed tag leaves that push's publish run
+          # in charge.
+          if ! gh api "repos/$GITHUB_REPOSITORY/git/refs" \
+                 -f ref="refs/tags/$TAG" -f sha="$GITHUB_SHA" >/dev/null; then
+            echo "Could not create $TAG (already created elsewhere?); not releasing from this run."
+            exit 0
+          fi
+          echo "Created $TAG at $GITHUB_SHA."
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Publish
+        if: steps.decide.outputs.tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run publish.yml --ref "${{ steps.decide.outputs.tag }}"

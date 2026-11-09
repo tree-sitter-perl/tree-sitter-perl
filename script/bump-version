@@ -3,7 +3,9 @@
 #
 # `--check` verifies they already agree (and match a version, if given) without
 # writing anything — that's the mode CI runs, so a half-applied bump can't reach
-# a tag.
+# a tag. `--check --release` also requires a `## v<version>` section in
+# CHANGELOG.md; release.yml runs it before it tags, since that section becomes
+# the release notes.
 
 use v5.20;
 use warnings;
@@ -51,17 +53,19 @@ my @files = (
     },
 );
 
-my $check = 0;
+my ($check, $release) = (0, 0);
 my @args;
 for (@ARGV) {
-    if ($_ eq '--check') { $check = 1 }
-    else                 { push @args, $_ }
+    if    ($_ eq '--check')   { $check = 1 }
+    elsif ($_ eq '--release') { $release = 1 }
+    else                      { push @args, $_ }
 }
 my $version = shift @args;
 
 die "Usage: $0 <version>      e.g. $0 2.0.0\n" .
-    "       $0 --check [<version>]\n"
+    "       $0 --check [--release] [<version>]\n"
     unless $check || defined $version;
+die "--release only goes with --check\n" if $release && !$check;
 
 die "Version must be semver (e.g. 2.0.0), got: $version\n"
     if defined $version && $version !~ /^\d+\.\d+\.\d+$/;
@@ -95,6 +99,11 @@ if ($check) {
         exit 1;
     }
 
+    if ($release && slurp('CHANGELOG.md') !~ /^## v\Q$versions[0]\E(?:\s|$)/m) {
+        say STDERR "CHANGELOG.md has no '## v$versions[0]' section; it becomes the release notes.";
+        exit 1;
+    }
+
     say "All manifests at $versions[0]:";
     printf "  %-18s %s\n", $_->{file}, $found{ $_->{file} } for @files;
     exit 0;
@@ -111,14 +120,10 @@ for my $spec (@files) {
     say "Updated $spec->{file}  $found{$spec->{file}} -> $version";
 }
 
-# The tag commit's BODY becomes the GitHub release notes (publish.yml runs
-# `git log -1 --format=%b`), so `git commit -m '...'` alone ships an empty
-# release. Hence `git commit` with no -m.
 say <<~"END";
 
     Done. To release:
-      git add @{[ join ' ', map { $_->{file} } @files ]}
-      git commit          # NO -m: the body becomes the GitHub release notes
-      git tag v$version
-      git push origin master v$version
+      add a '## v$version — <date>' section to CHANGELOG.md (the release notes)
+      commit the bump with it and merge to master; release.yml tags v$version
+      and publishes
     END

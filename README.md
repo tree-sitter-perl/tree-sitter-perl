@@ -76,21 +76,23 @@ tree-sitter generate src/grammar.json
 
 ### Releasing
 
+Releases are cut by CI. Merging a version bump to `master` releases it.
+
 ```bash
 script/schema-diff                 # what changed in the public node schema, and the bump it implies
-script/bump-version 2.0.0          # syncs version across all four manifests
-git add -A && git commit           # NOTE: no -m — see below
-git tag v2.0.0
-git push origin master v2.0.0      # tag push triggers publish to npm, crates.io, PyPI, GitHub
+script/bump-version 2.0.5          # syncs version across all four manifests
 ```
 
-**The tag commit's message body becomes the GitHub release notes** — `publish.yml`
-extracts it with `git log -1 --format=%b`. Committing with `-m 'chore: bump …'`
-alone therefore publishes a release with no notes; write the notes into the
-commit body. CI fails the publish if that body is empty.
+Then add a `## v2.0.5 — <date>` section to `CHANGELOG.md`, the release notes,
+and open a pull request with both. When it merges, `release.yml` sees a
+version with no tag, creates the `v2.0.5` tag and starts `publish.yml` on it,
+which publishes to npm, crates.io, PyPI and GitHub with that CHANGELOG
+section as the release body (`script/release-notes v2.0.5` previews it).
 
-`script/bump-version --check` verifies every manifest agrees; CI runs it on each
-pull request.
+`script/bump-version --check` verifies every manifest agrees; CI runs it on
+each pull request. `release.yml` adds `--release`, which also requires the
+CHANGELOG section, so a bump without notes is never tagged. Pushing a tag by
+hand still publishes it, through the same CHANGELOG section.
 
 ### Tests
 
