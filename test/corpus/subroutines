@@ -163,6 +163,43 @@ sub fooN (@) { }
     (block)))
 
 ================================================================================
+Prototype before attributes
+================================================================================
+sub f ($) :lvalue { }
+sub g () : method lvalue;
+my $h = sub ($$) :prototype($$) { };
+--------------------------------------------------------------------------------
+
+(source_file
+  (subroutine_declaration_statement
+    (bareword)
+    (prototype)
+    (attrlist
+      (attribute
+        (attribute_name)))
+    (block))
+  (subroutine_declaration_statement
+    (bareword)
+    (prototype)
+    (attrlist
+      (attribute
+        (attribute_name))
+      (attribute
+        (attribute_name))))
+  (expression_statement
+    (assignment_expression
+      (variable_declaration
+        (scalar
+          (varname)))
+      (anonymous_subroutine_expression
+        (prototype)
+        (attrlist
+          (attribute
+            (attribute_name)
+            (attribute_value)))
+        (block)))))
+
+================================================================================
 Signatures
 ================================================================================
 sub bar1 ($arg) { }
