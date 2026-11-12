@@ -118,6 +118,29 @@ q"literal $without interpolation";
         (escape_sequence)))))
 
 ================================================================================
+strings of whitespace keep it as content
+================================================================================
+" ";
+' ';
+q{ };
+qq(	);
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (interpolated_string_literal
+      (string_content)))
+  (expression_statement
+    (string_literal
+      (string_content)))
+  (expression_statement
+    (string_literal
+      (string_content)))
+  (expression_statement
+    (interpolated_string_literal
+      (string_content))))
+
+================================================================================
 "" strings - no runaway barewords (fix when ambiguous funcs hit)
 ================================================================================
 BAREWORD"string"
