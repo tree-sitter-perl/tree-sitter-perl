@@ -6,6 +6,20 @@ published package versions (npm `tree-sitter-perl`, crates.io
 notes. Releases before 2.0.0 are described on the
 [GitHub releases page](https://github.com/tree-sitter-perl/tree-sitter-perl/releases).
 
+## v2.0.6 — 2026-11-12
+
+A fixes-only release: no node type, child or field was added or removed
+since 2.0.5, so no query needs to change.
+
+### Fixed: strings
+
+- Leading whitespace inside a quote is content. The scanner skipped it as
+  an extra before reading the string, so `" a"` gave a `string_content`
+  covering only `a`, and a literal holding only whitespace (`' '`,
+  `q{ }`, `"\t"`) had no `string_content` at all and looked like `''`.
+  Patterns get the same fix: `m/ a/`'s content now starts at the space.
+  Parse errors over a 2,265-module CPAN snapshot are unchanged. (#287)
+
 ## v2.0.5 — 2026-11-09
 
 A fixes-only release: no node type, child or field was added or removed
