@@ -4,6 +4,7 @@
 #include "tsp_keywords.h"
 #include "tsp_intuit_more.h"
 #include "tsp_intuit_readline.h"
+#include "tsp_quote_closer.h"
 
 // grumble grumble no stdlib
 static char *tsp_strchr(register const char *s, int c) {
@@ -149,6 +150,19 @@ static int32_t close_for_open(int32_t c) {
   }
 }
 
+/* The rule is tsp_closer_opens_next_string; this only reads it the rest of
+ * the closer's line.  Called with the lookahead just past the closer. */
+static bool closer_opens_next_string(TSLexer *lexer, int32_t quote, bool crossed_line) {
+  int32_t rest[TSP_CLOSER_WINDOW];
+  int len = 0;
+  while (len < TSP_CLOSER_WINDOW && !lexer->eof(lexer) && lexer->lookahead != '\n' &&
+         lexer->lookahead != '\r') {
+    rest[len++] = lexer->lookahead;
+    lexer->advance(lexer, false);
+  }
+  return tsp_closer_opens_next_string(rest, len, quote, crossed_line);
+}
+
 /* Pure lookahead: matching closer before EOF?  Covers ' and " (non-paired:
  * closer == opener) and the quote-likes.  Without it an unterminated quote
  * eats the rest of the file.
@@ -166,10 +180,14 @@ static int32_t close_for_open(int32_t c) {
  * budget: bytes to look through, or -1 for all of them.  Running out counts
  * as unterminated.
  *
+ * bare: a ' or " string, not a quote-like operator's delimiter.  Its closer
+ * also has to read as one (tsp_quote_closer.h).
+ *
  * MUST follow MARK_END, or the lookahead extends the token.
  */
-static bool quote_closer_ahead(TSLexer *lexer, int32_t opener,
-                               bool *leads_with_delim, long budget) {
+typedef enum { QUOTE_CLOSED, QUOTE_RAN_TO_EOF, QUOTE_GAVE_UP } QuoteAhead;
+static QuoteAhead quote_closer_ahead(TSLexer *lexer, int32_t opener, bool bare,
+                                     bool *leads_with_delim, long budget) {
   int32_t closer = close_for_open(opener);
   bool paired = closer != 0;
   if (!paired)
@@ -178,6 +196,7 @@ static bool quote_closer_ahead(TSLexer *lexer, int32_t opener,
   if (leads_with_delim)
     *leads_with_delim = false;
   int depth = 1;
+  bool crossed_line = false;
 
   bool backslash_escapes = opener != '\\';
 
@@ -190,12 +209,12 @@ static bool quote_closer_ahead(TSLexer *lexer, int32_t opener,
 
   while (!lexer->eof(lexer)) {
     if (budget >= 0 && budget-- == 0)
-      return false;
+      return QUOTE_GAVE_UP;
     int32_t c = lexer->lookahead;
     if (backslash_escapes && c == '\\') {
       lexer->advance(lexer, false);
       if (lexer->eof(lexer))
-        return false;
+        return QUOTE_RAN_TO_EOF;
       lexer->advance(lexer, false);
       continue;
     }
@@ -204,11 +223,17 @@ static bool quote_closer_ahead(TSLexer *lexer, int32_t opener,
       lexer->advance(lexer, false);
       continue;
     }
-    if (c == closer && (!paired || --depth == 0))
-      return true;
+    if (c == closer && (!paired || --depth == 0)) {
+      if (!bare)
+        return QUOTE_CLOSED;
+      lexer->advance(lexer, false);
+      return closer_opens_next_string(lexer, closer, crossed_line) ? QUOTE_GAVE_UP : QUOTE_CLOSED;
+    }
+    if (c == '\n')
+      crossed_line = true;
     lexer->advance(lexer, false);
   }
-  return false;
+  return QUOTE_RAN_TO_EOF;
 }
 
 typedef struct {
@@ -274,7 +299,7 @@ static bool delim_is_unclosed(LexerState *state, int32_t opener) {
   return opener > 0 && opener < 128 && (state->unclosed_delims[opener >> 6] >> (opener & 63) & 1);
 }
 
-static bool quote_terminated(TSLexer *lexer, LexerState *state, int32_t opener,
+static bool quote_terminated(TSLexer *lexer, LexerState *state, int32_t opener, bool bare,
                              bool *leads_with_delim) {
   long budget = -1;
   if (delim_is_unclosed(state, opener)) {
@@ -285,9 +310,10 @@ static bool quote_terminated(TSLexer *lexer, LexerState *state, int32_t opener,
     }
     budget = UNCLOSED_DELIM_BUDGET;
   }
-  if (quote_closer_ahead(lexer, opener, leads_with_delim, budget))
+  QuoteAhead ahead = quote_closer_ahead(lexer, opener, bare, leads_with_delim, budget);
+  if (ahead == QUOTE_CLOSED)
     return true;
-  if (opener > 0 && opener < 128 && lexer->eof(lexer))
+  if (opener > 0 && opener < 128 && ahead == QUOTE_RAN_TO_EOF)
     state->unclosed_delims[opener >> 6] |= (uint64_t)1 << (opener & 63);
   return false;
 }
@@ -1266,7 +1292,9 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   if (valid_symbols[TOKEN_APOSTROPHE] && c == '\'') {
     ADVANCE_C;
     MARK_END; /* token is just the quote */
-    if (!quote_terminated(lexer, state, '\'', NULL)) {
+    // after m, s, qr and friends the closer is followed by flags or a second part
+    bool bare = !valid_symbols[TOKEN_QUOTELIKE_BEGIN];
+    if (!quote_terminated(lexer, state, '\'', bare, NULL)) {
       if (is_ERROR || !valid_symbols[TOKEN_UNTERMINATED_QUOTE]) return false;
       TOKEN(TOKEN_UNTERMINATED_QUOTE);
     }
@@ -1288,7 +1316,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   if (valid_symbols[TOKEN_DOUBLE_QUOTE] && c == '"') {
     ADVANCE_C;
     MARK_END;
-    if (!quote_terminated(lexer, state, '"', NULL)) {
+    if (!quote_terminated(lexer, state, '"', !valid_symbols[TOKEN_QUOTELIKE_BEGIN], NULL)) {
       if (is_ERROR || !valid_symbols[TOKEN_UNTERMINATED_QUOTE]) return false;
       TOKEN(TOKEN_UNTERMINATED_QUOTE);
     }
@@ -1523,7 +1551,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     // Decide before the pop/push below: bailing out after it would strand the
     // pattern's quote in a multi-part s{}{}.
     bool leads_with_delim = false;
-    bool terminated = quote_terminated(lexer, state, delim, &leads_with_delim);
+    bool terminated = quote_terminated(lexer, state, delim, false, &leads_with_delim);
     if (!terminated && (is_ERROR || !valid_symbols[TOKEN_UNTERMINATED_QUOTE]))
       return false;
 

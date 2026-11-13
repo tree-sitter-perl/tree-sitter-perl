@@ -262,3 +262,331 @@ my $y = 1;
           (varname)))
       right: (number))))
 
+================================================================================
+unclosed quote - next string's opener is not a closer
+================================================================================
+my $s = "hello
+my %h = (name => "x", size => "y");
+foo("z");
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (list_expression
+      (assignment_expression
+        left: (variable_declaration
+          variable: (scalar
+            (varname)))
+        right: (binary_expression
+          left: (interpolated_string_literal
+            content: (string_content))
+          right: (unterminated_quote)))
+      (autoquoted_bareword)
+      (interpolated_string_literal
+        content: (string_content))))
+  (ERROR)
+  (expression_statement
+    (function_call_expression
+      function: (function)
+      arguments: (interpolated_string_literal
+        content: (string_content)))))
+
+================================================================================
+unclosed quote - single quote before a later string
+================================================================================
+my $s = 'hello
+print 'a', 'b';
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      (ERROR)
+      right: (ambiguous_function_call_expression
+        function: (function)
+        arguments: (ambiguous_function_call_expression
+          function: (function)
+          arguments: (list_expression
+            (string_literal
+              content: (string_content))
+            (string_literal
+              content: (string_content))))))))
+
+================================================================================
+unclosed quote - both ends on one line
+================================================================================
+is("@st, "@lst", "check");
+my $y = 1;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (function_call_expression
+      function: (function)
+      (ERROR)
+      arguments: (list_expression
+        (array
+          (varname))
+        (interpolated_string_literal
+          content: (string_content
+            (array
+              (varname))))
+        (interpolated_string_literal
+          content: (string_content)))))
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      right: (number))))
+
+================================================================================
+unclosed quote - heredoc tag is not a closer
+================================================================================
+my $s = "hello
+print <<"EOT";
+body
+EOT
+my $y = 1;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      (ERROR)
+      right: (ambiguous_function_call_expression
+        function: (function)
+        arguments: (ambiguous_function_call_expression
+          function: (function)
+          arguments: (heredoc_token)))))
+  (heredoc_content
+    (heredoc_end))
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      right: (number))))
+
+================================================================================
+closed quote - multi-line string before a comma, a dot and a newline
+================================================================================
+foo("a
+b", "c
+d" . "e
+f"
+);
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (function_call_expression
+      function: (function)
+      arguments: (list_expression
+        (interpolated_string_literal
+          content: (string_content))
+        (binary_expression
+          left: (interpolated_string_literal
+            content: (string_content))
+          right: (interpolated_string_literal
+            content: (string_content)))))))
+
+================================================================================
+closed quote - named operators and modifiers follow a string
+================================================================================
+print "a"x3, "b" x 3, "-"x80;
+print "c" if "d" eq "e" or "f" lt "g";
+print "h" unless $x; print "i" for 1; print "j" foreach 1;
+$y = "k" isa Foo; $z = "l" cmp "m";
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (ambiguous_function_call_expression
+      function: (function)
+      arguments: (list_expression
+        (binary_expression
+          left: (interpolated_string_literal
+            content: (string_content))
+          right: (number))
+        (binary_expression
+          left: (interpolated_string_literal
+            content: (string_content))
+          right: (number))
+        (binary_expression
+          left: (interpolated_string_literal
+            content: (string_content))
+          right: (number)))))
+  (expression_statement
+    (postfix_conditional_expression
+      (ambiguous_function_call_expression
+        function: (function)
+        arguments: (interpolated_string_literal
+          content: (string_content)))
+      condition: (lowprec_logical_expression
+        left: (equality_expression
+          left: (interpolated_string_literal
+            content: (string_content))
+          right: (interpolated_string_literal
+            content: (string_content)))
+        right: (relational_expression
+          left: (interpolated_string_literal
+            content: (string_content))
+          right: (interpolated_string_literal
+            content: (string_content))))))
+  (expression_statement
+    (postfix_conditional_expression
+      (ambiguous_function_call_expression
+        function: (function)
+        arguments: (interpolated_string_literal
+          content: (string_content)))
+      condition: (scalar
+        (varname))))
+  (expression_statement
+    (postfix_for_expression
+      (ambiguous_function_call_expression
+        function: (function)
+        arguments: (interpolated_string_literal
+          content: (string_content)))
+      list: (number)))
+  (expression_statement
+    (postfix_for_expression
+      (ambiguous_function_call_expression
+        function: (function)
+        arguments: (interpolated_string_literal
+          content: (string_content)))
+      list: (number)))
+  (expression_statement
+    (assignment_expression
+      left: (scalar
+        (varname))
+      right: (relational_expression
+        left: (interpolated_string_literal
+          content: (string_content))
+        right: (bareword))))
+  (expression_statement
+    (assignment_expression
+      left: (scalar
+        (varname))
+      right: (equality_expression
+        left: (interpolated_string_literal
+          content: (string_content))
+        right: (interpolated_string_literal
+          content: (string_content))))))
+
+================================================================================
+closed quote - glued operators on one line
+================================================================================
+my $x = $c ? "a":"b";
+my $o = "Foo"->new("a"."b");
+my $y = "a"x2 . '"';
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      right: (conditional_expression
+        condition: (scalar
+          (varname))
+        consequent: (interpolated_string_literal
+          content: (string_content))
+        alternative: (interpolated_string_literal
+          content: (string_content)))))
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      right: (method_call_expression
+        invocant: (interpolated_string_literal
+          content: (string_content))
+        method: (method)
+        arguments: (binary_expression
+          left: (interpolated_string_literal
+            content: (string_content))
+          right: (interpolated_string_literal
+            content: (string_content))))))
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      right: (binary_expression
+        left: (binary_expression
+          left: (interpolated_string_literal
+            content: (string_content))
+          right: (number))
+        right: (string_literal
+          content: (string_content))))))
+
+================================================================================
+closed quote - quote-like operators keep their flags and second part
+================================================================================
+my $r = qr'^abc$'i;
+$x =~ m'a'x;
+$x =~ s'a'b'g;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      right: (quoted_regexp
+        content: (regexp_content)
+        modifiers: (quoted_regexp_modifiers))))
+  (expression_statement
+    (binary_expression
+      left: (scalar
+        (varname))
+      right: (match_regexp
+        content: (regexp_content)
+        modifiers: (match_regexp_modifiers))))
+  (expression_statement
+    (binary_expression
+      left: (scalar
+        (varname))
+      right: (substitution_regexp
+        content: (regexp_content)
+        (replacement)
+        modifiers: (substitution_regexp_modifiers)))))
+
+================================================================================
+closed quote - multi-line string glued to an operator word
+================================================================================
+my $s = "a
+b" x 3;
+my $t = "c
+d"x3;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      right: (binary_expression
+        left: (interpolated_string_literal
+          content: (string_content))
+        right: (number))))
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      right: (binary_expression
+        left: (interpolated_string_literal
+          content: (string_content))
+        right: (number)))))
+

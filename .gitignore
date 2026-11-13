@@ -18,3 +18,4 @@ src/*
 tree-sitter-perl.wasm
 log.html
 !src/tsp_intuit_readline.h
+!src/tsp_quote_closer.h
