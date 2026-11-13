@@ -81,6 +81,15 @@ silently corrupts.
   runs to EOF, so a delimiter found unclosed is remembered here: a same-character
   delimiter is never scanned again, a paired one only `UNCLOSED_DELIM_BUDGET` bytes.
   Without it a file of unclosed `q(` is quadratic.
+- **Is the closer a closer?** (`closer_opens_next_string`) — an unclosed `'` or
+  `"` pairs with the opener of the next string and turns every later string in
+  the file inside out, which is what a half-typed quote does to an editor. For
+  a bare `'`/`"` (not a quote-like operator's delimiter: those are followed by
+  flags) the closer the lookahead found must read as one: the next token on its
+  line has to be something that can follow a term. It is a heuristic and its
+  evidence is measured, not proved: before changing it, diff every tree in the
+  benchmark corpus (a closer wrongly refused breaks valid code) and rerun the
+  mid-edit census.
 - **A FIFO heredoc queue** (cap 4) — multiple heredocs introduced on one line
   (`print <<A, <<B;`) are consumed in order, each entry carrying its own
   delimiter + interpolate + indent flags.
