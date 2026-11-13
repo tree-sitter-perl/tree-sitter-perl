@@ -1334,8 +1334,9 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   // POD is only tried where the parser isn't asking for string content
   if (valid_symbols[TOKEN_POD] && !valid_symbols[TOKEN_QUOTELIKE_BEGIN] && !wants_quote_content &&
       !lexerstate_is_quote_closer(state, '=')) {
-    int column = lexer->get_column(lexer);
-    if (column == 0 && c == '=') {
+    // get_column re-walks the line, and pod is an extra, so this is asked
+    // before nearly every token: test the character first
+    if (c == '=' && lexer->get_column(lexer) == 0) {
       // perl only starts POD on `=` followed by a letter (`=head1`, `=pod`); a
       // line-initial `=>`, `==`, `=~`, `= 5` or `=_x` is still code
       ADVANCE_C;
