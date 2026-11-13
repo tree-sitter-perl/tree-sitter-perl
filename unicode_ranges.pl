@@ -26,6 +26,28 @@ sub merge_with_non_words (@interested_range) {
 sub render_array (@range_pairs) {
   my $rendered = join "\n", '{', join(",\n", pairmap {"  { $a, $b }"} @range_pairs), '}';
 }
+
+# ASCII is nearly every codepoint the scanner asks about, and the binary search
+# costs a dozen indirect calls per lookup. Membership for 0..127 comes from two
+# words computed out of the same ranges, so the two can't disagree.
+sub render_ascii_bitmap (@range_pairs) {
+  my @words = (0, 0);
+  pairmap {
+    $words[ $_ >> 6 ] |= 1 << ($_ & 63) for grep { $_ < 128 } $a .. ($b > 128 ? 128 : $b) - 1;
+  } @range_pairs;
+  return sprintf '{ 0x%016xULL, 0x%016xULL }', @words;
+}
+sub render_predicate ($name, @range_pairs) {
+  return <<C;
+static const struct TSPRange tsp_$name\[] = ${\render_array @range_pairs};
+static const uint64_t tsp_${name}_ascii[2] = ${\render_ascii_bitmap @range_pairs};
+
+static bool is_tsp_$name (int32_t codepoint) {
+  if ((uint32_t)codepoint < 128) return (tsp_${name}_ascii[codepoint >> 6] >> (codepoint & 63)) & 1;
+  return tsp_bsearch(&codepoint, tsp_$name, sizeof(tsp_$name) / sizeof(tsp_$name\[0]), sizeof(tsp_$name\[0]), tsprange_contains);
+}
+C
+}
 my @idstart    = merge_with_non_words(@non_start);
 my @idcont     = merge_with_non_words(@non_continue);
 my @whitespace = prop_invlist 'White_Space';
@@ -48,22 +70,9 @@ static int tsprange_contains (const void * a, const void * b) {
   return 0;
 }
 
-static const struct TSPRange tsp_id_start[] = ${\render_array @idstart};
-
-static bool is_tsp_id_start (int32_t codepoint) {
-  return tsp_bsearch(&codepoint, tsp_id_start, sizeof(tsp_id_start) / sizeof(tsp_id_start[0]), sizeof(tsp_id_start[0]), tsprange_contains);
-}
-
-static const struct TSPRange tsp_id_continue[] = ${\render_array @idcont};
-
-static bool is_tsp_id_continue (int32_t codepoint) {
-  return tsp_bsearch(&codepoint, tsp_id_continue, sizeof(tsp_id_continue) / sizeof(tsp_id_continue[0]), sizeof(tsp_id_continue[0]), tsprange_contains);
-}
-
-static const struct TSPRange tsp_whitespace[] = ${\render_array @whitespace};
-static bool is_tsp_whitespace (int32_t codepoint) {
-  return tsp_bsearch(&codepoint, tsp_whitespace, sizeof(tsp_whitespace) / sizeof(tsp_whitespace[0]), sizeof(tsp_whitespace[0]), tsprange_contains);
-}
+${\render_predicate id_start => @idstart}
+${\render_predicate id_continue => @idcont}
+${\render_predicate whitespace => @whitespace}
 C
 
 # now we build the JS regexes

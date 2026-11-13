@@ -540,8 +540,10 @@ static const struct TSPRange tsp_id_start[] = {
   { 196608, 201547 },
   { 201552, 205744 }
 };
+static const uint64_t tsp_id_start_ascii[2] = { 0x0000000000000000ULL, 0x07fffffe07fffffeULL };
 
 static bool is_tsp_id_start (int32_t codepoint) {
+  if ((uint32_t)codepoint < 128) return (tsp_id_start_ascii[codepoint >> 6] >> (codepoint & 63)) & 1;
   return tsp_bsearch(&codepoint, tsp_id_start, sizeof(tsp_id_start) / sizeof(tsp_id_start[0]), sizeof(tsp_id_start[0]), tsprange_contains);
 }
 
@@ -1204,8 +1206,10 @@ static const struct TSPRange tsp_id_continue[] = {
   { 201552, 205744 },
   { 917760, 918000 }
 };
+static const uint64_t tsp_id_continue_ascii[2] = { 0x03ff000000000000ULL, 0x07fffffe07fffffeULL };
 
 static bool is_tsp_id_continue (int32_t codepoint) {
+  if ((uint32_t)codepoint < 128) return (tsp_id_continue_ascii[codepoint >> 6] >> (codepoint & 63)) & 1;
   return tsp_bsearch(&codepoint, tsp_id_continue, sizeof(tsp_id_continue) / sizeof(tsp_id_continue[0]), sizeof(tsp_id_continue[0]), tsprange_contains);
 }
 
@@ -1221,6 +1225,9 @@ static const struct TSPRange tsp_whitespace[] = {
   { 8287, 8288 },
   { 12288, 12289 }
 };
+static const uint64_t tsp_whitespace_ascii[2] = { 0x0000000100003e00ULL, 0x0000000000000000ULL };
+
 static bool is_tsp_whitespace (int32_t codepoint) {
+  if ((uint32_t)codepoint < 128) return (tsp_whitespace_ascii[codepoint >> 6] >> (codepoint & 63)) & 1;
   return tsp_bsearch(&codepoint, tsp_whitespace, sizeof(tsp_whitespace) / sizeof(tsp_whitespace[0]), sizeof(tsp_whitespace[0]), tsprange_contains);
 }
