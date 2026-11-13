@@ -1,0 +1,264 @@
+================================================================================
+unterminated quote - double
+================================================================================
+my $x = "abc;
+my $y = 1;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      right: (unterminated_quote)))
+  (ERROR)
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      right: (number))))
+
+================================================================================
+unterminated quote - single
+================================================================================
+foo('abc);
+my $y = 1;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (function_call_expression
+      function: (function)
+      arguments: (unterminated_quote)
+      (ERROR)))
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      right: (number))))
+
+================================================================================
+unterminated quote - q()
+================================================================================
+my $x = q(abc;
+my $y = 1;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      right: (unterminated_quote)))
+  (ERROR)
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      right: (number))))
+
+================================================================================
+unterminated quote - qw with nesting
+================================================================================
+my @x = qw( a (b) c;
+my $y = 1;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (array
+          (varname)))
+      (ERROR
+        (unterminated_quote)
+        (function_call_expression
+          function: (function)
+          arguments: (bareword)))
+      right: (bareword)))
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      right: (number))))
+
+================================================================================
+unterminated quote - match
+================================================================================
+if ($x =~ m{^foo) {
+  bar();
+}
+--------------------------------------------------------------------------------
+
+(source_file
+  (conditional_statement
+    condition: (binary_expression
+      left: (binary_expression
+        left: (scalar
+          (varname))
+        right: (unterminated_quote))
+      right: (bareword))
+    block: (block
+      (expression_statement
+        (function_call_expression
+          function: (function))))))
+
+================================================================================
+unterminated quote - substitution pattern
+================================================================================
+$x =~ s{foo;
+my $y = 1;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (binary_expression
+      left: (scalar
+        (varname))
+      right: (unterminated_quote)))
+  (ERROR)
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      right: (number))))
+
+================================================================================
+unterminated quote - substitution replacement
+================================================================================
+$x =~ s{a}{b;
+my $y = 1;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (binary_expression
+      left: (scalar
+        (varname))
+      right: (substitution_regexp
+        content: (regexp_content)
+        (unterminated_quote))))
+  (ERROR)
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      right: (number))))
+
+================================================================================
+unterminated quote - transliteration replacement
+================================================================================
+$x =~ tr[a-z][A-Z;
+my $y = 1;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (binary_expression
+      left: (binary_expression
+        left: (scalar
+          (varname))
+        right: (transliteration_expression
+          content: (transliteration_content)
+          (unterminated_quote)))
+      (ERROR)
+      right: (bareword)))
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      right: (number))))
+
+================================================================================
+unterminated quote - other delimiters still close
+================================================================================
+my $x = q(abc;
+my $y = "ok";
+my $z = q[fine];
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      right: (unterminated_quote)))
+  (ERROR)
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      right: (interpolated_string_literal
+        content: (string_content))))
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      right: (string_literal
+        content: (string_content)))))
+
+================================================================================
+unterminated quote - same paired delimiter again
+================================================================================
+my $x = q(abc;
+my $y = q(closed);
+my $z = q(open;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      right: (unterminated_quote)))
+  (ERROR)
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      right: (string_literal
+        content: (string_content))))
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      right: (unterminated_quote)))
+  (ERROR))
+
+================================================================================
+unterminated quote - same character again
+================================================================================
+my $x = 'abc;
+my $y = 1;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      right: (unterminated_quote)))
+  (ERROR)
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      right: (number))))
+
