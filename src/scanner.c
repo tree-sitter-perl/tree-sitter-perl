@@ -4,6 +4,7 @@
 #include "tsp_keywords.h"
 #include "tsp_intuit_more.h"
 #include "tsp_intuit_readline.h"
+#include "tsp_quote_closer.h"
 
 // grumble grumble no stdlib
 static char *tsp_strchr(register const char *s, int c) {
@@ -149,85 +150,17 @@ static int32_t close_for_open(int32_t c) {
   }
 }
 
-/* A ' or " that is not closed pairs with the opener of the next string, and
- * from there every string in the file is inside out.  So the closer the
- * lookahead found is asked whether it reads as a closer at all; called with
- * the lookahead just past it.  It is the next string's opener when
- *
- *   - the next token on its line cannot follow a term: what follows a string
- *     is an operator, a modifier or a closing bracket, never a word, a sigil
- *     or an opening bracket; or
- *   - it is on a later line than the opener and is not directly followed by
- *     one of , ) ; ] } . = or whitespace; or
- *   - it is on the opener's line, is glued to an operator, and an odd number
- *     of that quote is left on the line.
- *
- * A guess: measured on the benchmark corpus it rejects no closer of a string
- * that parses today.  The words are every named infix operator and statement
- * modifier; one missing from the list breaks a valid string that it follows.
- */
-#define CLOSER_PARITY_WINDOW 512
-static bool isidfirst(int32_t c);
-static bool isidcont(int32_t c);
+/* The rule is tsp_closer_opens_next_string; this only reads it the rest of
+ * the closer's line.  Called with the lookahead just past the closer. */
 static bool closer_opens_next_string(TSLexer *lexer, int32_t quote, bool crossed_line) {
-  if (lexer->eof(lexer))
-    return false;
-  bool tight = is_tsp_whitespace(lexer->lookahead) || tsp_strchr(",);]}.=", lexer->lookahead);
-  while (!lexer->eof(lexer) && lexer->lookahead != '\n' && lexer->lookahead != '\r' &&
-         is_tsp_whitespace(lexer->lookahead))
-    lexer->advance(lexer, false);
-  if (lexer->eof(lexer))
-    return false;
-
-  int32_t next = lexer->lookahead;
-  if (isidfirst(next)) {
-    char word[8];
-    unsigned len = 0;
-    while (!lexer->eof(lexer) && isidcont(lexer->lookahead)) {
-      if (len < sizeof word - 1)
-        word[len] = lexer->lookahead < 128 ? (char)lexer->lookahead : '?';
-      len++;
-      lexer->advance(lexer, false);
-    }
-    if (len >= sizeof word)
-      return true;
-    word[len] = 0;
-    static const char *const follows_a_term[] = {
-        "x",  "lt",  "gt",  "le", "ge",     "eq",    "ne",    "cmp", "and",     "or",
-        "xor", "isa", "if", "unless", "while", "until", "for", "foreach", "when", NULL};
-    bool named = false;
-    for (int i = 0; follows_a_term[i]; i++)
-      if (streq(word, follows_a_term[i]))
-        named = true;
-    // "-" x80
-    if (!named && word[0] == 'x' && len > 1) {
-      named = true;
-      for (unsigned i = 1; i < len; i++)
-        if (word[i] < '0' || word[i] > '9')
-          named = false;
-    }
-    // a named operator is as good a sign of a closer as a comma
-    return !named;
-  }
-  if (next != '\n' && next != '\r' && !tsp_strchr(",;)]}=?:<>!~+-*/%|&^.#", next))
-    return true;
-
-  if (crossed_line)
-    return !tight;
-  if (tight)
-    return false;
-  bool odd = false;
-  for (int i = 0; i < CLOSER_PARITY_WINDOW && !lexer->eof(lexer) && lexer->lookahead != '\n'; i++) {
-    if (lexer->lookahead == '\\') {
-      lexer->advance(lexer, false);
-      if (lexer->eof(lexer))
-        break;
-    } else if (lexer->lookahead == quote) {
-      odd = !odd;
-    }
+  int32_t rest[TSP_CLOSER_WINDOW];
+  int len = 0;
+  while (len < TSP_CLOSER_WINDOW && !lexer->eof(lexer) && lexer->lookahead != '\n' &&
+         lexer->lookahead != '\r') {
+    rest[len++] = lexer->lookahead;
     lexer->advance(lexer, false);
   }
-  return odd;
+  return tsp_closer_opens_next_string(rest, len, quote, crossed_line);
 }
 
 /* Pure lookahead: matching closer before EOF?  Covers ' and " (non-paired:
@@ -248,7 +181,7 @@ static bool closer_opens_next_string(TSLexer *lexer, int32_t quote, bool crossed
  * as unterminated.
  *
  * bare: a ' or " string, not a quote-like operator's delimiter.  Its closer
- * also has to pass closer_opens_next_string.
+ * also has to read as one (tsp_quote_closer.h).
  *
  * MUST follow MARK_END, or the lookahead extends the token.
  */
