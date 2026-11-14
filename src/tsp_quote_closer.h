@@ -34,8 +34,7 @@
  * friends the closer is followed by flags or a second part, which rule 1
  * would refuse.
  *
- * Pure: no lexer, no state.  Needs tsp_unicode.h included first.  Tested
- * directly in test/c/test_quote_closer.c.
+ * Pure: no lexer, no state.  Tested directly in test/c/test_quote_closer.c.
  */
 
 #ifndef TSP_QUOTE_CLOSER_H
@@ -43,6 +42,8 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+
+#include "tsp_unicode.h"
 
 #define TSP_CLOSER_WINDOW 512
 
