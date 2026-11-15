@@ -4416,15 +4416,7 @@
           "named": true
         },
         {
-          "type": "data_section",
-          "named": true
-        },
-        {
           "type": "defer_statement",
-          "named": true
-        },
-        {
-          "type": "eof_marker",
           "named": true
         },
         {
@@ -4511,15 +4503,7 @@
           "named": true
         },
         {
-          "type": "data_section",
-          "named": true
-        },
-        {
           "type": "defer_statement",
-          "named": true
-        },
-        {
-          "type": "eof_marker",
           "named": true
         },
         {
@@ -6352,15 +6336,7 @@
             "named": true
           },
           {
-            "type": "data_section",
-            "named": true
-          },
-          {
             "type": "defer_statement",
-            "named": true
-          },
-          {
-            "type": "eof_marker",
             "named": true
           },
           {
@@ -6452,15 +6428,7 @@
             "named": true
           },
           {
-            "type": "data_section",
-            "named": true
-          },
-          {
             "type": "defer_statement",
-            "named": true
-          },
-          {
-            "type": "eof_marker",
             "named": true
           },
           {
@@ -11522,15 +11490,7 @@
           "named": true
         },
         {
-          "type": "data_section",
-          "named": true
-        },
-        {
           "type": "defer_statement",
-          "named": true
-        },
-        {
-          "type": "eof_marker",
           "named": true
         },
         {
@@ -21722,15 +21682,7 @@
             "named": true
           },
           {
-            "type": "data_section",
-            "named": true
-          },
-          {
             "type": "defer_statement",
-            "named": true
-          },
-          {
-            "type": "eof_marker",
             "named": true
           },
           {
