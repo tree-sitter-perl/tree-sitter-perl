@@ -276,6 +276,13 @@ static TSPQuote tspquote_new() { return (TSPQuote){0, 0, 0, false, false}; }
 
 enum HeredocState { HEREDOC_NONE, HEREDOC_START, HEREDOC_UNKNOWN, HEREDOC_CONTINUE, HEREDOC_END };
 
+enum PrevSent {
+  SENT_NOTHING,
+  SENT_RECOVERY,        // a recovery token
+  SENT_BLOCK_MARK,      // the block mark, which is also a recovery token
+  SENT_AUTOQUOTE_AHEAD, // the autoquote-ahead marker for a `class =>` key
+};
+
 /* Perl allows multiple heredocs queued on a single line, consumed FIFO after
  * the newline.  We hold up to HEREDOC_QUEUE_MAX pending heredocs; each one
  * carries its own delimiter and interpolate/indent flags.  The consume-FSM
@@ -297,9 +304,8 @@ typedef struct {
   uint8_t heredoc_count;
   enum HeredocState heredoc_state;
   /* What the previous call sent, for the call that follows it at the same
-   * position: 0 nothing, 1 a recovery token, 2 the block mark (which is also
-   * a recovery token), 3 the autoquote-ahead marker for a `class =>` key. */
-  uint8_t recovery_emitted;
+   * position. */
+  enum PrevSent prev_sent;
   /* Bit c is set once an opener c ran to EOF without a closer.  Every later
    * opener of that character would repeat the same scan to EOF, which is
    * quadratic in a file full of them. */
@@ -517,10 +523,10 @@ static void lexerstate_finish_heredoc(LexerState *state) {
 // TOKEN() contains `return true`.  brace_ok: skip brace recovery at '}'
 // (that's the real closer); ';' is safe (only valid in subscript context).
 #define EMIT_RECOVERY_TOKENS(brace_ok) do { \
-    if (valid_symbols[TOKEN_RECOVER_ARROW])        { state->recovery_emitted = true; TOKEN(TOKEN_RECOVER_ARROW); } \
-    if (valid_symbols[TOKEN_RECOVER_PAREN_CLOSE])  { state->recovery_emitted = true; TOKEN(TOKEN_RECOVER_PAREN_CLOSE); } \
-    if (valid_symbols[TOKEN_RECOVER_BRACKET_CLOSE]) { state->recovery_emitted = true; TOKEN(TOKEN_RECOVER_BRACKET_CLOSE); } \
-    if ((brace_ok) && valid_symbols[TOKEN_RECOVER_BRACE_CLOSE]) { state->recovery_emitted = true; TOKEN(TOKEN_RECOVER_BRACE_CLOSE); } \
+    if (valid_symbols[TOKEN_RECOVER_ARROW])        { state->prev_sent = SENT_RECOVERY; TOKEN(TOKEN_RECOVER_ARROW); } \
+    if (valid_symbols[TOKEN_RECOVER_PAREN_CLOSE])  { state->prev_sent = SENT_RECOVERY; TOKEN(TOKEN_RECOVER_PAREN_CLOSE); } \
+    if (valid_symbols[TOKEN_RECOVER_BRACKET_CLOSE]) { state->prev_sent = SENT_RECOVERY; TOKEN(TOKEN_RECOVER_BRACKET_CLOSE); } \
+    if ((brace_ok) && valid_symbols[TOKEN_RECOVER_BRACE_CLOSE]) { state->prev_sent = SENT_RECOVERY; TOKEN(TOKEN_RECOVER_BRACE_CLOSE); } \
   } while(0)
 
 static void skip_whitespace(TSLexer *lexer) {
@@ -735,7 +741,7 @@ static bool is_interpolation_escape(int32_t c) { return c < 256 && tsp_strchr("$
   (1 /* quote_count   */ + 1 /* any unclosed_delims */ + 16 /* unclosed_delims */ + \
    1 /* heredoc_state */ + 1 /* heredoc_count */ + \
    HEREDOC_QUEUE_MAX * (1 /* interpolates */ + 1 /* indents */ + 1 /* started */ + (int)sizeof(TSPString)) + \
-   1 /* recovery_emitted */)
+   1 /* prev_sent */)
 #define MAX_SERIALIZED_QUOTES \
   ((TREE_SITTER_SERIALIZATION_BUFFER_SIZE - SER_FIXED_OVERHEAD) / (int)sizeof(TSPQuote))
 
@@ -767,7 +773,7 @@ unsigned int tree_sitter_perl_external_scanner_serialize(void *payload, char *bu
     memcpy(&buffer[size], &e->delim, sizeof(TSPString));
     size += sizeof(TSPString);
   }
-  buffer[size++] = (char)state->recovery_emitted;
+  buffer[size++] = (char)state->prev_sent;
   // almost always empty, so it costs one byte
   bool any_unclosed = state->unclosed_delims[0] || state->unclosed_delims[1];
   buffer[size++] = (char)any_unclosed;
@@ -810,7 +816,7 @@ void tree_sitter_perl_external_scanner_deserialize(void *payload, const char *bu
       memcpy(&e->delim, &buffer[size], sizeof(TSPString));
       size += sizeof(TSPString);
     }
-    state->recovery_emitted = (uint8_t)buffer[size++];
+    state->prev_sent = (enum PrevSent)buffer[size++];
     if (buffer[size++])
       memcpy(state->unclosed_delims, &buffer[size], sizeof state->unclosed_delims);
   } else {
@@ -826,11 +832,13 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   bool is_ERROR = valid_symbols[TOKEN_ERROR];
   bool skipped_whitespace = false;
   bool crossed_newline = false;
-  bool block_marked = state->recovery_emitted >= 2;
-  bool recovery_emitted = state->recovery_emitted == 1 || state->recovery_emitted == 2;
+  bool block_marked =
+    state->prev_sent == SENT_BLOCK_MARK || state->prev_sent == SENT_AUTOQUOTE_AHEAD;
+  bool recovery_emitted =
+    state->prev_sent == SENT_RECOVERY || state->prev_sent == SENT_BLOCK_MARK;
   bool x_word = false;
   bool x_start = false;
-  state->recovery_emitted = false;
+  state->prev_sent = SENT_NOTHING;
 
   int32_t c = lexer->lookahead;
 
@@ -1132,11 +1140,11 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
         }
       }
       if (decl) {
-        state->recovery_emitted = 2;
+        state->prev_sent = SENT_BLOCK_MARK;
         TOKEN(TOKEN_RECOVER_BLOCK_MARK);
       }
       if (c == '=' && valid_symbols[TOKEN_FAT_COMMA_AUTOQUOTED_AHEAD]) {
-        state->recovery_emitted = 3;
+        state->prev_sent = SENT_AUTOQUOTE_AHEAD;
         TOKEN(TOKEN_FAT_COMMA_AUTOQUOTED_AHEAD);
       }
       return false;
@@ -1257,7 +1265,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
 
   // Statement keyword boundary: a statement keyword on a new line means
   // the previous expression is done.  Also fires when a recovery token
-  // was just emitted (recovery_emitted flag) since the newline was already
+  // was just emitted (`prev_sent`) since the newline was already
   // consumed by the previous call.
   // Gate on the first-char filter so we don't call MARK_END (and freeze
   // the token end at the keyword-start position) when the lookahead can't
@@ -1276,7 +1284,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
       // The newline is behind us now, so the flag is what brings the next
       // call back to this keyword boundary, where the closers are valid.
       if (valid_symbols[TOKEN_RECOVER_END]) {
-        state->recovery_emitted = true;
+        state->prev_sent = SENT_RECOVERY;
         TOKEN(TOKEN_RECOVER_END);
       }
       // Body block-close: only a structural OO keyword (method/class/role)
@@ -1284,7 +1292,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
       // bracket closers above; the enclosing class block can't accept this
       // token, so the cascade stops at one body (no over-closing).
       if (is_structural && !block_marked && valid_symbols[TOKEN_RECOVER_BLOCK_MARK]) {
-        state->recovery_emitted = 2;
+        state->prev_sent = SENT_BLOCK_MARK;
         TOKEN(TOKEN_RECOVER_BLOCK_MARK);
       }
       if (is_structural && valid_symbols[TOKEN_RECOVER_BLOCK_CLOSE]) {
@@ -1292,17 +1300,17 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
         // Re-arm the cascade so the next scan re-enters and can close the NEXT
         // enclosing recover-aware block (e.g. an unclosed `if`/loop body inside
         // the method: close the if-block, then the method body).
-        state->recovery_emitted = true;
+        state->prev_sent = SENT_RECOVERY;
         TOKEN(TOKEN_RECOVER_BLOCK_CLOSE);
       }
       // A statement terminator may need to fire BEFORE the body block-close:
       // after an inner closer (e.g. `my @x = [` -> `]`) completes an expression,
       // the statement still needs `;` before the enclosing body can reduce and
-      // close.  Re-arm the recovery cascade (recovery_emitted) so the next scan
+      // close.  Re-arm the recovery cascade (`prev_sent`) so the next scan
       // re-enters here and can emit the block-close.  Harmless when nothing
       // follows: the re-entry finds no further valid recovery token.
       if (valid_symbols[PERLY_SEMICOLON]) {
-        state->recovery_emitted = true;
+        state->prev_sent = SENT_RECOVERY;
         TOKEN(PERLY_SEMICOLON);
       }
     }
