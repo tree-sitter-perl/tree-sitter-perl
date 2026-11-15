@@ -106,6 +106,14 @@ enum TokenType {
   TOKEN_INTERP_OPEN_BRACE,
   /* the opener of a quote that has no closer */
   TOKEN_UNTERMINATED_QUOTE,
+  /* zero-width: the grammar asks for this before any recovery closer or fake
+   * semicolon, so those do not have to be valid in every after-term state */
+  TOKEN_RECOVER_END,
+  /* regex and transliteration flags */
+  TOKEN_QR_MODIFIERS,
+  TOKEN_M_MODIFIERS,
+  TOKEN_S_MODIFIERS,
+  TOKEN_TR_MODIFIERS,
   /* error condition is always last */
   TOKEN_ERROR
 };
@@ -794,6 +802,8 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   bool skipped_whitespace = false;
   bool crossed_newline = false;
   bool recovery_emitted = state->recovery_emitted;
+  bool x_word = false;
+  bool x_start = false;
   state->recovery_emitted = false;
 
   int32_t c = lexer->lookahead;
@@ -857,6 +867,23 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
    * operator */
   if (!is_ERROR && valid_symbols[TOKEN_NONASSOC]) TOKEN(TOKEN_NONASSOC);
 
+  /* Regex and transliteration flags, glued to the closing delimiter.  They are
+   * external so that no after-term state has to tell them from a word: as
+   * internal tokens they conflicted lexically with every identifier-shaped
+   * token and kept states apart that are otherwise the same. */
+  if (!is_ERROR) {
+    const char *flags = NULL;
+    int flags_token = 0;
+    if (valid_symbols[TOKEN_QR_MODIFIERS]) { flags = "msixpodualn"; flags_token = TOKEN_QR_MODIFIERS; }
+    else if (valid_symbols[TOKEN_M_MODIFIERS]) { flags = "msixpogcdualn"; flags_token = TOKEN_M_MODIFIERS; }
+    else if (valid_symbols[TOKEN_S_MODIFIERS]) { flags = "msixpogcedualr"; flags_token = TOKEN_S_MODIFIERS; }
+    else if (valid_symbols[TOKEN_TR_MODIFIERS]) { flags = "cdsr"; flags_token = TOKEN_TR_MODIFIERS; }
+    if (flags && c > 0 && c < 128 && strchr(flags, (char)c)) {
+      while (c > 0 && c < 128 && strchr(flags, (char)c)) ADVANCE_C;
+      MARK_END;
+      TOKEN(flags_token);
+    }
+  }
   /* The `x` repetition operator glued to its count (`"ab"x3`, `("")x4`). The
    * internal lexer would greedily take `x3` as one identifier, so when the
    * grammar offers the operator here (an operator is expected — perl's
@@ -866,6 +893,9 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   if (!is_ERROR && valid_symbols[TOKEN_X_OP] && c == 'x') {
     ADVANCE_C;
     if (c >= '0' && c <= '9') { MARK_END; TOKEN(TOKEN_X_OP); }
+    /* A lone `x` where an operator is expected is the operator too.  `x=` is
+     * left to the lexer. */
+    if (!isidcont(c) && c != '=') { MARK_END; TOKEN(TOKEN_X_OP); }
     return false;
   }
 
@@ -1008,6 +1038,9 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     c = lexer->lookahead;
   }
 
+  /* The same after whitespace: `$a x 3`.  The word is read in the autoquote
+   * block below, which has to look past it for `=>` first. */
+  x_start = c == 'x';
   // CTRL-Z must be here, b/c it cares about whitespace
   if (c == 26 && valid_symbols[TOKEN_CTRL_Z]) TOKEN(TOKEN_CTRL_Z);
 
@@ -1017,6 +1050,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     valid_symbols[TOKEN_RECOVER_BRACKET_CLOSE] ||
     valid_symbols[TOKEN_RECOVER_BRACE_CLOSE] ||
     valid_symbols[TOKEN_RECOVER_BLOCK_CLOSE] ||
+    valid_symbols[TOKEN_RECOVER_END] ||
     valid_symbols[PERLY_SEMICOLON];
 
   // Contextual keywords: class/role/method are declarations only when a name (or
@@ -1111,14 +1145,40 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   // peels one layer — the parser keeps calling until everything is closed.
   //
   // Syntactic boundary: '}', ';', or EOF
+  // `__END__` and `__DATA__` end the last statement the way EOF does (and so
+  // do ^D and ^Z below).  The grammar used to accept them directly after an
+  // expression, which made them one more thing every after-term state had
+  // to accept.  Any other word starting with `_` goes on to the autoquote
+  // check with its end already marked.
+  if (!is_ERROR && c == '_' && (valid_symbols[TOKEN_RECOVER_END] || valid_symbols[PERLY_SEMICOLON])) {
+    char dw[10];
+    int dl = 0;
+    MARK_END;
+    while (isidcont(c)) {
+      if (dl < 9) dw[dl++] = (char)c;
+      ADVANCE_C;
+    }
+    dw[dl] = 0;
+    if (strcmp(dw, "__END__") == 0 || strcmp(dw, "__DATA__") == 0) {
+      if (valid_symbols[TOKEN_RECOVER_END]) TOKEN(TOKEN_RECOVER_END);
+      TOKEN(PERLY_SEMICOLON);
+    }
+    MARK_END;
+    goto kw_autoquote;
+  }
   if (!is_ERROR) {
-    if (c == '}' || c == ';' || lexer->eof(lexer)) {
+    if (c == '}' || c == ';' || c == 4 || c == 26 || lexer->eof(lexer)) {
       EMIT_RECOVERY_TOKENS(c != '}');
+      // No closer was valid yet: they sit behind the end marker.  Send it;
+      // the next call lands here again with the closers valid.  Not before a
+      // `}` that may end a `${ name }`: that one is `_brace_end_zw`'s.
+      if (valid_symbols[TOKEN_RECOVER_END] && !(c == '}' && valid_symbols[TOKEN_BRACE_END_ZW]))
+        TOKEN(TOKEN_RECOVER_END);
     }
   }
 
   if (valid_symbols[PERLY_SEMICOLON]) {
-    if (c == '}' || lexer->eof(lexer)) {
+    if (c == '}' || c == 4 || c == 26 || lexer->eof(lexer)) {
       if (is_ERROR || !valid_symbols[TOKEN_BRACE_END_ZW]) {
         DEBUG("Fake PERLY_SEMICOLON at end-of-scope\n", 0);
         TOKEN(PERLY_SEMICOLON);
@@ -1145,6 +1205,12 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     if (peek == PEEK_KEYWORD) {
       DEBUG("keyword boundary\n", 0);
       EMIT_RECOVERY_TOKENS(true);
+      // The newline is behind us now, so the flag is what brings the next
+      // call back to this keyword boundary, where the closers are valid.
+      if (valid_symbols[TOKEN_RECOVER_END]) {
+        state->recovery_emitted = true;
+        TOKEN(TOKEN_RECOVER_END);
+      }
       // Body block-close: only a structural OO keyword (method/class/role)
       // closes a half-typed sub/method body.  Fires after any inner paren/
       // bracket closers above; the enclosing class block can't accept this
@@ -1787,11 +1853,14 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     if (c == '}') TOKEN(TOKEN_BRACE_AUTOQUOTED);
     return false;
   }
-  if (isidfirst(c) &&
-      (valid_symbols[TOKEN_FAT_COMMA_AUTOQUOTED] || valid_symbols[TOKEN_BRACE_AUTOQUOTED])) {
+  if ((isidfirst(c) &&
+       (valid_symbols[TOKEN_FAT_COMMA_AUTOQUOTED] || valid_symbols[TOKEN_BRACE_AUTOQUOTED])) ||
+      (x_start && c == 'x' && valid_symbols[TOKEN_X_OP] && !is_ERROR)) {
     // we zip until the end of the identifier; then we do a lookeahed to see if it's autoquoted
+    x_word = x_start && c == 'x';
     do {
       ADVANCE_C;
+      if (isidcont(c)) x_word = false;
     } while (isidcont(c));
     MARK_END;
     // TODO - carefully check if we got a 2 char quote such that we need to guard against
@@ -1825,6 +1894,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     if (valid_symbols[TOKEN_BRACE_AUTOQUOTED]) {
       if (c1 == '}') TOKEN(TOKEN_BRACE_AUTOQUOTED);
     }
+    if (x_word && valid_symbols[TOKEN_X_OP] && !is_ERROR && c1 != '=') TOKEN(TOKEN_X_OP);
   } else {
     /* it's ZW time! */
     MARK_END;

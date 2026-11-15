@@ -95,9 +95,23 @@ const aliasMany = (to, tokens) => tokens.map(t => alias(t, to))
 // NOTE: recoverBrace is only used in subscript rules (hash_element,
 // slice, keyval) — NOT in block or anonymous_hash_expression, where
 // block/hash ambiguity via shared _PERLY_BRACE_OPEN makes it unsafe.
-const recoverParen = ($) => choice(')', alias($._RECOVER_PAREN_CLOSE, ')'))
-const recoverBracket = ($) => choice(']', alias($._RECOVER_BRACKET_CLOSE, ']'))
-const recoverBrace = ($) => choice('}', alias($._RECOVER_BRACE_CLOSE, '}'))
+// The synthetic closers and the fake semicolon are external tokens, and the
+// generator will not merge two otherwise identical states when one of them
+// accepts an external token the other lacks.  Offering them directly after an
+// expression therefore kept a second copy of the whole expression tower: one
+// for expressions inside a recoverable bracket, one for the rest.  So they hide
+// behind a single zero-width external, `_RECOVER_END`: every state after a
+// term accepts that one token, and the closers are only asked for after it.
+// The scanner sends it where it used to send a closer or a fake semicolon.
+//
+// For the states to merge, the marker has to be acceptable after *every*
+// expression, including where nothing is ever recovered: `if (...)`, `? :`,
+// a subscript inside a string.  `endThen` wraps such a plain closer.  The
+// scanner never sends the marker there; accepting it is the whole point.
+const endThen = ($, t) => choice(t, seq($._RECOVER_END, t))
+const recoverParen = ($) => choice(')', seq($._RECOVER_END, choice(')', alias($._RECOVER_PAREN_CLOSE, ')'))))
+const recoverBracket = ($) => choice(']', seq($._RECOVER_END, choice(']', alias($._RECOVER_BRACKET_CLOSE, ']'))))
+const recoverBrace = ($) => choice('}', seq($._RECOVER_END, choice('}', alias($._RECOVER_BRACE_CLOSE, '}'))))
 // Block-body closer: a DISTINCT recovery token from recoverBrace's subscript
 // `}`.  Used only on sub/method bodies (`_body_block`).  The scanner emits
 // `_RECOVER_BLOCK_CLOSE` only when a `method`/`class`/`role` keyword opens the
@@ -134,7 +148,19 @@ module.exports = grammar({
     $.slices,
   ],
   word: $ => $._identifier,
+  // A keyword is only lexed where the grammar accepts it, so in a state that
+  // accepts `and` but not `if` the word `if` is a bareword, and the two states
+  // cannot merge.  Reserving these words everywhere makes every after-term
+  // state lex them the same way.  They are the infix word operators and the
+  // statement modifiers: the words that can follow a term.  A name position
+  // (`$or`, `->if`, `sub for`, `package if`) opts out with `reserved('none',
+  // ...)`, which only works on a terminal: see `_bareword_name`.
+  reserved: {
+    global: $ => ['and', 'or', 'xor', 'if', 'unless', 'while', 'until', 'for', 'foreach'],
+    none: $ => [],
+  },
   inline: $ => [
+    $._bareword_name,
     $._var_indirob,
     $._semicolon,
     $._fullstmt,
@@ -239,6 +265,15 @@ module.exports = grammar({
     $._interp_open_brace,
     /* the opener of a quote that has no closer */
     $._unterminated_quote_open,
+    /* zero-width: an expression ends here, by a recovery closer, a fake
+     * semicolon or the real closer.  See recoverParen. */
+    $._RECOVER_END,
+    /* flags after a regex or transliteration: letters, which as internal
+     * tokens conflict lexically with every word */
+    $.quoted_regexp_modifiers,
+    $.match_regexp_modifiers,
+    $.substitution_regexp_modifiers,
+    $.transliteration_modifiers,
     /* error condition must always be last; we don't use this in the grammar */
     $._ERROR
   ],
@@ -259,9 +294,8 @@ module.exports = grammar({
     // (`binmode STDOUT, MODE`); GLR resolves on the following comma/term.
     [$._term, $.indirect_object],
     [$.expression_statement, $._tricky_indirob_hashref],
+    [$.expression_statement, $.for_statement],
     [$.autoquoted_bareword],
-    // nameless params need extra lookahead
-    [$.optional_parameter],
     // these are all dynamic handling for continue BLOCK vs func0 b/c we don't get lookahead
     [$._loop_body],
     // we need an extra lookahead so we can correctly hide the `->` in a non-interpolating case
@@ -291,7 +325,7 @@ module.exports = grammar({
     statement_label: $ => seq(
       field('label', choice($.identifier, alias($._PHASE_NAME, $.identifier))), ':',
       field('statement', choice($._fullstmt, alias($._PERLY_SEMICOLON, ';')))),
-    _semicolon: $ => choice(';', $._PERLY_SEMICOLON),
+    _semicolon: $ => choice(';', seq($._RECOVER_END, choice(';', $._PERLY_SEMICOLON))),
 
     _barestmt: $ => choice(
       $.package_statement,
@@ -311,7 +345,7 @@ module.exports = grammar({
       $.for_statement,
       $.try_statement,
       alias($.block, $.block_statement),
-      seq($.expression_statement, choice($._semicolon, $.__DATA__)),
+      seq($.expression_statement, $._semicolon),
       $.defer_statement,
       ';', // this is not _semicolon so as not to generate an infinite stream of them
     ),
@@ -405,17 +439,15 @@ module.exports = grammar({
     signature: $ => seq(
       alias($._signature_start, '('),
       // we don't bother being strict about the order b/c too much work
-      repeat(seq(
-        $._signature_vars,
-        optseq(',', optional($._signature_vars)))
-      ),
-      ')'
+      optional($._signature_vars),
+      repeat(seq(',', optional($._signature_vars))),
+      endThen($, ')')
     ),
     subroutine_declaration_statement: $ => seq(
       optional(choice(field('lexical', choice('my', 'state')), 'our')),
       subExtensions($),
       'sub',
-      field('name', $.bareword),
+      field('name', alias($._bareword_name, $.bareword)),
       $._sub_decl_tail,
     ),
 
@@ -423,7 +455,7 @@ module.exports = grammar({
       optional(choice(field('lexical', choice('my', 'state')), 'our')),
       subExtensions($),
       alias($._KW_METHOD, "method"),
-      field('name', $.bareword),
+      field('name', alias($._bareword_name, $.bareword)),
       $._sub_decl_tail,
     ),
 
@@ -442,7 +474,7 @@ module.exports = grammar({
     phaser_statement: $ => seq(field('phase', $._PHASE_NAME), alias($._body_block, $.block)),
 
     conditional_statement: $ =>
-      seq($._conditionals, '(', field('condition', $._expr), ')',
+      seq($._conditionals, '(', field('condition', $._expr), endThen($, ')'),
         field('block', alias($._body_block, $.block)),
         optional($._else)
       ),
@@ -450,8 +482,8 @@ module.exports = grammar({
     // perly.y gives `while` a texpr, which may be empty (`while () {}` loops
     // forever), and `until` an iexpr, which may not
     loop_statement: $ => choice(
-      seq('while', '(', optional(field('condition', $._expr)), ')', $._loop_body),
-      seq('until', '(', field('condition', $._expr), ')', $._loop_body),
+      seq('while', '(', optional(field('condition', $._expr)), endThen($, ')'), $._loop_body),
+      seq('until', '(', field('condition', $._expr), endThen($, ')'), $._loop_body),
     ),
     cstyle_for_statement: $ =>
       seq($._KW_FOR,
@@ -459,7 +491,7 @@ module.exports = grammar({
         field('initialiser', $._barestmt),
         field('condition', $._barestmt),
         field('iterator', optional($._expr)),
-        ')',
+        endThen($, ')'),
         $._loop_body
       ),
     _for_initializer: $ => choice(
@@ -470,7 +502,7 @@ module.exports = grammar({
     for_statement: $ =>
       seq($._KW_FOR,
         optional($._for_initializer),
-        '(', field('list', $._expr), ')',
+        '(', field('list', $._expr), endThen($, ')'),
         $._loop_body
       ),
 
@@ -479,7 +511,7 @@ module.exports = grammar({
       field('try_block', alias($._body_block, $.block)),
       // regular perl only permits catch(VAR) but we get easy compatibility
       // with Syntax::Keyword::Try too by being a bit more flexible
-      optseq('catch', optseq('(', field('catch_expr', $._expr), ')'),
+      optseq('catch', optseq('(', field('catch_expr', $._expr), endThen($, ')')),
         field('catch_block', alias($._body_block, $.block))),
       optseq('finally',
         field('finally_block', alias($._body_block, $.block))),
@@ -509,7 +541,7 @@ module.exports = grammar({
     _else: $ => choice($.else, $.elsif),
     else: $ => seq('else', field('block', alias($._body_block, $.block))),
     elsif: $ =>
-      seq('elsif', '(', field('condition', $._expr), ')',
+      seq('elsif', '(', field('condition', $._expr), endThen($, ')'),
         field('block', alias($._body_block, $.block)),
         optional($._else)
       ),
@@ -558,7 +590,7 @@ module.exports = grammar({
     // for highlighting. We raise its prec b/c in a print (print $thing{stuff}) it becomes a var
     // not an indirob
     container_variable: $ => prec(2, seq('$', $._var_indirob)),
-    _glob_slot_subscript: $ => seq('{', $._hash_key, '}'),
+    _glob_slot_subscript: $ => seq('{', $._hash_key, endThen($, '}')),
     glob_slot_expression: $ => choice(
       seq($.glob, $._glob_slot_subscript),
       prec.left(TERMPREC.ARROW, seq($._term, '->', '*', $._glob_slot_subscript)),
@@ -583,9 +615,9 @@ module.exports = grammar({
       prec.left(TERMPREC.ARROW, seq($._term, '->', $._args_subscript)),
       seq($.subscripted, $._args_subscript),
     ),
-    _anon_slice_subscript: $ => seq('[', $._expr, ']'),
+    _anon_slice_subscript: $ => seq('[', $._expr, endThen($, ']')),
     anonymous_slice_expression: $ => choice(
-      seq('(', optional(field('list', $._expr)), ')', $._anon_slice_subscript),
+      seq('(', optional(field('list', $._expr)), endThen($, ')'), $._anon_slice_subscript),
       seq(field('list', $.quoted_word_list), $._anon_slice_subscript),
     ),
 
@@ -620,7 +652,7 @@ module.exports = grammar({
     // attaches a field to every child spliced up from a hidden/inline rule (see
     // upstream tree-sitter#1526). Every mature grammar (js/python/c/rust) gives
     // parens a named node for exactly this reason. Costs zero extra parser states.
-    parenthesized_expression: $ => seq('(', $._expr, ')'),
+    parenthesized_expression: $ => seq('(', $._expr, endThen($, ')')),
     _term: $ => choice(
       $.readline_expression,
       $.fileglob_expression,
@@ -747,7 +779,7 @@ module.exports = grammar({
         [prec.left, binop, '&', TERMPREC.BITANDOP], // _BITANDOP
         [prec.left, binop, choice('<<', '>>'), TERMPREC.SHIFTOP], // _SHIFTOP
         [prec.left, binop, choice('+', '-', '.'), TERMPREC.ADDOP], // _ADDOP
-        [prec.left, binop, choice('*', '/', '%', 'x', alias($._x_op, 'x')), TERMPREC.MULOP], // _MULOP
+        [prec.left, binop, choice('*', '/', '%', alias($._x_op, 'x')), TERMPREC.MULOP], // _MULOP
         [prec.left, binop, choice('=~', '!~'), TERMPREC.MATCHOP], // _MATCHOP
       ]
 
@@ -793,7 +825,7 @@ module.exports = grammar({
       prec(TERMPREC.POSTINC, unop_post(choice('++', '--'), $._term)),
 
     conditional_expression: $ => prec.right(TERMPREC.QUESTION_MARK, seq(
-      field('condition', $._term), '?', field('consequent', $._term), ':', field('alternative', $._term)
+      field('condition', $._term), '?', field('consequent', $._term), endThen($, ':'), field('alternative', $._term)
     )),
 
     refgen_expression: $ => prec.left(TERMPREC.UMINUS, seq('\\', choice(alias($.amper_sub, $.function), $._term))), // _REFGEN
@@ -966,15 +998,15 @@ module.exports = grammar({
     func1op_call_expression: $ =>
       prec.left(TERMPREC.UNOP, seq(
         field('function', $._func1op),
-        choice(optseq('(', optional($._expr), ')'), $._term),
+        choice(optseq('(', optional($._expr), endThen($, ')')), $._term),
       )),
 
     _map_grep: $ => choice('map', 'grep'),
     map_grep_expression: $ => prec.left(TERMPREC.LSTOP, choice(
       seq($._map_grep, field('callback', $.block), field('list', $._listexpr)),
       seq($._map_grep, field('callback', $._term), $._PERLY_COMMA, field('list', $._listexpr)),
-      seq($._map_grep, '(', $._NONASSOC, field('callback', $._term), $._PERLY_COMMA, field('list', $._listexpr), ')'),
-      seq($._map_grep, '(', $._NONASSOC, field('callback', $.block), field('list', $._listexpr), ')'),
+      seq($._map_grep, '(', $._NONASSOC, field('callback', $._term), $._PERLY_COMMA, field('list', $._listexpr), endThen($, ')')),
+      seq($._map_grep, '(', $._NONASSOC, field('callback', $.block), field('list', $._listexpr), endThen($, ')')),
     )),
 
     // - we support sort SUBNAME as follows - if there's a bareword and no comma, it's
@@ -985,7 +1017,7 @@ module.exports = grammar({
     _sort_routine: $ => choice(prec(1, alias($._bareword, $.function)), $.block, prec(1, $.scalar)),
     sort_expression: $ => prec.left(TERMPREC.LSTOP, choice(
       seq('sort', optional(field('callback', $._sort_routine)), field('list', $._listexpr)),
-      seq('sort', '(', $._NONASSOC, optional(field('callback', $._sort_routine)), field('list', $._listexpr), ')'),
+      seq('sort', '(', $._NONASSOC, optional(field('callback', $._sort_routine)), field('list', $._listexpr), endThen($, ')')),
     )),
 
 
@@ -1046,7 +1078,7 @@ module.exports = grammar({
       // `$h` as an indirect object followed by a `{x}` hashref.
       seq(field('function', alias($._indirob_listop, $.function)), '(', $._NONASSOC, $.indirect_object, field('arguments', $._expr), recoverParen($)),
     ),
-    _tricky_indirob_hashref: $ => seq($._PERLY_BRACE_OPEN, $._expr, $._PERLY_SEMICOLON, '}'),
+    _tricky_indirob_hashref: $ => seq($._PERLY_BRACE_OPEN, $._expr, $._RECOVER_END, $._PERLY_SEMICOLON, '}'),
     ambiguous_function_call_expression: $ =>
       // we need the right precedence here so we can read ahead for the hash/sub disambiguation
       prec.right(TERMPREC.LSTOP,
@@ -1125,7 +1157,7 @@ module.exports = grammar({
       field('method', $.method),
       optional($._args_subscript)
     )),
-    method: $ => choice($._bareword, $.scalar, $._RECOVER_ARROW),
+    method: $ => choice($._bareword_name, $.scalar, $._RECOVER_ARROW),
 
     _variables: $ => choice(
       $.scalar,
@@ -1134,7 +1166,7 @@ module.exports = grammar({
       $.arraylen,
       $.glob,
     ),
-    _signature_varname: $ => alias($._identifier, $.varname),
+    _signature_varname: $ => alias(reserved('none', $._identifier), $.varname),
     scalar: $ => seq('$', $._var_indirob),
     _declare_scalar: $ => seq('$', choice($.varname, $._var_indirob_autoquote)),
     _signature_scalar: $ => seq('$', $._signature_varname),
@@ -1174,11 +1206,11 @@ module.exports = grammar({
       alias($._code_deref, $.code_deref_expression),
     )),
     // _indirob minus the block arm; the braced-block case becomes code_deref
-    _amper_indirob: $ => choice($._bareword, $._ident_special, $.scalar),
+    _amper_indirob: $ => choice($._bareword_name, $._ident_special, $.scalar),
     _code_deref: $ => $.block,
 
     _indirob: $ => choice(
-      $._bareword,
+      $._bareword_name,
       // toke.c has weird code in S_scan_ident to handle the $<digits> and
       // other single-character punctuation vars like $!
       $._ident_special,
@@ -1186,7 +1218,7 @@ module.exports = grammar({
       $.block,
     ),
     varname: $ => choice(
-      $._identifier,
+      reserved('none', $._identifier),
       $._ident_special // TODO - not sure if we wanna make `my $1` error out
     ),
     // not all indirobs are alike; for variables, they have autoquoting behavior
@@ -1353,24 +1385,24 @@ module.exports = grammar({
     _interp_arrow: $ => token.immediate('->'),
 
     _array_element_interpolation: $ => choice(
-      seq(field('array', alias($.scalar, $.container_variable)), interpOpenBracket($), field('index', $._expr), ']'),
-      prec.left(TERMPREC.ARROW, seq($.scalar, $._interp_arrow, '[', field('index', $._expr), ']')),
+      seq(field('array', alias($.scalar, $.container_variable)), interpOpenBracket($), field('index', $._expr), endThen($, ']')),
+      prec.left(TERMPREC.ARROW, seq($.scalar, $._interp_arrow, '[', field('index', $._expr), endThen($, ']'))),
       // chained subscript: implicit (`$h{a}[0]`) or with an explicit arrow (`$h->{a}->[0]`)
-      seq($._subscripted_interpolations, optional($._interp_arrow), interpOpenBracket($), field('index', $._expr), ']'),
+      seq($._subscripted_interpolations, optional($._interp_arrow), interpOpenBracket($), field('index', $._expr), endThen($, ']')),
     ),
     _hash_element_interpolation: $ => choice(
-      seq(field('hash', alias($.scalar, $.container_variable)), interpOpenBrace($), field('key', $._hash_key), '}'),
-      prec.left(TERMPREC.ARROW, seq($.scalar, $._interp_arrow, '{', field('key', $._hash_key), '}')),
+      seq(field('hash', alias($.scalar, $.container_variable)), interpOpenBrace($), field('key', $._hash_key), endThen($, '}')),
+      prec.left(TERMPREC.ARROW, seq($.scalar, $._interp_arrow, '{', field('key', $._hash_key), endThen($, '}'))),
       // chained subscript: implicit (`$h{a}{b}`) or with an explicit arrow (`$h->{a}->{b}`)
-      seq($._subscripted_interpolations, optional($._interp_arrow), interpOpenBrace($), field('key', $._hash_key), '}'),
+      seq($._subscripted_interpolations, optional($._interp_arrow), interpOpenBrace($), field('key', $._hash_key), endThen($, '}')),
     ),
     _slice_expression_interpolation: $ => choice(
-      seq(field('array', alias($.array, $.slice_container_variable)), interpOpenBracket($), $._expr, ']'),
-      seq(field('hash', alias($.array, $.slice_container_variable)), interpOpenBrace($), $._hash_key, '}'),
+      seq(field('array', alias($.array, $.slice_container_variable)), interpOpenBracket($), $._expr, endThen($, ']')),
+      seq(field('hash', alias($.array, $.slice_container_variable)), interpOpenBrace($), $._hash_key, endThen($, '}')),
       prec.left(TERMPREC.ARROW,
-        seq(field('arrayref', $.scalar), $._interp_arrow, '@', '[', $._expr, ']')),
+        seq(field('arrayref', $.scalar), $._interp_arrow, '@', '[', $._expr, endThen($, ']'))),
       prec.left(TERMPREC.ARROW,
-        seq(field('hashref', $.scalar), $._interp_arrow, '@', '{', $._hash_key, '}')),
+        seq(field('hashref', $.scalar), $._interp_arrow, '@', '{', $._hash_key, endThen($, '}'))),
     ),
     _scalar_deref_interpolation: $ => prec.left(TERMPREC.ARROW, seq($.scalar, $._interp_arrow, token.immediate('$*'))),
     _array_deref_interpolation: $ => prec.left(TERMPREC.ARROW, seq(field('arrayref', $.scalar), $._interp_arrow, token.immediate('@*'))),
@@ -1536,11 +1568,6 @@ module.exports = grammar({
       )
     ),
 
-    quoted_regexp_modifiers: $ => token.immediate(prec(2, /[msixpodualn]+/)),
-    match_regexp_modifiers: $ => token.immediate(prec(2, /[msixpogcdualn]+/)),
-    substitution_regexp_modifiers: $ => token.immediate(prec(2, /[msixpogcedualr]+/)),
-    transliteration_modifiers: $ => token.immediate(prec(2, /[cdsr]+/)),
-
     _interpolated_transliteration_content: $ => repeat1(
       choice(
         $._qq_string_content,
@@ -1600,7 +1627,7 @@ module.exports = grammar({
       $.heredoc_end
     ),
 
-    package: $ => $._bareword,
+    package: $ => $._bareword_name,
     _version: $ => prec(1, choice($.number, $.version)),
     // Two forms: a v-string (`v5`, `v5.26.0`), and a bare numeric version with
     // at least two dots (`5.14.0`, `1.2.3.4`) as used by `use 5.14.0;` /
@@ -1645,6 +1672,9 @@ module.exports = grammar({
     // unicode-aware (XID_Start/XID_Continue) dotted/qualified bareword, so package
     // names allow unicode like the `_identifier` (sub name) path already does.
     _bareword: $ => choice($._identifier, unicode_ranges.bareword),
+    // A name position: the reserved operator words are ordinary names here.
+    // Inlined (see `inline:`), or it costs a reduction for every variable.
+    _bareword_name: $ => choice(reserved('none', $._identifier), reserved('none', unicode_ranges.bareword)),
     ...primitives,
   }
 })

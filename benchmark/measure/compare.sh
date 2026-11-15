@@ -40,7 +40,9 @@ paste -d' ' <(cut -d' ' -f1,2 "$WORK/base.txt") "$WORK/new.txt" |
   awk '$1 != $3 || $2 != $4 { print $5 }' > "$WORK/diff.list"
 clean=0
 while read -r f; do
-  if "$BASE/sexp" "$f" | grep -q 'ERROR\|MISSING'; then
+  # not `grep -q`: it exits at the first match, and under pipefail the
+  # SIGPIPE that gives sexp reads as "no match"
+  if "$BASE/sexp" "$f" | grep -c 'ERROR\|MISSING' > /dev/null; then
     echo "broken-before: $f"
   else
     echo "CLEAN-BEFORE:  $f"

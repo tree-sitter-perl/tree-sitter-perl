@@ -131,6 +131,15 @@ Other scanner responsibilities:
 - **Recover-aware closers** (`recoverParen` / `recoverBracket` / `recoverBrace`):
   helper functions so every subscript/call site shares one grammar node (no extra
   states) and plugs into the scanner's recovery closers above.
+- **`_RECOVER_END` hides the recovery tokens** from the after-term states. The
+  generator refuses to merge two states with the same items when one accepts
+  an external token the other lacks, so every external that can follow an
+  expression in *some* contexts splits the expression tower into copies. The
+  recovery closers and the fake semicolon used to be exactly that. Now the
+  grammar asks for one zero-width `_RECOVER_END` first, valid after every
+  term, and for the closer only after it. When adding an external token that
+  follows an expression, put it behind the marker too, and check the state
+  count (`benchmark/measure/`).
 - **Zero-width lookahead externals** (`_brace_end_zw`, `_dollar_ident_zw`,
   `_no_interp_extra_zw`, `_NONASSOC`): disambiguation markers that consume no
   input — e.g. `$hash{q}` (brace-end vs. a `q//` quote) and interpolation
