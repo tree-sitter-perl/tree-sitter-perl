@@ -6309,7 +6309,7 @@
       },
       "condition": {
         "multiple": true,
-        "required": true,
+        "required": false,
         "types": [
           {
             "type": ";",
@@ -6401,7 +6401,7 @@
       },
       "initialiser": {
         "multiple": true,
-        "required": true,
+        "required": false,
         "types": [
           {
             "type": ";",
@@ -21655,7 +21655,7 @@
       },
       "statement": {
         "multiple": true,
-        "required": true,
+        "required": false,
         "types": [
           {
             "type": ";",

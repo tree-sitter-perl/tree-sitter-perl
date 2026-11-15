@@ -109,6 +109,9 @@ enum TokenType {
   /* zero-width: the grammar asks for this before any recovery closer or fake
    * semicolon, so those do not have to be valid in every after-term state */
   TOKEN_RECOVER_END,
+  /* zero-width: a class/role/method declaration opens this line.  Valid at
+   * the start of any statement; a sub or method body closes on it. */
+  TOKEN_RECOVER_BLOCK_MARK,
   /* regex and transliteration flags */
   TOKEN_QR_MODIFIERS,
   TOKEN_M_MODIFIERS,
@@ -273,6 +276,13 @@ static TSPQuote tspquote_new() { return (TSPQuote){0, 0, 0, false, false}; }
 
 enum HeredocState { HEREDOC_NONE, HEREDOC_START, HEREDOC_UNKNOWN, HEREDOC_CONTINUE, HEREDOC_END };
 
+enum PrevSent {
+  SENT_NOTHING,
+  SENT_RECOVERY,        // a recovery token
+  SENT_BLOCK_MARK,      // the block mark, which is also a recovery token
+  SENT_AUTOQUOTE_AHEAD, // the autoquote-ahead marker for a `class =>` key
+};
+
 /* Perl allows multiple heredocs queued on a single line, consumed FIFO after
  * the newline.  We hold up to HEREDOC_QUEUE_MAX pending heredocs; each one
  * carries its own delimiter and interpolate/indent flags.  The consume-FSM
@@ -282,6 +292,8 @@ enum HeredocState { HEREDOC_NONE, HEREDOC_START, HEREDOC_UNKNOWN, HEREDOC_CONTIN
 typedef struct {
   TSPString delim;
   bool interpolates, indents;
+  /* its body has begun: a heredoc introduced inside it nests ahead of it */
+  bool started;
 } HeredocEntry;
 
 typedef struct {
@@ -291,7 +303,9 @@ typedef struct {
   HeredocEntry heredoc_queue[HEREDOC_QUEUE_MAX];
   uint8_t heredoc_count;
   enum HeredocState heredoc_state;
-  bool recovery_emitted;
+  /* What the previous call sent, for the call that follows it at the same
+   * position. */
+  enum PrevSent prev_sent;
   /* Bit c is set once an opener c ran to EOF without a closer.  Every later
    * opener of that character would repeat the same scan to EOF, which is
    * quadratic in a file full of them. */
@@ -440,13 +454,25 @@ static HeredocEntry *lexerstate_front_heredoc(LexerState *state) {
  * is graceful degradation for a pathological input. */
 static void lexerstate_add_heredoc(LexerState *state, TSPString *delim, bool interp, bool indent) {
   HeredocEntry *e;
-  if (state->heredoc_count >= HEREDOC_QUEUE_MAX)
+  /* A heredoc introduced inside the body of one that has begun (`@{[ <<B ]}`
+   * in an interpolating body) takes its lines first: it goes ahead of the
+   * begun one, behind any nested sibling from the same line. */
+  int at = 0;
+  while (at < state->heredoc_count && !state->heredoc_queue[at].started) at++;
+  if (at < state->heredoc_count && state->heredoc_count < HEREDOC_QUEUE_MAX) {
+    for (int i = state->heredoc_count; i > at; i--)
+      state->heredoc_queue[i] = state->heredoc_queue[i - 1];
+    state->heredoc_count++;
+    e = &state->heredoc_queue[at];
+    if (at == 0) state->heredoc_state = HEREDOC_START;
+  } else if (state->heredoc_count >= HEREDOC_QUEUE_MAX)
     e = &state->heredoc_queue[HEREDOC_QUEUE_MAX - 1];
   else
     e = &state->heredoc_queue[state->heredoc_count++];
   e->delim = *delim;
   e->interpolates = interp;
   e->indents = indent;
+  e->started = false;
   if (state->heredoc_count == 1) state->heredoc_state = HEREDOC_START;
 }
 
@@ -462,7 +488,10 @@ static void lexerstate_finish_heredoc(LexerState *state) {
       state->heredoc_queue[i] = state->heredoc_queue[i + 1];
   }
   state->heredoc_queue[state->heredoc_count] = (HeredocEntry){0};
-  state->heredoc_state = state->heredoc_count > 0 ? HEREDOC_START : HEREDOC_NONE;
+  /* a begun heredoc left on top was interrupted by a nested one: it resumes
+   * at the start of a line */
+  state->heredoc_state = state->heredoc_count == 0 ? HEREDOC_NONE
+    : state->heredoc_queue[0].started ? HEREDOC_UNKNOWN : HEREDOC_START;
 }
 
 #define ADVANCE_C                                                             \
@@ -494,10 +523,10 @@ static void lexerstate_finish_heredoc(LexerState *state) {
 // TOKEN() contains `return true`.  brace_ok: skip brace recovery at '}'
 // (that's the real closer); ';' is safe (only valid in subscript context).
 #define EMIT_RECOVERY_TOKENS(brace_ok) do { \
-    if (valid_symbols[TOKEN_RECOVER_ARROW])        { state->recovery_emitted = true; TOKEN(TOKEN_RECOVER_ARROW); } \
-    if (valid_symbols[TOKEN_RECOVER_PAREN_CLOSE])  { state->recovery_emitted = true; TOKEN(TOKEN_RECOVER_PAREN_CLOSE); } \
-    if (valid_symbols[TOKEN_RECOVER_BRACKET_CLOSE]) { state->recovery_emitted = true; TOKEN(TOKEN_RECOVER_BRACKET_CLOSE); } \
-    if ((brace_ok) && valid_symbols[TOKEN_RECOVER_BRACE_CLOSE]) { state->recovery_emitted = true; TOKEN(TOKEN_RECOVER_BRACE_CLOSE); } \
+    if (valid_symbols[TOKEN_RECOVER_ARROW])        { state->prev_sent = SENT_RECOVERY; TOKEN(TOKEN_RECOVER_ARROW); } \
+    if (valid_symbols[TOKEN_RECOVER_PAREN_CLOSE])  { state->prev_sent = SENT_RECOVERY; TOKEN(TOKEN_RECOVER_PAREN_CLOSE); } \
+    if (valid_symbols[TOKEN_RECOVER_BRACKET_CLOSE]) { state->prev_sent = SENT_RECOVERY; TOKEN(TOKEN_RECOVER_BRACKET_CLOSE); } \
+    if ((brace_ok) && valid_symbols[TOKEN_RECOVER_BRACE_CLOSE]) { state->prev_sent = SENT_RECOVERY; TOKEN(TOKEN_RECOVER_BRACE_CLOSE); } \
   } while(0)
 
 static void skip_whitespace(TSLexer *lexer) {
@@ -711,8 +740,8 @@ static bool is_interpolation_escape(int32_t c) { return c < 256 && tsp_strchr("$
 #define SER_FIXED_OVERHEAD \
   (1 /* quote_count   */ + 1 /* any unclosed_delims */ + 16 /* unclosed_delims */ + \
    1 /* heredoc_state */ + 1 /* heredoc_count */ + \
-   HEREDOC_QUEUE_MAX * (1 /* interpolates */ + 1 /* indents */ + (int)sizeof(TSPString)) + \
-   1 /* recovery_emitted */)
+   HEREDOC_QUEUE_MAX * (1 /* interpolates */ + 1 /* indents */ + 1 /* started */ + (int)sizeof(TSPString)) + \
+   1 /* prev_sent */)
 #define MAX_SERIALIZED_QUOTES \
   ((TREE_SITTER_SERIALIZATION_BUFFER_SIZE - SER_FIXED_OVERHEAD) / (int)sizeof(TSPQuote))
 
@@ -740,10 +769,11 @@ unsigned int tree_sitter_perl_external_scanner_serialize(void *payload, char *bu
     HeredocEntry *e = &state->heredoc_queue[i];
     buffer[size++] = (char)e->interpolates;
     buffer[size++] = (char)e->indents;
+    buffer[size++] = (char)e->started;
     memcpy(&buffer[size], &e->delim, sizeof(TSPString));
     size += sizeof(TSPString);
   }
-  buffer[size++] = (char)state->recovery_emitted;
+  buffer[size++] = (char)state->prev_sent;
   // almost always empty, so it costs one byte
   bool any_unclosed = state->unclosed_delims[0] || state->unclosed_delims[1];
   buffer[size++] = (char)any_unclosed;
@@ -782,10 +812,11 @@ void tree_sitter_perl_external_scanner_deserialize(void *payload, const char *bu
       HeredocEntry *e = &state->heredoc_queue[i];
       e->interpolates = (bool)buffer[size++];
       e->indents = (bool)buffer[size++];
+      e->started = (bool)buffer[size++];
       memcpy(&e->delim, &buffer[size], sizeof(TSPString));
       size += sizeof(TSPString);
     }
-    state->recovery_emitted = (bool)buffer[size++];
+    state->prev_sent = (enum PrevSent)buffer[size++];
     if (buffer[size++])
       memcpy(state->unclosed_delims, &buffer[size], sizeof state->unclosed_delims);
   } else {
@@ -801,10 +832,13 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   bool is_ERROR = valid_symbols[TOKEN_ERROR];
   bool skipped_whitespace = false;
   bool crossed_newline = false;
-  bool recovery_emitted = state->recovery_emitted;
+  bool block_marked =
+    state->prev_sent == SENT_BLOCK_MARK || state->prev_sent == SENT_AUTOQUOTE_AHEAD;
+  bool recovery_emitted =
+    state->prev_sent == SENT_RECOVERY || state->prev_sent == SENT_BLOCK_MARK;
   bool x_word = false;
   bool x_start = false;
-  state->recovery_emitted = false;
+  state->prev_sent = SENT_NOTHING;
 
   int32_t c = lexer->lookahead;
 
@@ -901,10 +935,15 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
 
   // this is whitespace sensitive, so it must go before any whitespace is
   // skipped
-  if (valid_symbols[TOKEN_HEREDOC_MIDDLE] && !is_ERROR && state->heredoc_count > 0) {
+  // A nested heredoc waits on top of the one whose body we are in: finish
+  // this line of the outer body, then let the nested one start.
+  bool nested_pending = state->heredoc_state == HEREDOC_START && state->heredoc_count > 1 &&
+                        state->heredoc_queue[1].started;
+  if (valid_symbols[TOKEN_HEREDOC_MIDDLE] && !is_ERROR && state->heredoc_count > 0 &&
+      !(nested_pending && lexer->get_column(lexer) == 0)) {
     HeredocEntry *front = lexerstate_front_heredoc(state);
     DEBUG("Beginning heredoc contents\n", 0);
-    if (state->heredoc_state != HEREDOC_CONTINUE) {
+    if (state->heredoc_state != HEREDOC_CONTINUE && !nested_pending) {
       TSPString line = {0};
       // read as many lines as we can
       while (!lexer->eof(lexer)) {
@@ -960,11 +999,17 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
       // handle the continue case; read ahead until we get a \n or an escape
       bool saw_chars = false;
       while (1) {
-        if (is_interpolation_escape(c)) {
+        // a last line with no newline: without this the loop never ends
+        if (is_interpolation_escape(c) || lexer->eof(lexer)) {
           MARK_END;
           break;
         }
         if (c == '\n') {
+          if (nested_pending) {
+            ADVANCE_C;
+            MARK_END;
+            TOKEN(TOKEN_HEREDOC_MIDDLE);
+          }
           MARK_END;
           state->heredoc_state = HEREDOC_UNKNOWN;
           TOKEN(TOKEN_HEREDOC_MIDDLE);
@@ -995,6 +1040,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   if (valid_symbols[TOKEN_HEREDOC_START]) {
     if (state->heredoc_state == HEREDOC_START && lexer->get_column(lexer) == 0) {
       state->heredoc_state = HEREDOC_UNKNOWN;
+      lexerstate_front_heredoc(state)->started = true;
       TOKEN(TOKEN_HEREDOC_START);
     }
   }
@@ -1067,12 +1113,42 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   if (!is_ERROR && (enter_oo || enter_asynctry)) {
     char word[8];
     int wlen = 0;
+    // On a new line the block mark goes out before the keyword, once.
+    bool mark_block = !block_marked && valid_symbols[TOKEN_RECOVER_BLOCK_MARK] &&
+                      (crossed_newline || recovery_emitted);
+    if (mark_block) MARK_END;  // zero-width, in front of the word
     while (isidcont(c)) {  // consume the whole identifier (store first 7 chars)
       if (wlen < 7) word[wlen++] = (char)c;
       lexer->advance(lexer, false);
       c = lexer->lookahead;
     }
     word[wlen] = '\0';
+    if (mark_block && (strcmp(word, "class") == 0 || strcmp(word, "role") == 0 || strcmp(word, "method") == 0)) {
+      /* The mark is still in front of the word, so only a zero-width token can
+       * leave from here: the block mark for a declaration, the autoquote-ahead
+       * marker for a fat-comma key, and a plain re-lex for a call. */
+      bool is_m = word[0] == 'm';
+      while (is_tsp_whitespace(c)) { lexer->advance(lexer, false); c = lexer->lookahead; }
+      bool decl = false;
+      if (is_m && (c == '{' || c == '(')) decl = true;
+      else if (isidfirst(c)) {
+        decl = true;
+        if (is_m) {
+          while (isidcont(c)) { lexer->advance(lexer, false); c = lexer->lookahead; }
+          while (is_tsp_whitespace(c)) { lexer->advance(lexer, false); c = lexer->lookahead; }
+          if (c == '=') return false;  // method NAME => ... is a call
+        }
+      }
+      if (decl) {
+        state->prev_sent = SENT_BLOCK_MARK;
+        TOKEN(TOKEN_RECOVER_BLOCK_MARK);
+      }
+      if (c == '=' && valid_symbols[TOKEN_FAT_COMMA_AUTOQUOTED_AHEAD]) {
+        state->prev_sent = SENT_AUTOQUOTE_AHEAD;
+        TOKEN(TOKEN_FAT_COMMA_AUTOQUOTED_AHEAD);
+      }
+      return false;
+    }
     MARK_END;  // the token covers exactly the word (lookahead past here is free)
     while (is_tsp_whitespace(c)) {  // peek past whitespace at the next token
       lexer->advance(lexer, false);
@@ -1189,7 +1265,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
 
   // Statement keyword boundary: a statement keyword on a new line means
   // the previous expression is done.  Also fires when a recovery token
-  // was just emitted (recovery_emitted flag) since the newline was already
+  // was just emitted (`prev_sent`) since the newline was already
   // consumed by the previous call.
   // Gate on the first-char filter so we don't call MARK_END (and freeze
   // the token end at the keyword-start position) when the lookahead can't
@@ -1208,29 +1284,33 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
       // The newline is behind us now, so the flag is what brings the next
       // call back to this keyword boundary, where the closers are valid.
       if (valid_symbols[TOKEN_RECOVER_END]) {
-        state->recovery_emitted = true;
+        state->prev_sent = SENT_RECOVERY;
         TOKEN(TOKEN_RECOVER_END);
       }
       // Body block-close: only a structural OO keyword (method/class/role)
       // closes a half-typed sub/method body.  Fires after any inner paren/
       // bracket closers above; the enclosing class block can't accept this
       // token, so the cascade stops at one body (no over-closing).
+      if (is_structural && !block_marked && valid_symbols[TOKEN_RECOVER_BLOCK_MARK]) {
+        state->prev_sent = SENT_BLOCK_MARK;
+        TOKEN(TOKEN_RECOVER_BLOCK_MARK);
+      }
       if (is_structural && valid_symbols[TOKEN_RECOVER_BLOCK_CLOSE]) {
         DEBUG("body block recovery at structural keyword\n", 0);
         // Re-arm the cascade so the next scan re-enters and can close the NEXT
         // enclosing recover-aware block (e.g. an unclosed `if`/loop body inside
         // the method: close the if-block, then the method body).
-        state->recovery_emitted = true;
+        state->prev_sent = SENT_RECOVERY;
         TOKEN(TOKEN_RECOVER_BLOCK_CLOSE);
       }
       // A statement terminator may need to fire BEFORE the body block-close:
       // after an inner closer (e.g. `my @x = [` -> `]`) completes an expression,
       // the statement still needs `;` before the enclosing body can reduce and
-      // close.  Re-arm the recovery cascade (recovery_emitted) so the next scan
+      // close.  Re-arm the recovery cascade (`prev_sent`) so the next scan
       // re-enters here and can emit the block-close.  Harmless when nothing
       // follows: the re-entry finds no further valid recovery token.
       if (valid_symbols[PERLY_SEMICOLON]) {
-        state->recovery_emitted = true;
+        state->prev_sent = SENT_RECOVERY;
         TOKEN(PERLY_SEMICOLON);
       }
     }
