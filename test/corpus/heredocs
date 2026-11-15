@@ -588,3 +588,19 @@ print 1;
     (ambiguous_function_call_expression
       function: (function)
       arguments: (number))))
+
+================================================================================
+Interpolating heredoc cut off mid-line at end of file (must not hang)
+================================================================================
+print <<E;
+$x foo
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (ambiguous_function_call_expression
+      function: (function)
+      arguments: (heredoc_token)))
+  (ERROR
+    (scalar
+      (varname))))

@@ -991,7 +991,8 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
       // handle the continue case; read ahead until we get a \n or an escape
       bool saw_chars = false;
       while (1) {
-        if (is_interpolation_escape(c)) {
+        // a last line with no newline: without this the loop never ends
+        if (is_interpolation_escape(c) || lexer->eof(lexer)) {
           MARK_END;
           break;
         }
