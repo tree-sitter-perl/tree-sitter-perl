@@ -380,3 +380,227 @@ my $w = 2;
         variable: (scalar
           (varname)))
       right: (number))))
+
+================================================================================
+Nested heredoc: introduced inside an interpolating body, same line
+================================================================================
+print <<E1;
+@{[ <<E2 ]}
+foo
+E2
+E1
+print 1;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (ambiguous_function_call_expression
+      function: (function)
+      arguments: (heredoc_token)))
+  (heredoc_content
+    (array
+      (block
+        (expression_statement
+          (anonymous_array_expression
+            (heredoc_token)))))
+    (heredoc_content
+      (heredoc_end))
+    (heredoc_end))
+  (expression_statement
+    (ambiguous_function_call_expression
+      function: (function)
+      arguments: (number))))
+
+================================================================================
+Nested heredoc: introduced on its own line inside the interpolated code
+================================================================================
+print <<E1;
+@{[
+  <<E2
+foo
+E2
+]}
+E1
+print 1;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (ambiguous_function_call_expression
+      function: (function)
+      arguments: (heredoc_token)))
+  (heredoc_content
+    (array
+      (block
+        (expression_statement
+          (anonymous_array_expression
+            (heredoc_token)
+            (heredoc_content
+              (heredoc_end))))))
+    (heredoc_end))
+  (expression_statement
+    (ambiguous_function_call_expression
+      function: (function)
+      arguments: (number))))
+
+================================================================================
+Nested heredoc: the outer line finishes before the inner body starts
+================================================================================
+print <<E1;
+a @{[ <<E2 ]} tail $x
+foo $y
+E2
+rest
+E1
+print 1;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (ambiguous_function_call_expression
+      function: (function)
+      arguments: (heredoc_token)))
+  (heredoc_content
+    (array
+      (block
+        (expression_statement
+          (anonymous_array_expression
+            (heredoc_token)))))
+    (scalar
+      (varname))
+    (heredoc_content
+      (scalar
+        (varname))
+      (heredoc_end))
+    (heredoc_end))
+  (expression_statement
+    (ambiguous_function_call_expression
+      function: (function)
+      arguments: (number))))
+
+================================================================================
+Nested heredoc: two introduced on one line of the outer body
+================================================================================
+print <<E1;
+@{[ <<A, <<B ]}
+a
+A
+b
+B
+E1
+print 1;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (ambiguous_function_call_expression
+      function: (function)
+      arguments: (heredoc_token)))
+  (heredoc_content
+    (array
+      (block
+        (expression_statement
+          (anonymous_array_expression
+            (list_expression
+              (heredoc_token)
+              (heredoc_token))))))
+    (heredoc_end))
+  (heredoc_content
+    (heredoc_end))
+  (expression_statement
+    (ambiguous_function_call_expression
+      function: (function)
+      arguments: (ambiguous_function_call_expression
+        function: (function)
+        arguments: (number)))))
+
+================================================================================
+Nested heredoc: three deep
+================================================================================
+print <<E1;
+@{[ <<E2 ]}
+@{[ <<E3 ]}
+x
+E3
+E2
+E1
+print 1;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (ambiguous_function_call_expression
+      function: (function)
+      arguments: (heredoc_token)))
+  (heredoc_content
+    (array
+      (block
+        (expression_statement
+          (anonymous_array_expression
+            (heredoc_token)))))
+    (heredoc_content
+      (array
+        (block
+          (expression_statement
+            (anonymous_array_expression
+              (heredoc_token)))))
+      (heredoc_content
+        (heredoc_end))
+      (heredoc_end))
+    (heredoc_end))
+  (expression_statement
+    (ambiguous_function_call_expression
+      function: (function)
+      arguments: (number))))
+
+================================================================================
+Nested heredoc: inside the first of two stacked heredocs
+================================================================================
+print <<E1, <<E0;
+@{[ <<E2 ]}
+foo
+E2
+E1
+zero
+E0
+print 1;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (ambiguous_function_call_expression
+      function: (function)
+      arguments: (list_expression
+        (heredoc_token)
+        (heredoc_token))))
+  (heredoc_content
+    (array
+      (block
+        (expression_statement
+          (anonymous_array_expression
+            (heredoc_token)))))
+    (heredoc_content
+      (heredoc_end))
+    (heredoc_end))
+  (heredoc_content
+    (heredoc_end))
+  (expression_statement
+    (ambiguous_function_call_expression
+      function: (function)
+      arguments: (number))))
+
+================================================================================
+Interpolating heredoc cut off mid-line at end of file (must not hang)
+================================================================================
+print <<E;
+$x foo
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (ambiguous_function_call_expression
+      function: (function)
+      arguments: (heredoc_token)))
+  (ERROR
+    (scalar
+      (varname))))

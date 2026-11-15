@@ -100,6 +100,10 @@ silently corrupts.
 - **A FIFO heredoc queue** (cap 4) — multiple heredocs introduced on one line
   (`print <<A, <<B;`) are consumed in order, each entry carrying its own
   delimiter + interpolate + indent flags.
+  A heredoc introduced inside a body that has begun (`@{[ <<B ]}` in an
+  interpolating body) nests: it is queued ahead of the begun one (`started`),
+  its `heredoc_content` lands inside the outer one, and the outer body
+  resumes at the line after the inner terminator.
 
 Other scanner responsibilities:
 
@@ -140,6 +144,19 @@ Other scanner responsibilities:
   term, and for the closer only after it. When adding an external token that
   follows an expression, put it behind the marker too, and check the state
   count (`benchmark/measure/`).
+  The marker must be acceptable after *every* expression or the copy comes
+  back: `endThen($, ')')` wraps closers nothing recovers, and the list repeats
+  and the anonymous hash carry a lower-precedence alternative with it. The
+  scanner never sends the marker in those places. `_RECOVER_BLOCK_MARK` does
+  the same job at the start of a statement for the body-block closer.
+- **What else splits states: lexical conflicts.** A state that accepts one
+  identifier-shaped token cannot merge with a state that accepts another one
+  it conflicts with. Hence `x` and the regex flags come from the scanner, and
+  the words that can follow a term (`and or xor if unless while until for
+  foreach`) are in `reserved:` so every state lexes them alike. A place
+  where such a word is a plain name (`$or`, `->if`, `sub for`) must use
+  `_bareword_name` or `reserved('none', $._identifier)`; `reserved('none', …)`
+  does nothing on a nonterminal, and `_bareword_name` must stay in `inline:`.
 - **Zero-width lookahead externals** (`_brace_end_zw`, `_dollar_ident_zw`,
   `_no_interp_extra_zw`, `_NONASSOC`): disambiguation markers that consume no
   input — e.g. `$hash{q}` (brace-end vs. a `q//` quote) and interpolation
