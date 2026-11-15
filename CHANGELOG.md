@@ -6,6 +6,82 @@ published package versions (npm `tree-sitter-perl`, crates.io
 notes. Releases before 2.0.0 are described on the
 [GitHub releases page](https://github.com/tree-sitter-perl/tree-sitter-perl/releases).
 
+## v2.1.0 — 2026-11-15
+
+A minor release: one node type is new and a few children and fields
+changed, listed under "Node types" below. Measured over a 12,574-file
+corpus against 2.0.6: the parser table is 59% smaller, parsing takes
+18% fewer instructions, 51 trees change, and 48 of those files had
+parse errors before.
+
+### New: `unterminated_quote`
+
+- A quote whose closer never comes is now an `unterminated_quote` node,
+  the operator word and the opening delimiter, and the rest of the line
+  parses as code. Before, the parser errored at the quote and recovery
+  kept whatever it could, often little of the file. (#290)
+- For a bare `'` or `"`, a closer further down the file has to read as a
+  closer. A half-typed quote used to pair with the opener of the next
+  string and turn every later string in the file inside out. The closer
+  is refused when the next token on its line cannot follow a term, when
+  it sits on a later line glued to something other than `, ) ; ] } . =`,
+  or when the rest of its line only balances if it is an opener.
+  Quote-like operators (`q()`, `qq{}`, `m//`, ...) are unchanged. (#291)
+
+Over about 6,850 simulated mid-edit buffers (a quote opened or a closer
+or opener deleted in real files), the share of the tree that survives
+went from 79% to 97%, and edits that keep less than 90% of it fell from
+3,429 to 438.
+
+### Faster
+
+- The scanner asked for the column before every token, which re-walks the
+  line, so long lines parsed in quadratic time. It now asks only when the
+  next character could start POD. ASCII characters skip the Unicode
+  table lookup. (#289)
+- A file with many unclosed quote openers of one delimiter rescanned to
+  the end of the file for each one. 10,000 lines of unclosed `q(` went
+  from 14.2 s to 0.67 s. (#290)
+- The parse table went from 5,684 states (3,610 large) to 2,368 (1,142
+  large), and the compiled parser from 4.6 MB to 1.6 MB, with no change
+  to valid code's trees other than those listed below. (#295 to #302)
+
+### Fixed
+
+- A heredoc introduced inside another heredoc's body (`@{[ <<E2 ]}` in an
+  interpolating heredoc) is read first, as perl does, and its
+  `heredoc_content` sits inside the outer one. Its body used to be left
+  unread, and everything after it was one ERROR. (#304)
+- An interpolating heredoc whose last line has an interpolation and no
+  newline before the end of the file no longer hangs the parser. (#305)
+
+### Node types
+
+- New: `unterminated_quote`, which may appear wherever an expression can.
+- `data_section` and `eof_marker` are no longer possible children of
+  `block`, `block_statement`, `indirect_object`, `cstyle_for_statement`
+  or `statement_label`. `__END__` and `__DATA__` end the last statement
+  and the section sits at the top of the file, as before.
+- `cstyle_for_statement`'s `initialiser` and `condition` fields and
+  `statement_label`'s `statement` field are no longer marked required.
+  The trees for valid code are the same; the schema had to allow them to
+  be missing in broken input.
+
+### Changed trees
+
+- `try { ... } or carp(...)` under Try::Tiny now gives a two-character
+  ERROR at the `or`, where 2.0.6 parsed it clean. `or` is now a reserved
+  word after a term. Two files in the corpus have it.
+- A file holding only `-` (perl's own `t/lib/CannotParse.pm`, a file
+  meant not to compile) is now an ERROR.
+
+### For contributors
+
+- `benchmark/measure/` builds the parser and diffs every tree in a corpus
+  against another build, counts instructions with callgrind and runs the
+  mid-edit census. `benchmark/measure/states/` explains why the generator
+  kept two states apart. CLAUDE.md says when to use each. (#294, #295)
+
 ## v2.0.6 — 2026-11-12
 
 A fixes-only release: no node type, child or field was added or removed
