@@ -285,6 +285,8 @@ enum HeredocState { HEREDOC_NONE, HEREDOC_START, HEREDOC_UNKNOWN, HEREDOC_CONTIN
 typedef struct {
   TSPString delim;
   bool interpolates, indents;
+  /* its body has begun: a heredoc introduced inside it nests ahead of it */
+  bool started;
 } HeredocEntry;
 
 typedef struct {
@@ -446,13 +448,25 @@ static HeredocEntry *lexerstate_front_heredoc(LexerState *state) {
  * is graceful degradation for a pathological input. */
 static void lexerstate_add_heredoc(LexerState *state, TSPString *delim, bool interp, bool indent) {
   HeredocEntry *e;
-  if (state->heredoc_count >= HEREDOC_QUEUE_MAX)
+  /* A heredoc introduced inside the body of one that has begun (`@{[ <<B ]}`
+   * in an interpolating body) takes its lines first: it goes ahead of the
+   * begun one, behind any nested sibling from the same line. */
+  int at = 0;
+  while (at < state->heredoc_count && !state->heredoc_queue[at].started) at++;
+  if (at < state->heredoc_count && state->heredoc_count < HEREDOC_QUEUE_MAX) {
+    for (int i = state->heredoc_count; i > at; i--)
+      state->heredoc_queue[i] = state->heredoc_queue[i - 1];
+    state->heredoc_count++;
+    e = &state->heredoc_queue[at];
+    if (at == 0) state->heredoc_state = HEREDOC_START;
+  } else if (state->heredoc_count >= HEREDOC_QUEUE_MAX)
     e = &state->heredoc_queue[HEREDOC_QUEUE_MAX - 1];
   else
     e = &state->heredoc_queue[state->heredoc_count++];
   e->delim = *delim;
   e->interpolates = interp;
   e->indents = indent;
+  e->started = false;
   if (state->heredoc_count == 1) state->heredoc_state = HEREDOC_START;
 }
 
@@ -468,7 +482,10 @@ static void lexerstate_finish_heredoc(LexerState *state) {
       state->heredoc_queue[i] = state->heredoc_queue[i + 1];
   }
   state->heredoc_queue[state->heredoc_count] = (HeredocEntry){0};
-  state->heredoc_state = state->heredoc_count > 0 ? HEREDOC_START : HEREDOC_NONE;
+  /* a begun heredoc left on top was interrupted by a nested one: it resumes
+   * at the start of a line */
+  state->heredoc_state = state->heredoc_count == 0 ? HEREDOC_NONE
+    : state->heredoc_queue[0].started ? HEREDOC_UNKNOWN : HEREDOC_START;
 }
 
 #define ADVANCE_C                                                             \
@@ -717,7 +734,7 @@ static bool is_interpolation_escape(int32_t c) { return c < 256 && tsp_strchr("$
 #define SER_FIXED_OVERHEAD \
   (1 /* quote_count   */ + 1 /* any unclosed_delims */ + 16 /* unclosed_delims */ + \
    1 /* heredoc_state */ + 1 /* heredoc_count */ + \
-   HEREDOC_QUEUE_MAX * (1 /* interpolates */ + 1 /* indents */ + (int)sizeof(TSPString)) + \
+   HEREDOC_QUEUE_MAX * (1 /* interpolates */ + 1 /* indents */ + 1 /* started */ + (int)sizeof(TSPString)) + \
    1 /* recovery_emitted */)
 #define MAX_SERIALIZED_QUOTES \
   ((TREE_SITTER_SERIALIZATION_BUFFER_SIZE - SER_FIXED_OVERHEAD) / (int)sizeof(TSPQuote))
@@ -746,6 +763,7 @@ unsigned int tree_sitter_perl_external_scanner_serialize(void *payload, char *bu
     HeredocEntry *e = &state->heredoc_queue[i];
     buffer[size++] = (char)e->interpolates;
     buffer[size++] = (char)e->indents;
+    buffer[size++] = (char)e->started;
     memcpy(&buffer[size], &e->delim, sizeof(TSPString));
     size += sizeof(TSPString);
   }
@@ -788,6 +806,7 @@ void tree_sitter_perl_external_scanner_deserialize(void *payload, const char *bu
       HeredocEntry *e = &state->heredoc_queue[i];
       e->interpolates = (bool)buffer[size++];
       e->indents = (bool)buffer[size++];
+      e->started = (bool)buffer[size++];
       memcpy(&e->delim, &buffer[size], sizeof(TSPString));
       size += sizeof(TSPString);
     }
@@ -908,10 +927,15 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
 
   // this is whitespace sensitive, so it must go before any whitespace is
   // skipped
-  if (valid_symbols[TOKEN_HEREDOC_MIDDLE] && !is_ERROR && state->heredoc_count > 0) {
+  // A nested heredoc waits on top of the one whose body we are in: finish
+  // this line of the outer body, then let the nested one start.
+  bool nested_pending = state->heredoc_state == HEREDOC_START && state->heredoc_count > 1 &&
+                        state->heredoc_queue[1].started;
+  if (valid_symbols[TOKEN_HEREDOC_MIDDLE] && !is_ERROR && state->heredoc_count > 0 &&
+      !(nested_pending && lexer->get_column(lexer) == 0)) {
     HeredocEntry *front = lexerstate_front_heredoc(state);
     DEBUG("Beginning heredoc contents\n", 0);
-    if (state->heredoc_state != HEREDOC_CONTINUE) {
+    if (state->heredoc_state != HEREDOC_CONTINUE && !nested_pending) {
       TSPString line = {0};
       // read as many lines as we can
       while (!lexer->eof(lexer)) {
@@ -972,6 +996,11 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
           break;
         }
         if (c == '\n') {
+          if (nested_pending) {
+            ADVANCE_C;
+            MARK_END;
+            TOKEN(TOKEN_HEREDOC_MIDDLE);
+          }
           MARK_END;
           state->heredoc_state = HEREDOC_UNKNOWN;
           TOKEN(TOKEN_HEREDOC_MIDDLE);
@@ -1002,6 +1031,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   if (valid_symbols[TOKEN_HEREDOC_START]) {
     if (state->heredoc_state == HEREDOC_START && lexer->get_column(lexer) == 0) {
       state->heredoc_state = HEREDOC_UNKNOWN;
+      lexerstate_front_heredoc(state)->started = true;
       TOKEN(TOKEN_HEREDOC_START);
     }
   }

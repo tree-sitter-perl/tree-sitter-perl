@@ -100,6 +100,10 @@ silently corrupts.
 - **A FIFO heredoc queue** (cap 4) — multiple heredocs introduced on one line
   (`print <<A, <<B;`) are consumed in order, each entry carrying its own
   delimiter + interpolate + indent flags.
+  A heredoc introduced inside a body that has begun (`@{[ <<B ]}` in an
+  interpolating body) nests: it is queued ahead of the begun one (`started`),
+  its `heredoc_content` lands inside the outer one, and the outer body
+  resumes at the line after the inner terminator.
 
 Other scanner responsibilities:
 
