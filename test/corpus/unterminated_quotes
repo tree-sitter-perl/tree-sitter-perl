@@ -272,19 +272,25 @@ foo("z");
 
 (source_file
   (expression_statement
-    (list_expression
-      (assignment_expression
-        left: (variable_declaration
-          variable: (scalar
-            (varname)))
-        right: (binary_expression
-          left: (interpolated_string_literal
-            content: (string_content))
-          right: (unterminated_quote)))
-      (autoquoted_bareword)
-      (interpolated_string_literal
-        content: (string_content))))
-  (ERROR)
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      (ERROR)
+      right: (ambiguous_function_call_expression
+        function: (function)
+        arguments: (assignment_expression
+          left: (variable_declaration
+            variable: (hash
+              (varname)))
+          right: (parenthesized_expression
+            (list_expression
+              (autoquoted_bareword)
+              (interpolated_string_literal
+                content: (string_content))
+              (autoquoted_bareword)
+              (interpolated_string_literal
+                content: (string_content))))))))
   (expression_statement
     (function_call_expression
       function: (function)
@@ -562,24 +568,13 @@ $x =~ s'a'b'g;
         modifiers: (substitution_regexp_modifiers)))))
 
 ================================================================================
-closed quote - multi-line string glued to an operator word
+closed quote - multi-line string then a spaced operator word
 ================================================================================
 my $s = "a
 b" x 3;
-my $t = "c
-d"x3;
 --------------------------------------------------------------------------------
 
 (source_file
-  (expression_statement
-    (assignment_expression
-      left: (variable_declaration
-        variable: (scalar
-          (varname)))
-      right: (binary_expression
-        left: (interpolated_string_literal
-          content: (string_content))
-        right: (number))))
   (expression_statement
     (assignment_expression
       left: (variable_declaration

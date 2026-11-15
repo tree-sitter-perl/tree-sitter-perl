@@ -21,9 +21,14 @@
  *      is an operator, a statement modifier or a closing bracket; never a word,
  *      a sigil, an opening bracket or another quote; or
  *   2. the opener is on an earlier line and the quote is not directly followed
- *      by one of , ) ; ] } . = or whitespace; or
- *   3. the opener is on this line, the quote is glued to an operator, and an
- *      odd number of that quote is left on the line.
+ *      by one of , ) ; ] } . = or whitespace.  A named operator glued to the
+ *      quote counts: in `(name => "x", ...)` under an unclosed string, x is
+ *      the next string's content, not the repetition operator; or
+ *   3. the opener is on this line, the quote is glued to an operator, and the
+ *      rest of the line reads better that way.  The line is walked twice, once
+ *      starting in code and once starting inside a string; the reading that
+ *      ends outside a string wins.  When both or neither do, an odd number of
+ *      that quote left on the line says opener.
  *
  * This is a guess, and its evidence is measured, not proved: on the benchmark
  * corpus it refuses no closer of a string that parses without it.  Before
@@ -87,6 +92,27 @@ static bool tsp_word_follows_a_term(const int32_t *word, int len) {
   return false;
 }
 
+/* Walk a line that starts in code (in == 0) or inside a string delimited by
+ * `in`, taking ' and " strings with their escapes and a # comment.  Does it
+ * end in code?  Not a lexer: a quote in a regex or after a sigil misleads it,
+ * which is why it only ever breaks a tie. */
+static bool tsp_line_ends_in_code(const int32_t *rest, int len, int32_t in) {
+  for (int i = 0; i < len; i++) {
+    int32_t c = rest[i];
+    if (in) {
+      if (c == '\\')
+        i++;
+      else if (c == in)
+        in = 0;
+    } else if (c == '\'' || c == '"') {
+      in = c;
+    } else if (c == '#' && (i == 0 || is_tsp_whitespace(rest[i - 1]))) {
+      return true;
+    }
+  }
+  return !in;
+}
+
 static bool tsp_closer_opens_next_string(const int32_t *rest, int len, int32_t quote,
                                          bool crossed_line) {
   if (len == 0) return false;
@@ -99,13 +125,25 @@ static bool tsp_closer_opens_next_string(const int32_t *rest, int len, int32_t q
   if (tsp_qc_idfirst(rest[i])) {
     int end = i;
     while (end < len && tsp_qc_idcont(rest[end])) end++;
-    // a named operator is as good a sign of a closer as a comma
-    return !tsp_word_follows_a_term(rest + i, end - i);
+    if (!tsp_word_follows_a_term(rest + i, end - i)) return true;
+    // a named operator after a space is as good a sign of a closer as a
+    // comma; glued to the quote it may be the next string's first word
+    if (i > 0) return false;
+    if (crossed_line) return true;
+    i = end;
+    goto count;
   }
   if (!tsp_qc_in(TSP_FOLLOWS_A_TERM_PUNCT, rest[i])) return true;
 
   if (crossed_line) return !tight;
   if (tight) return false;
+
+count:;
+  // Read the rest of the line both ways.  If only one reading leaves the line
+  // outside a string, that is the one.
+  bool as_closer = tsp_line_ends_in_code(rest, len, 0);
+  bool as_opener = tsp_line_ends_in_code(rest, len, quote);
+  if (as_closer != as_opener) return as_opener;
 
   bool odd = false;
   for (; i < len; i++) {
