@@ -293,7 +293,7 @@ module.exports = grammar({
     // object slot (`print STDERR LIST`) and a plain term argument
     // (`binmode STDOUT, MODE`); GLR resolves on the following comma/term.
     [$._term, $.indirect_object],
-    [$.expression_statement, $._tricky_indirob_hashref],
+    [$.expression_statement, $._tricky_indirob_hashref, $.anonymous_hash_expression],
     [$.expression_statement, $.for_statement],
     [$.autoquoted_bareword],
     // these are all dynamic handling for continue BLOCK vs func0 b/c we don't get lookahead
@@ -572,9 +572,14 @@ module.exports = grammar({
      * `prec.right` gobble closes the list instead (so `push @a, ++$x` reads `++`
      * as a postfix).  Slot-at-end forces `++` to shift as a prefix; `,,` empties
      * (sitting before a comma) still reduce. */
+    // The second repeat alternative accepts the end marker before a comma.
+    // The scanner never sends it there; without it the states after a list
+    // element lack the marker and keep their own copy of the expression
+    // tower.  It is a separate prec(-1) alternative, not an optional inside
+    // the first: there it resolved towards ending the list at the comma.
     _term_rightward: $ => prec.right(seq(
       $._term, $._PERLY_COMMA,
-      repeat(seq(optional($._term), $._PERLY_COMMA)),
+      repeat(choice(seq(optional($._term), $._PERLY_COMMA), prec(-1, seq($._term, $._RECOVER_END, $._PERLY_COMMA)))),
       optional($._term),
     )),
 
@@ -844,15 +849,21 @@ module.exports = grammar({
     _tricky_list: $ => prec.right(1, seq(
       choice($.string_literal, $.interpolated_string_literal, $.command_string, $.autoquoted_bareword, $.number),
       $._PERLY_COMMA,
-      repeat(seq(optional($._term), $._PERLY_COMMA)),
+      repeat(choice(seq(optional($._term), $._PERLY_COMMA), prec(-1, seq($._term, $._RECOVER_END, $._PERLY_COMMA)))),
       optional($._term),
     )),
+    // The scanner sends the end marker before a `}` that follows an expression,
+    // so both hash forms take it, at prec(-1): only where a block reading is
+    // also live (`_tricky_indirob_hashref`, prec 1, behind its declared
+    // conflict) does the choice stay open.
     anonymous_hash_expression: $ => choice(
       seq($._PERLY_BRACE_OPEN, $._expr, '}'),
+      prec(-1, seq($._PERLY_BRACE_OPEN, $._expr, $._RECOVER_END, '}')),
       // an empty top-level block is a hashref
       prec(1, seq($._PERLY_BRACE_OPEN, '}')),
       // and if the hash starts w/ most quoted strings it's a hashref
       seq($._PERLY_BRACE_OPEN, alias($._tricky_list, $.list_expression), '}'),
+      prec(-1, seq($._PERLY_BRACE_OPEN, alias($._tricky_list, $.list_expression), $._RECOVER_END, '}')),
     ),
 
     _anon_sub_tail: $ => seq(
@@ -948,8 +959,11 @@ module.exports = grammar({
       repeat(seq(',', optional(field('variables', $._decl_variable_list_element))))
     ),
 
+    // `my (undef, $x)`: only the bare word, so that no expression can end
+    // inside a declaration list without the end marker
+    _bare_undef: $ => seq('undef'),
     _decl_variable_list_element: $ => choice(
-      $.undef_expression,
+      alias($._bare_undef, $.undef_expression),
       $._declared_vars,
       $.refalias_variable,
       // a nested parenthesized group: perl flattens `my ($a, ($b, $c))` to
@@ -1004,8 +1018,8 @@ module.exports = grammar({
     _map_grep: $ => choice('map', 'grep'),
     map_grep_expression: $ => prec.left(TERMPREC.LSTOP, choice(
       seq($._map_grep, field('callback', $.block), field('list', $._listexpr)),
-      seq($._map_grep, field('callback', $._term), $._PERLY_COMMA, field('list', $._listexpr)),
-      seq($._map_grep, '(', $._NONASSOC, field('callback', $._term), $._PERLY_COMMA, field('list', $._listexpr), endThen($, ')')),
+      seq($._map_grep, field('callback', $._term), endThen($, $._PERLY_COMMA), field('list', $._listexpr)),
+      seq($._map_grep, '(', $._NONASSOC, field('callback', $._term), endThen($, $._PERLY_COMMA), field('list', $._listexpr), endThen($, ')')),
       seq($._map_grep, '(', $._NONASSOC, field('callback', $.block), field('list', $._listexpr), endThen($, ')')),
     )),
 
@@ -1078,7 +1092,7 @@ module.exports = grammar({
       // `$h` as an indirect object followed by a `{x}` hashref.
       seq(field('function', alias($._indirob_listop, $.function)), '(', $._NONASSOC, $.indirect_object, field('arguments', $._expr), recoverParen($)),
     ),
-    _tricky_indirob_hashref: $ => seq($._PERLY_BRACE_OPEN, $._expr, $._RECOVER_END, $._PERLY_SEMICOLON, '}'),
+    _tricky_indirob_hashref: $ => prec(1, seq($._PERLY_BRACE_OPEN, $._expr, $._RECOVER_END, $._PERLY_SEMICOLON, '}')),
     ambiguous_function_call_expression: $ =>
       // we need the right precedence here so we can read ahead for the hash/sub disambiguation
       prec.right(TERMPREC.LSTOP,

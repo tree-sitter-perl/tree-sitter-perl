@@ -2359,23 +2359,49 @@
           {
             "type": "REPEAT",
             "content": {
-              "type": "SEQ",
+              "type": "CHOICE",
               "members": [
                 {
-                  "type": "CHOICE",
+                  "type": "SEQ",
                   "members": [
                     {
-                      "type": "SYMBOL",
-                      "name": "_term"
+                      "type": "CHOICE",
+                      "members": [
+                        {
+                          "type": "SYMBOL",
+                          "name": "_term"
+                        },
+                        {
+                          "type": "BLANK"
+                        }
+                      ]
                     },
                     {
-                      "type": "BLANK"
+                      "type": "SYMBOL",
+                      "name": "_PERLY_COMMA"
                     }
                   ]
                 },
                 {
-                  "type": "SYMBOL",
-                  "name": "_PERLY_COMMA"
+                  "type": "PREC",
+                  "value": -1,
+                  "content": {
+                    "type": "SEQ",
+                    "members": [
+                      {
+                        "type": "SYMBOL",
+                        "name": "_term"
+                      },
+                      {
+                        "type": "SYMBOL",
+                        "name": "_RECOVER_END"
+                      },
+                      {
+                        "type": "SYMBOL",
+                        "name": "_PERLY_COMMA"
+                      }
+                    ]
+                  }
                 }
               ]
             }
@@ -4936,23 +4962,49 @@
           {
             "type": "REPEAT",
             "content": {
-              "type": "SEQ",
+              "type": "CHOICE",
               "members": [
                 {
-                  "type": "CHOICE",
+                  "type": "SEQ",
                   "members": [
                     {
-                      "type": "SYMBOL",
-                      "name": "_term"
+                      "type": "CHOICE",
+                      "members": [
+                        {
+                          "type": "SYMBOL",
+                          "name": "_term"
+                        },
+                        {
+                          "type": "BLANK"
+                        }
+                      ]
                     },
                     {
-                      "type": "BLANK"
+                      "type": "SYMBOL",
+                      "name": "_PERLY_COMMA"
                     }
                   ]
                 },
                 {
-                  "type": "SYMBOL",
-                  "name": "_PERLY_COMMA"
+                  "type": "PREC",
+                  "value": -1,
+                  "content": {
+                    "type": "SEQ",
+                    "members": [
+                      {
+                        "type": "SYMBOL",
+                        "name": "_term"
+                      },
+                      {
+                        "type": "SYMBOL",
+                        "name": "_RECOVER_END"
+                      },
+                      {
+                        "type": "SYMBOL",
+                        "name": "_PERLY_COMMA"
+                      }
+                    ]
+                  }
                 }
               ]
             }
@@ -4994,6 +5046,31 @@
         },
         {
           "type": "PREC",
+          "value": -1,
+          "content": {
+            "type": "SEQ",
+            "members": [
+              {
+                "type": "SYMBOL",
+                "name": "_PERLY_BRACE_OPEN"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "_expr"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "_RECOVER_END"
+              },
+              {
+                "type": "STRING",
+                "value": "}"
+              }
+            ]
+          }
+        },
+        {
+          "type": "PREC",
           "value": 1,
           "content": {
             "type": "SEQ",
@@ -5030,6 +5107,36 @@
               "value": "}"
             }
           ]
+        },
+        {
+          "type": "PREC",
+          "value": -1,
+          "content": {
+            "type": "SEQ",
+            "members": [
+              {
+                "type": "SYMBOL",
+                "name": "_PERLY_BRACE_OPEN"
+              },
+              {
+                "type": "ALIAS",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "_tricky_list"
+                },
+                "named": true,
+                "value": "list_expression"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "_RECOVER_END"
+              },
+              {
+                "type": "STRING",
+                "value": "}"
+              }
+            ]
+          }
         }
       ]
     },
@@ -5550,12 +5657,26 @@
         }
       ]
     },
+    "_bare_undef": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "undef"
+        }
+      ]
+    },
     "_decl_variable_list_element": {
       "type": "CHOICE",
       "members": [
         {
-          "type": "SYMBOL",
-          "name": "undef_expression"
+          "type": "ALIAS",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_bare_undef"
+          },
+          "named": true,
+          "value": "undef_expression"
         },
         {
           "type": "SYMBOL",
@@ -6027,8 +6148,26 @@
                 }
               },
               {
-                "type": "SYMBOL",
-                "name": "_PERLY_COMMA"
+                "type": "CHOICE",
+                "members": [
+                  {
+                    "type": "SYMBOL",
+                    "name": "_PERLY_COMMA"
+                  },
+                  {
+                    "type": "SEQ",
+                    "members": [
+                      {
+                        "type": "SYMBOL",
+                        "name": "_RECOVER_END"
+                      },
+                      {
+                        "type": "SYMBOL",
+                        "name": "_PERLY_COMMA"
+                      }
+                    ]
+                  }
+                ]
               },
               {
                 "type": "FIELD",
@@ -6064,8 +6203,26 @@
                 }
               },
               {
-                "type": "SYMBOL",
-                "name": "_PERLY_COMMA"
+                "type": "CHOICE",
+                "members": [
+                  {
+                    "type": "SYMBOL",
+                    "name": "_PERLY_COMMA"
+                  },
+                  {
+                    "type": "SEQ",
+                    "members": [
+                      {
+                        "type": "SYMBOL",
+                        "name": "_RECOVER_END"
+                      },
+                      {
+                        "type": "SYMBOL",
+                        "name": "_PERLY_COMMA"
+                      }
+                    ]
+                  }
+                ]
               },
               {
                 "type": "FIELD",
@@ -6745,29 +6902,33 @@
       ]
     },
     "_tricky_indirob_hashref": {
-      "type": "SEQ",
-      "members": [
-        {
-          "type": "SYMBOL",
-          "name": "_PERLY_BRACE_OPEN"
-        },
-        {
-          "type": "SYMBOL",
-          "name": "_expr"
-        },
-        {
-          "type": "SYMBOL",
-          "name": "_RECOVER_END"
-        },
-        {
-          "type": "SYMBOL",
-          "name": "_PERLY_SEMICOLON"
-        },
-        {
-          "type": "STRING",
-          "value": "}"
-        }
-      ]
+      "type": "PREC",
+      "value": 1,
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "SYMBOL",
+            "name": "_PERLY_BRACE_OPEN"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "_expr"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "_RECOVER_END"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "_PERLY_SEMICOLON"
+          },
+          {
+            "type": "STRING",
+            "value": "}"
+          }
+        ]
+      }
     },
     "ambiguous_function_call_expression": {
       "type": "PREC_RIGHT",
@@ -11393,7 +11554,8 @@
     ],
     [
       "expression_statement",
-      "_tricky_indirob_hashref"
+      "_tricky_indirob_hashref",
+      "anonymous_hash_expression"
     ],
     [
       "expression_statement",
