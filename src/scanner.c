@@ -109,6 +109,9 @@ enum TokenType {
   /* zero-width: the grammar asks for this before any recovery closer or fake
    * semicolon, so those do not have to be valid in every after-term state */
   TOKEN_RECOVER_END,
+  /* zero-width: a class/role/method declaration opens this line.  Valid at
+   * the start of any statement; a sub or method body closes on it. */
+  TOKEN_RECOVER_BLOCK_MARK,
   /* regex and transliteration flags */
   TOKEN_QR_MODIFIERS,
   TOKEN_M_MODIFIERS,
@@ -291,7 +294,10 @@ typedef struct {
   HeredocEntry heredoc_queue[HEREDOC_QUEUE_MAX];
   uint8_t heredoc_count;
   enum HeredocState heredoc_state;
-  bool recovery_emitted;
+  /* What the previous call sent, for the call that follows it at the same
+   * position: 0 nothing, 1 a recovery token, 2 the block mark (which is also
+   * a recovery token), 3 the autoquote-ahead marker for a `class =>` key. */
+  uint8_t recovery_emitted;
   /* Bit c is set once an opener c ran to EOF without a closer.  Every later
    * opener of that character would repeat the same scan to EOF, which is
    * quadratic in a file full of them. */
@@ -785,7 +791,7 @@ void tree_sitter_perl_external_scanner_deserialize(void *payload, const char *bu
       memcpy(&e->delim, &buffer[size], sizeof(TSPString));
       size += sizeof(TSPString);
     }
-    state->recovery_emitted = (bool)buffer[size++];
+    state->recovery_emitted = (uint8_t)buffer[size++];
     if (buffer[size++])
       memcpy(state->unclosed_delims, &buffer[size], sizeof state->unclosed_delims);
   } else {
@@ -801,7 +807,8 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   bool is_ERROR = valid_symbols[TOKEN_ERROR];
   bool skipped_whitespace = false;
   bool crossed_newline = false;
-  bool recovery_emitted = state->recovery_emitted;
+  bool block_marked = state->recovery_emitted >= 2;
+  bool recovery_emitted = state->recovery_emitted == 1 || state->recovery_emitted == 2;
   bool x_word = false;
   bool x_start = false;
   state->recovery_emitted = false;
@@ -1067,12 +1074,42 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   if (!is_ERROR && (enter_oo || enter_asynctry)) {
     char word[8];
     int wlen = 0;
+    // On a new line the block mark goes out before the keyword, once.
+    bool mark_block = !block_marked && valid_symbols[TOKEN_RECOVER_BLOCK_MARK] &&
+                      (crossed_newline || recovery_emitted);
+    if (mark_block) MARK_END;  // zero-width, in front of the word
     while (isidcont(c)) {  // consume the whole identifier (store first 7 chars)
       if (wlen < 7) word[wlen++] = (char)c;
       lexer->advance(lexer, false);
       c = lexer->lookahead;
     }
     word[wlen] = '\0';
+    if (mark_block && (strcmp(word, "class") == 0 || strcmp(word, "role") == 0 || strcmp(word, "method") == 0)) {
+      /* The mark is still in front of the word, so only a zero-width token can
+       * leave from here: the block mark for a declaration, the autoquote-ahead
+       * marker for a fat-comma key, and a plain re-lex for a call. */
+      bool is_m = word[0] == 'm';
+      while (is_tsp_whitespace(c)) { lexer->advance(lexer, false); c = lexer->lookahead; }
+      bool decl = false;
+      if (is_m && (c == '{' || c == '(')) decl = true;
+      else if (isidfirst(c)) {
+        decl = true;
+        if (is_m) {
+          while (isidcont(c)) { lexer->advance(lexer, false); c = lexer->lookahead; }
+          while (is_tsp_whitespace(c)) { lexer->advance(lexer, false); c = lexer->lookahead; }
+          if (c == '=') return false;  // method NAME => ... is a call
+        }
+      }
+      if (decl) {
+        state->recovery_emitted = 2;
+        TOKEN(TOKEN_RECOVER_BLOCK_MARK);
+      }
+      if (c == '=' && valid_symbols[TOKEN_FAT_COMMA_AUTOQUOTED_AHEAD]) {
+        state->recovery_emitted = 3;
+        TOKEN(TOKEN_FAT_COMMA_AUTOQUOTED_AHEAD);
+      }
+      return false;
+    }
     MARK_END;  // the token covers exactly the word (lookahead past here is free)
     while (is_tsp_whitespace(c)) {  // peek past whitespace at the next token
       lexer->advance(lexer, false);
@@ -1215,6 +1252,10 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
       // closes a half-typed sub/method body.  Fires after any inner paren/
       // bracket closers above; the enclosing class block can't accept this
       // token, so the cascade stops at one body (no over-closing).
+      if (is_structural && !block_marked && valid_symbols[TOKEN_RECOVER_BLOCK_MARK]) {
+        state->recovery_emitted = 2;
+        TOKEN(TOKEN_RECOVER_BLOCK_MARK);
+      }
       if (is_structural && valid_symbols[TOKEN_RECOVER_BLOCK_CLOSE]) {
         DEBUG("body block recovery at structural keyword\n", 0);
         // Re-arm the cascade so the next scan re-enters and can close the NEXT

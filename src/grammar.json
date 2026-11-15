@@ -73,13 +73,22 @@
               "value": "}"
             },
             {
-              "type": "ALIAS",
-              "content": {
-                "type": "SYMBOL",
-                "name": "_RECOVER_BLOCK_CLOSE"
-              },
-              "named": false,
-              "value": "}"
+              "type": "SEQ",
+              "members": [
+                {
+                  "type": "SYMBOL",
+                  "name": "_RECOVER_BLOCK_MARK"
+                },
+                {
+                  "type": "ALIAS",
+                  "content": {
+                    "type": "SYMBOL",
+                    "name": "_RECOVER_BLOCK_CLOSE"
+                  },
+                  "named": false,
+                  "value": "}"
+                }
+              ]
             }
           ]
         }
@@ -270,6 +279,10 @@
         {
           "type": "SYMBOL",
           "name": "defer_statement"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_RECOVER_BLOCK_MARK"
         },
         {
           "type": "STRING",
@@ -11805,6 +11818,10 @@
     {
       "type": "SYMBOL",
       "name": "_RECOVER_END"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_RECOVER_BLOCK_MARK"
     },
     {
       "type": "SYMBOL",

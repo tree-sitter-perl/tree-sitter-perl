@@ -118,7 +118,12 @@ const recoverBrace = ($) => choice('}', seq($._RECOVER_END, choice('}', alias($.
 // next line — keywords that never legitimately nest inside a body (verified
 // against ~2.4k modern-OO modules) — so a half-typed body closes just itself.
 // Distinct from `_RECOVER_BRACE_CLOSE` so subscript-brace recovery is untouched.
-const recoverBlock = ($) => choice('}', alias($._RECOVER_BLOCK_CLOSE, '}'))
+// The close sits behind `_RECOVER_BLOCK_MARK` for the same reason the other
+// closers sit behind `_RECOVER_END`: it was valid at the start of a statement
+// in a body block and nowhere else, which kept body blocks' statement states
+// apart from every other block's.  The mark is valid at the start of any
+// statement, as an empty one, and only a body block goes on to close on it.
+const recoverBlock = ($) => choice('}', seq($._RECOVER_BLOCK_MARK, alias($._RECOVER_BLOCK_CLOSE, '}')))
 // Subscript openers glued to an interpolated variable. The external wins only
 // when the bracket is also the string's own delimiter (`qq{$h{k}}`), which the
 // content scanner would otherwise count as a nested delimiter.
@@ -268,6 +273,9 @@ module.exports = grammar({
     /* zero-width: an expression ends here, by a recovery closer, a fake
      * semicolon or the real closer.  See recoverParen. */
     $._RECOVER_END,
+    /* zero-width: a class, role or method declaration starts on this line.
+     * See recoverBlock. */
+    $._RECOVER_BLOCK_MARK,
     /* flags after a regex or transliteration: letters, which as internal
      * tokens conflict lexically with every word */
     $.quoted_regexp_modifiers,
@@ -347,6 +355,9 @@ module.exports = grammar({
       alias($.block, $.block_statement),
       seq($.expression_statement, $._semicolon),
       $.defer_statement,
+      // a structural keyword on a new line: the scanner sends this first, and a
+      // body block closes on it; anywhere else it is an empty statement
+      $._RECOVER_BLOCK_MARK,
       ';', // this is not _semicolon so as not to generate an infinite stream of them
     ),
     package_statement: $ => choice(
