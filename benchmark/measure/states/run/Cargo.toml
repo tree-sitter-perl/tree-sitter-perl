@@ -1,0 +1,9 @@
+[package]
+name = "run"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tree-sitter-generate = { path = "../tree-sitter-generate-0.26.3", default-features = false, features = ["load"] }
+
+[workspace]

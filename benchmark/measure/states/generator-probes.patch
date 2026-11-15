@@ -1,0 +1,66 @@
+--- a/src/build_tables/build_parse_table.rs
++++ b/src/build_tables/build_parse_table.rs
+@@ -363,6 +363,14 @@
+             );
+         }
+ 
++        if std::env::var("TSX_DUMP").is_ok() {
++            for (i, st) in self.parse_table.states.iter().enumerate() {
++                let names: Vec<String> = st.terminal_entries.keys().map(|k| self.symbol_name(k)).collect();
++                let has = |n: &str| names.iter().any(|x| x == n);
++                let seq: Vec<String> = self.parse_state_info_by_id[i].0.iter().map(|k| self.symbol_name(k)).collect();
++                eprintln!("DUMP\t{}\t{}\t{}\t{}\t{}\t{}\t{}", i, st.terminal_entries.len() + st.nonterminal_entries.len(), has("'=='"), has("'abs'"), has("_RECOVER_END"), has("'and'"), seq.join(" "));
++            }
++        }
+         Ok((self.parse_table, self.parse_state_info_by_id))
+     }
+ 
+--- a/src/build_tables/minimize_parse_table.rs
++++ b/src/build_tables/minimize_parse_table.rs
+@@ -170,6 +170,12 @@
+ 
+         // Create a list of new parse states: one state for each group of old states.
+         let mut new_states = Vec::with_capacity(state_ids_by_group_id.len());
++        if std::env::var("TSX_DUMP").is_ok() {
++            for ids in &state_ids_by_group_id {
++                if ids.is_empty() { continue; }
++                eprintln!("GROUP\t{}\t{}\t{}", self.parse_table.states[ids[0]].core_id, ids[0], ids.len());
++            }
++        }
+         for state_ids in &state_ids_by_group_id {
+             // Initialize the new state based on the first old state in the group.
+             let mut parse_state = mem::take(&mut self.parse_table.states[state_ids[0]]);
+@@ -353,6 +359,22 @@
+             return true;
+         }
+ 
++        if std::env::var("TSX_ALL").is_ok() { return false; }
++        if !new_token.is_external() {
++            if let Ok(l) = std::env::var("TSX_TOKOK") {
++                let n = self.symbol_name(&new_token);
++                if l.split(',').any(|x| x == n) { return false; }
++            }
++        }
++        if new_token.is_external() {
++            if let Ok(l) = std::env::var("TSX_EXTOK") {
++                let n = self.symbol_name(&new_token);
++                if l.split(',').any(|x| x == n) { return false; }
++            }
++        }
++        if new_token.is_external() && std::env::var("TSX_NOEXT").is_ok() { return false; }
++        if !new_token.is_external() && std::env::var("TSX_NOLEX").is_ok() { return false; }
++        if self.keywords.contains(&new_token) && std::env::var("TSX_NOKW").is_ok() { return false; }
+         // Do not add external tokens; they could conflict lexically with any of the state's
+         // existing lookahead tokens.
+         if new_token.is_external() {
+--- a/src/generate.rs
++++ b/src/generate.rs
+@@ -333,7 +333,7 @@
+         LANGUAGE_VERSION,
+         semantic_version,
+         None,
+-        OptLevel::empty(),
++        OptLevel::default(),
+     )?;
+     Ok((input_grammar.name, parser.c_code))
+ }

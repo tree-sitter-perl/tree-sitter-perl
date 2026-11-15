@@ -51,6 +51,12 @@ things.
   piles. Only genuinely *duplicated structure* is worth factoring — and you factor
   it via `alias()` over a shared hidden rule so the emitted node names/fields stay
   identical.
+- **Measure a change with `benchmark/measure/`** (its README is the manual):
+  `build.sh` + `compare.sh` give state counts, a tree diff over the whole
+  corpus that marks every changed file that parsed clean before, callgrind
+  instruction counts and the mid-edit census. `states/` holds a probed
+  generator that says *why* same-item states were not merged — simulate what a
+  grammar change would buy before making it.
 - **`supertypes:` are schema-only.** They affect `node-types.json` (the public
   node taxonomy) but have **zero** effect on the parse table / state count. Don't
   reach for them as a size lever.
@@ -90,7 +96,7 @@ silently corrupts.
   line has to be something that can follow a term. It is a heuristic and its
   evidence is measured, not proved: before changing it, diff every tree in the
   benchmark corpus (a closer wrongly refused breaks valid code) and rerun the
-  mid-edit census.
+  mid-edit census. Both are `benchmark/measure/compare.sh`.
 - **A FIFO heredoc queue** (cap 4) — multiple heredocs introduced on one line
   (`print <<A, <<B;`) are consumed in order, each entry carrying its own
   delimiter + interpolate + indent flags.
