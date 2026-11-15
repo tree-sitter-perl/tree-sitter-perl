@@ -106,6 +106,9 @@ enum TokenType {
   TOKEN_INTERP_OPEN_BRACE,
   /* the opener of a quote that has no closer */
   TOKEN_UNTERMINATED_QUOTE,
+  /* zero-width: the grammar asks for this before any recovery closer or fake
+   * semicolon, so those do not have to be valid in every after-term state */
+  TOKEN_RECOVER_END,
   /* error condition is always last */
   TOKEN_ERROR
 };
@@ -1017,6 +1020,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     valid_symbols[TOKEN_RECOVER_BRACKET_CLOSE] ||
     valid_symbols[TOKEN_RECOVER_BRACE_CLOSE] ||
     valid_symbols[TOKEN_RECOVER_BLOCK_CLOSE] ||
+    valid_symbols[TOKEN_RECOVER_END] ||
     valid_symbols[PERLY_SEMICOLON];
 
   // Contextual keywords: class/role/method are declarations only when a name (or
@@ -1114,6 +1118,11 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   if (!is_ERROR) {
     if (c == '}' || c == ';' || lexer->eof(lexer)) {
       EMIT_RECOVERY_TOKENS(c != '}');
+      // No closer was valid yet: they sit behind the end marker.  Send it;
+      // the next call lands here again with the closers valid.  Not before a
+      // `}` that may end a `${ name }`: that one is `_brace_end_zw`'s.
+      if (valid_symbols[TOKEN_RECOVER_END] && !(c == '}' && valid_symbols[TOKEN_BRACE_END_ZW]))
+        TOKEN(TOKEN_RECOVER_END);
     }
   }
 
@@ -1145,6 +1154,12 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     if (peek == PEEK_KEYWORD) {
       DEBUG("keyword boundary\n", 0);
       EMIT_RECOVERY_TOKENS(true);
+      // The newline is behind us now, so the flag is what brings the next
+      // call back to this keyword boundary, where the closers are valid.
+      if (valid_symbols[TOKEN_RECOVER_END]) {
+        state->recovery_emitted = true;
+        TOKEN(TOKEN_RECOVER_END);
+      }
       // Body block-close: only a structural OO keyword (method/class/role)
       // closes a half-typed sub/method body.  Fires after any inner paren/
       // bracket closers above; the enclosing class block can't accept this

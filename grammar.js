@@ -95,9 +95,18 @@ const aliasMany = (to, tokens) => tokens.map(t => alias(t, to))
 // NOTE: recoverBrace is only used in subscript rules (hash_element,
 // slice, keyval) — NOT in block or anonymous_hash_expression, where
 // block/hash ambiguity via shared _PERLY_BRACE_OPEN makes it unsafe.
-const recoverParen = ($) => choice(')', alias($._RECOVER_PAREN_CLOSE, ')'))
-const recoverBracket = ($) => choice(']', alias($._RECOVER_BRACKET_CLOSE, ']'))
-const recoverBrace = ($) => choice('}', alias($._RECOVER_BRACE_CLOSE, '}'))
+// The synthetic closers and the fake semicolon are external tokens, and the
+// generator will not merge two otherwise identical states when one of them
+// accepts an external token the other lacks.  Offering them directly after an
+// expression therefore kept a second copy of the whole expression tower: one
+// for expressions inside a recoverable bracket, one for the rest.  So they hide
+// behind a single zero-width external, `_RECOVER_END`: every state after a
+// term accepts that one token, and the closers are only asked for after it.
+// The scanner sends it where it used to send a closer or a fake semicolon,
+// and at a real closer that follows an expression.
+const recoverParen = ($) => choice(')', seq($._RECOVER_END, choice(')', alias($._RECOVER_PAREN_CLOSE, ')'))))
+const recoverBracket = ($) => choice(']', seq($._RECOVER_END, choice(']', alias($._RECOVER_BRACKET_CLOSE, ']'))))
+const recoverBrace = ($) => choice('}', seq($._RECOVER_END, choice('}', alias($._RECOVER_BRACE_CLOSE, '}'))))
 // Block-body closer: a DISTINCT recovery token from recoverBrace's subscript
 // `}`.  Used only on sub/method bodies (`_body_block`).  The scanner emits
 // `_RECOVER_BLOCK_CLOSE` only when a `method`/`class`/`role` keyword opens the
@@ -239,6 +248,9 @@ module.exports = grammar({
     $._interp_open_brace,
     /* the opener of a quote that has no closer */
     $._unterminated_quote_open,
+    /* zero-width: an expression ends here, by a recovery closer, a fake
+     * semicolon or the real closer.  See recoverParen. */
+    $._RECOVER_END,
     /* error condition must always be last; we don't use this in the grammar */
     $._ERROR
   ],
@@ -291,7 +303,7 @@ module.exports = grammar({
     statement_label: $ => seq(
       field('label', choice($.identifier, alias($._PHASE_NAME, $.identifier))), ':',
       field('statement', choice($._fullstmt, alias($._PERLY_SEMICOLON, ';')))),
-    _semicolon: $ => choice(';', $._PERLY_SEMICOLON),
+    _semicolon: $ => choice(';', seq($._RECOVER_END, choice(';', $._PERLY_SEMICOLON))),
 
     _barestmt: $ => choice(
       $.package_statement,
@@ -1046,7 +1058,7 @@ module.exports = grammar({
       // `$h` as an indirect object followed by a `{x}` hashref.
       seq(field('function', alias($._indirob_listop, $.function)), '(', $._NONASSOC, $.indirect_object, field('arguments', $._expr), recoverParen($)),
     ),
-    _tricky_indirob_hashref: $ => seq($._PERLY_BRACE_OPEN, $._expr, $._PERLY_SEMICOLON, '}'),
+    _tricky_indirob_hashref: $ => seq($._PERLY_BRACE_OPEN, $._expr, $._RECOVER_END, $._PERLY_SEMICOLON, '}'),
     ambiguous_function_call_expression: $ =>
       // we need the right precedence here so we can read ahead for the hash/sub disambiguation
       prec.right(TERMPREC.LSTOP,
