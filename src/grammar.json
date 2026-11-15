@@ -3987,10 +3987,6 @@
                       "value": "%"
                     },
                     {
-                      "type": "STRING",
-                      "value": "x"
-                    },
-                    {
                       "type": "ALIAS",
                       "content": {
                         "type": "SYMBOL",
@@ -9964,50 +9960,6 @@
         ]
       }
     },
-    "quoted_regexp_modifiers": {
-      "type": "IMMEDIATE_TOKEN",
-      "content": {
-        "type": "PREC",
-        "value": 2,
-        "content": {
-          "type": "PATTERN",
-          "value": "[msixpodualn]+"
-        }
-      }
-    },
-    "match_regexp_modifiers": {
-      "type": "IMMEDIATE_TOKEN",
-      "content": {
-        "type": "PREC",
-        "value": 2,
-        "content": {
-          "type": "PATTERN",
-          "value": "[msixpogcdualn]+"
-        }
-      }
-    },
-    "substitution_regexp_modifiers": {
-      "type": "IMMEDIATE_TOKEN",
-      "content": {
-        "type": "PREC",
-        "value": 2,
-        "content": {
-          "type": "PATTERN",
-          "value": "[msixpogcedualr]+"
-        }
-      }
-    },
-    "transliteration_modifiers": {
-      "type": "IMMEDIATE_TOKEN",
-      "content": {
-        "type": "PREC",
-        "value": 2,
-        "content": {
-          "type": "PATTERN",
-          "value": "[cdsr]+"
-        }
-      }
-    },
     "_interpolated_transliteration_content": {
       "type": "REPEAT1",
       "content": {
@@ -11178,6 +11130,22 @@
     {
       "type": "SYMBOL",
       "name": "_RECOVER_END"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "quoted_regexp_modifiers"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "match_regexp_modifiers"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "substitution_regexp_modifiers"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "transliteration_modifiers"
     },
     {
       "type": "SYMBOL",

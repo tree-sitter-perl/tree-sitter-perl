@@ -251,6 +251,12 @@ module.exports = grammar({
     /* zero-width: an expression ends here, by a recovery closer, a fake
      * semicolon or the real closer.  See recoverParen. */
     $._RECOVER_END,
+    /* flags after a regex or transliteration: letters, which as internal
+     * tokens conflict lexically with every word */
+    $.quoted_regexp_modifiers,
+    $.match_regexp_modifiers,
+    $.substitution_regexp_modifiers,
+    $.transliteration_modifiers,
     /* error condition must always be last; we don't use this in the grammar */
     $._ERROR
   ],
@@ -759,7 +765,7 @@ module.exports = grammar({
         [prec.left, binop, '&', TERMPREC.BITANDOP], // _BITANDOP
         [prec.left, binop, choice('<<', '>>'), TERMPREC.SHIFTOP], // _SHIFTOP
         [prec.left, binop, choice('+', '-', '.'), TERMPREC.ADDOP], // _ADDOP
-        [prec.left, binop, choice('*', '/', '%', 'x', alias($._x_op, 'x')), TERMPREC.MULOP], // _MULOP
+        [prec.left, binop, choice('*', '/', '%', alias($._x_op, 'x')), TERMPREC.MULOP], // _MULOP
         [prec.left, binop, choice('=~', '!~'), TERMPREC.MATCHOP], // _MATCHOP
       ]
 
@@ -1547,11 +1553,6 @@ module.exports = grammar({
         seq('$', $._no_interp_extra_zw),
       )
     ),
-
-    quoted_regexp_modifiers: $ => token.immediate(prec(2, /[msixpodualn]+/)),
-    match_regexp_modifiers: $ => token.immediate(prec(2, /[msixpogcdualn]+/)),
-    substitution_regexp_modifiers: $ => token.immediate(prec(2, /[msixpogcedualr]+/)),
-    transliteration_modifiers: $ => token.immediate(prec(2, /[cdsr]+/)),
 
     _interpolated_transliteration_content: $ => repeat1(
       choice(
