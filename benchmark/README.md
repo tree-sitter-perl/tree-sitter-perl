@@ -7,6 +7,10 @@ A file counts as a *clean parse* if its syntax tree contains no `ERROR` or
 `MISSING` node. The headline metric is the percentage of files that parse
 cleanly.
 
+To measure what a change to the grammar or scanner does (parser size, which
+trees change, speed, recovery from half-typed quotes), see
+[`measure/`](measure/README.md).
+
 ## Running it
 
 ```sh

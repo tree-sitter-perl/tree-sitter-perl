@@ -51,6 +51,12 @@ things.
   piles. Only genuinely *duplicated structure* is worth factoring — and you factor
   it via `alias()` over a shared hidden rule so the emitted node names/fields stay
   identical.
+- **Measure a change with `benchmark/measure/`** (its README is the manual):
+  `build.sh` + `compare.sh` give state counts, a tree diff over the whole
+  corpus that marks every changed file that parsed clean before, callgrind
+  instruction counts and the mid-edit census. `states/` holds a probed
+  generator that says *why* same-item states were not merged — simulate what a
+  grammar change would buy before making it.
 - **`supertypes:` are schema-only.** They affect `node-types.json` (the public
   node taxonomy) but have **zero** effect on the parse table / state count. Don't
   reach for them as a size lever.
@@ -75,6 +81,22 @@ silently corrupts.
     is reused) or `_quotelike_begin` (paired: the replacement opens a *fresh*,
     possibly different delimiter, and the finished first pair is popped off the
     stack so its closer can't leak into the replacement).
+- **`unclosed_delims`** — a quote whose closer never comes is emitted as the
+  one-character `_unterminated_quote_open` token (node `unterminated_quote`), and
+  what follows parses as code. The lookahead that decides it (`quote_terminated`)
+  runs to EOF, so a delimiter found unclosed is remembered here: a same-character
+  delimiter is never scanned again, a paired one only `UNCLOSED_DELIM_BUDGET` bytes.
+  Without it a file of unclosed `q(` is quadratic.
+- **Is the closer a closer?** (`src/tsp_quote_closer.h`, pure, unit-tested in
+  `test/c/test_quote_closer.c`; the scanner only buffers the rest of the line) — an unclosed `'` or
+  `"` pairs with the opener of the next string and turns every later string in
+  the file inside out, which is what a half-typed quote does to an editor. For
+  a bare `'`/`"` (not a quote-like operator's delimiter: those are followed by
+  flags) the closer the lookahead found must read as one: the next token on its
+  line has to be something that can follow a term. It is a heuristic and its
+  evidence is measured, not proved: before changing it, diff every tree in the
+  benchmark corpus (a closer wrongly refused breaks valid code) and rerun the
+  mid-edit census. Both are `benchmark/measure/compare.sh`.
 - **A FIFO heredoc queue** (cap 4) — multiple heredocs introduced on one line
   (`print <<A, <<B;`) are consumed in order, each entry carrying its own
   delimiter + interpolate + indent flags.

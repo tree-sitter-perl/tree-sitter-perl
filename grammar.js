@@ -67,6 +67,21 @@ const regexpContent = ($, node) =>
 const replacement = ($, node) =>
   alias(node, $.replacement)
 
+// the two halves of s/// and tr///, from the opener to the modifiers
+const twoPartQuote = ($, open, first, second, modifiers) => seq(
+  open,
+  optional(first),
+  choice(
+    seq(
+      $._quotelike_middle,
+      optional(second),
+      $._quotelike_end,
+      optional(field('modifiers', modifiers)),
+    ),
+    $._unterminated_replacement,
+  ),
+)
+
 const trContent = ($, node) =>
   field('content', alias(node, $.transliteration_content))
 
@@ -222,6 +237,8 @@ module.exports = grammar({
      * can count it as a nested delimiter. */
     $._interp_open_bracket,
     $._interp_open_brace,
+    /* the opener of a quote that has no closer */
+    $._unterminated_quote_open,
     /* error condition must always be last; we don't use this in the grammar */
     $._ERROR
   ],
@@ -1258,6 +1275,7 @@ module.exports = grammar({
     // toke.c calls this a THING and that is such a generic unhelpful word,
     // we'll call it this instead
     _literal: $ => choice(
+      $.unterminated_quote,
       $.string_literal,
       $.interpolated_string_literal,
       $.command_string,
@@ -1286,6 +1304,20 @@ module.exports = grammar({
     _quotelike_middle: $ => seq(
       $._quotelike_middle_close,
       choice($._quotelike_middle_skip, $._quotelike_begin),
+    ),
+
+    // A quote whose closer never comes, mid-edit mostly. The node is the
+    // operator word and the opener; what follows parses as code, so the damage
+    // stays on the line being typed.
+    unterminated_quote: $ => seq(
+      optional(choice('q', 'qq', 'qw', 'qx', 'qr', 'm', 's', 'tr', 'y')),
+      $._unterminated_quote,
+    ),
+    _unterminated_quote: $ => alias($._unterminated_quote_open, "'"),
+    // s{a}{b and tr{a}{b: the pattern closed, the replacement never does
+    _unterminated_replacement: $ => seq(
+      $._quotelike_middle_close,
+      alias($._unterminated_quote, $.unterminated_quote),
     ),
 
     string_literal: $ => seq(
@@ -1475,21 +1507,19 @@ module.exports = grammar({
     substitution_regexp: $ => seq(
       field('operator', 's'),
       choice(
-        seq(
+        twoPartQuote($,
           $._quotelike_begin,
-          optional(regexpContent($, $._interpolated_regexp_content)),
-          $._quotelike_middle,
-          optional(replacement($, $._interpolated_string_content)),
+          regexpContent($, $._interpolated_regexp_content),
+          replacement($, $._interpolated_string_content),
+          $.substitution_regexp_modifiers,
         ),
-        seq(
+        twoPartQuote($,
           $._apostrophe,
-          optional(regexpContent($, $._noninterpolated_string_content)),
-          $._quotelike_middle,
-          optional(replacement($, $._noninterpolated_string_content)),
+          regexpContent($, $._noninterpolated_string_content),
+          replacement($, $._noninterpolated_string_content),
+          $.substitution_regexp_modifiers,
         ),
       ),
-      $._quotelike_end,
-      optional(field('modifiers', $.substitution_regexp_modifiers))
     ),
 
     _interpolated_regexp_content: $ => repeat1(
@@ -1523,21 +1553,19 @@ module.exports = grammar({
     transliteration_expression: $ => seq(
       field('operator', choice('tr', 'y')),
       choice(
-        seq(
+        twoPartQuote($,
           $._quotelike_begin,
-          optional(trContent($, $._interpolated_transliteration_content)),
-          $._quotelike_middle,
-          optional(replacement($, $._interpolated_transliteration_content)),
+          trContent($, $._interpolated_transliteration_content),
+          replacement($, $._interpolated_transliteration_content),
+          $.transliteration_modifiers,
         ),
-        seq(
+        twoPartQuote($,
           $._apostrophe,
-          optional(trContent($, $._noninterpolated_string_content)),
-          $._quotelike_middle,
-          optional(replacement($, $._noninterpolated_string_content)),
+          trContent($, $._noninterpolated_string_content),
+          replacement($, $._noninterpolated_string_content),
+          $.transliteration_modifiers,
         ),
       ),
-      $._quotelike_end,
-      optional(field('modifiers', $.transliteration_modifiers))
     ),
 
     /* quick overview of the heredoc logic

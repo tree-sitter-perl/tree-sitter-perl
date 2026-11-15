@@ -43,8 +43,10 @@ jobs:
           tree-sitter-ref: v0.26.9
       - run: tree-sitter generate
       - run: tree-sitter test
-      - name: C unit tests (regex heuristic)
+      - name: C unit tests (scanner heuristics)
         if: runner.os != 'Windows'
         run: |
-          cc -std=c11 -Wall -Werror -I src test/c/test_intuit_more.c -o tsp_ctest
-          ./tsp_ctest
+          for t in test_intuit_more test_quote_closer; do
+            cc -std=c11 -Wall -Werror -I src test/c/$t.c -o tsp_ctest
+            ./tsp_ctest
+          done
