@@ -1145,8 +1145,29 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   // peels one layer — the parser keeps calling until everything is closed.
   //
   // Syntactic boundary: '}', ';', or EOF
+  // `__END__` and `__DATA__` end the last statement the way EOF does (and so
+  // do ^D and ^Z below).  The grammar used to accept them directly after an
+  // expression, which made them one more thing every after-term state had
+  // to accept.  Any other word starting with `_` goes on to the autoquote
+  // check with its end already marked.
+  if (!is_ERROR && c == '_' && (valid_symbols[TOKEN_RECOVER_END] || valid_symbols[PERLY_SEMICOLON])) {
+    char dw[10];
+    int dl = 0;
+    MARK_END;
+    while (isidcont(c)) {
+      if (dl < 9) dw[dl++] = (char)c;
+      ADVANCE_C;
+    }
+    dw[dl] = 0;
+    if (strcmp(dw, "__END__") == 0 || strcmp(dw, "__DATA__") == 0) {
+      if (valid_symbols[TOKEN_RECOVER_END]) TOKEN(TOKEN_RECOVER_END);
+      TOKEN(PERLY_SEMICOLON);
+    }
+    MARK_END;
+    goto kw_autoquote;
+  }
   if (!is_ERROR) {
-    if (c == '}' || c == ';' || lexer->eof(lexer)) {
+    if (c == '}' || c == ';' || c == 4 || c == 26 || lexer->eof(lexer)) {
       EMIT_RECOVERY_TOKENS(c != '}');
       // No closer was valid yet: they sit behind the end marker.  Send it;
       // the next call lands here again with the closers valid.  Not before a
@@ -1157,7 +1178,7 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
   }
 
   if (valid_symbols[PERLY_SEMICOLON]) {
-    if (c == '}' || lexer->eof(lexer)) {
+    if (c == '}' || c == 4 || c == 26 || lexer->eof(lexer)) {
       if (is_ERROR || !valid_symbols[TOKEN_BRACE_END_ZW]) {
         DEBUG("Fake PERLY_SEMICOLON at end-of-scope\n", 0);
         TOKEN(PERLY_SEMICOLON);

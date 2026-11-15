@@ -262,17 +262,8 @@
               "name": "expression_statement"
             },
             {
-              "type": "CHOICE",
-              "members": [
-                {
-                  "type": "SYMBOL",
-                  "name": "_semicolon"
-                },
-                {
-                  "type": "SYMBOL",
-                  "name": "__DATA__"
-                }
-              ]
+              "type": "SYMBOL",
+              "name": "_semicolon"
             }
           ]
         },

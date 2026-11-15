@@ -329,7 +329,7 @@ module.exports = grammar({
       $.for_statement,
       $.try_statement,
       alias($.block, $.block_statement),
-      seq($.expression_statement, choice($._semicolon, $.__DATA__)),
+      seq($.expression_statement, $._semicolon),
       $.defer_statement,
       ';', // this is not _semicolon so as not to generate an infinite stream of them
     ),
