@@ -539,3 +539,87 @@ print "x" if $$ == 1;
         left: (scalar
           (varname))
         right: (number)))))
+
+================================================================================
+word operators and statement modifiers are still names
+================================================================================
+my $or = $if + $and;
+my %for = (xor => 1);
+$obj->if->unless($until);
+sub for { 1 }
+sub while;
+package if;
+*or = \&and;
+&if(1);
+$x = $y x 3 or die;
+print "a" if $foreach;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (scalar
+          (varname)))
+      right: (binary_expression
+        left: (scalar
+          (varname))
+        right: (scalar
+          (varname)))))
+  (expression_statement
+    (assignment_expression
+      left: (variable_declaration
+        variable: (hash
+          (varname)))
+      right: (parenthesized_expression
+        (list_expression
+          (autoquoted_bareword)
+          (number)))))
+  (expression_statement
+    (method_call_expression
+      invocant: (method_call_expression
+        invocant: (scalar
+          (varname))
+        method: (method))
+      method: (method)
+      arguments: (scalar
+        (varname))))
+  (subroutine_declaration_statement
+    name: (bareword)
+    body: (block
+      (expression_statement
+        (number))))
+  (subroutine_declaration_statement
+    name: (bareword))
+  (package_statement
+    name: (package))
+  (expression_statement
+    (assignment_expression
+      left: (glob
+        (varname))
+      right: (refgen_expression
+        (function
+          (varname)))))
+  (expression_statement
+    (function_call_expression
+      function: (function
+        (varname))
+      arguments: (number)))
+  (expression_statement
+    (lowprec_logical_expression
+      left: (assignment_expression
+        left: (scalar
+          (varname))
+        right: (binary_expression
+          left: (scalar
+            (varname))
+          right: (number)))
+      right: (function)))
+  (expression_statement
+    (postfix_conditional_expression
+      (ambiguous_function_call_expression
+        function: (function)
+        arguments: (interpolated_string_literal
+          content: (string_content)))
+      condition: (scalar
+        (varname)))))

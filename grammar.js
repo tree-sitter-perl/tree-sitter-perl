@@ -148,7 +148,19 @@ module.exports = grammar({
     $.slices,
   ],
   word: $ => $._identifier,
+  // A keyword is only lexed where the grammar accepts it, so in a state that
+  // accepts `and` but not `if` the word `if` is a bareword, and the two states
+  // cannot merge.  Reserving these words everywhere makes every after-term
+  // state lex them the same way.  They are the infix word operators and the
+  // statement modifiers: the words that can follow a term.  A name position
+  // (`$or`, `->if`, `sub for`, `package if`) opts out with `reserved('none',
+  // ...)`, which only works on a terminal: see `_bareword_name`.
+  reserved: {
+    global: $ => ['and', 'or', 'xor', 'if', 'unless', 'while', 'until', 'for', 'foreach'],
+    none: $ => [],
+  },
   inline: $ => [
+    $._bareword_name,
     $._var_indirob,
     $._semicolon,
     $._fullstmt,
@@ -435,7 +447,7 @@ module.exports = grammar({
       optional(choice(field('lexical', choice('my', 'state')), 'our')),
       subExtensions($),
       'sub',
-      field('name', $.bareword),
+      field('name', alias($._bareword_name, $.bareword)),
       $._sub_decl_tail,
     ),
 
@@ -443,7 +455,7 @@ module.exports = grammar({
       optional(choice(field('lexical', choice('my', 'state')), 'our')),
       subExtensions($),
       alias($._KW_METHOD, "method"),
-      field('name', $.bareword),
+      field('name', alias($._bareword_name, $.bareword)),
       $._sub_decl_tail,
     ),
 
@@ -1145,7 +1157,7 @@ module.exports = grammar({
       field('method', $.method),
       optional($._args_subscript)
     )),
-    method: $ => choice($._bareword, $.scalar, $._RECOVER_ARROW),
+    method: $ => choice($._bareword_name, $.scalar, $._RECOVER_ARROW),
 
     _variables: $ => choice(
       $.scalar,
@@ -1154,7 +1166,7 @@ module.exports = grammar({
       $.arraylen,
       $.glob,
     ),
-    _signature_varname: $ => alias($._identifier, $.varname),
+    _signature_varname: $ => alias(reserved('none', $._identifier), $.varname),
     scalar: $ => seq('$', $._var_indirob),
     _declare_scalar: $ => seq('$', choice($.varname, $._var_indirob_autoquote)),
     _signature_scalar: $ => seq('$', $._signature_varname),
@@ -1194,11 +1206,11 @@ module.exports = grammar({
       alias($._code_deref, $.code_deref_expression),
     )),
     // _indirob minus the block arm; the braced-block case becomes code_deref
-    _amper_indirob: $ => choice($._bareword, $._ident_special, $.scalar),
+    _amper_indirob: $ => choice($._bareword_name, $._ident_special, $.scalar),
     _code_deref: $ => $.block,
 
     _indirob: $ => choice(
-      $._bareword,
+      $._bareword_name,
       // toke.c has weird code in S_scan_ident to handle the $<digits> and
       // other single-character punctuation vars like $!
       $._ident_special,
@@ -1206,7 +1218,7 @@ module.exports = grammar({
       $.block,
     ),
     varname: $ => choice(
-      $._identifier,
+      reserved('none', $._identifier),
       $._ident_special // TODO - not sure if we wanna make `my $1` error out
     ),
     // not all indirobs are alike; for variables, they have autoquoting behavior
@@ -1615,7 +1627,7 @@ module.exports = grammar({
       $.heredoc_end
     ),
 
-    package: $ => $._bareword,
+    package: $ => $._bareword_name,
     _version: $ => prec(1, choice($.number, $.version)),
     // Two forms: a v-string (`v5`, `v5.26.0`), and a bare numeric version with
     // at least two dots (`5.14.0`, `1.2.3.4`) as used by `use 5.14.0;` /
@@ -1660,6 +1672,9 @@ module.exports = grammar({
     // unicode-aware (XID_Start/XID_Continue) dotted/qualified bareword, so package
     // names allow unicode like the `_identifier` (sub name) path already does.
     _bareword: $ => choice($._identifier, unicode_ranges.bareword),
+    // A name position: the reserved operator words are ordinary names here.
+    // Inlined (see `inline:`), or it costs a reduction for every variable.
+    _bareword_name: $ => choice(reserved('none', $._identifier), reserved('none', unicode_ranges.bareword)),
     ...primitives,
   }
 })
