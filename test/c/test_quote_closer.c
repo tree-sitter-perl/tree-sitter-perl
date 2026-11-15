@@ -75,11 +75,19 @@ int main(void) {
     check_both(rest, '"', CLOSER);
     check_both(rest, '\'', CLOSER);
   }
-  /* glued: 'a'x3, "a"eq$b */
-  check_both("x3;", '"', CLOSER);
-  check_both("x80 . $y;", '\'', CLOSER);
-  check_both("x$n;", '"', CLOSER);
-  check_both("eq$b;", '"', CLOSER);
+  /* glued on the opener's line: 'a'x3, "a"eq$b */
+  check("x3;", '"', SAME_LINE, CLOSER);
+  check("x80 . $y;", '\'', SAME_LINE, CLOSER);
+  check("x$n;", '"', SAME_LINE, CLOSER);
+  check("eq$b;", '"', SAME_LINE, CLOSER);
+  /* glued on a later line, the word is the next string's content:
+   *   my $s = "hello
+   *   my %h = (name => "x", size => "y"); */
+  check("x\", size => \"y\");", '"', LATER_LINE, OPENER);
+  check("x3;", '"', LATER_LINE, OPENER);
+  check("x80 . $y;", '\'', LATER_LINE, OPENER);
+  check("or else\";", '"', LATER_LINE, OPENER);
+  check("if", '\'', LATER_LINE, OPENER);
   /* `when` is a modifier: 'undef' when undef; */
   check_both(" when undef;", '\'', CLOSER);
 
@@ -130,6 +138,16 @@ int main(void) {
   check("-foo\\\", 1);", '"', SAME_LINE, CLOSER);    /* the one left is escaped */
   check("-foo', 1);", '"', SAME_LINE, CLOSER);       /* the other quote does not count */
   check("-foo', 1);", '\'', SAME_LINE, OPENER);
+  /* a glued word operator goes the same way */
+  check("x\", 1);", '"', SAME_LINE, OPENER);        /* foo("abc, "x", 1); */
+  check("x 3 . \"b\";", '"', SAME_LINE, CLOSER);
+  /* the two readings: a quote inside a string of the other kind is not one
+   * left over.  'sub { "' . "x"x255 . '" }' */
+  check("x255 . '\" }';", '"', SAME_LINE, CLOSER);
+  check("-1 . '\"';", '"', SAME_LINE, CLOSER);
+  check("-foo', \"it's\");", '\'', SAME_LINE, OPENER);
+  /* a comment ends the walk: its apostrophe is not a quote */
+  check("-1; # don't", '"', SAME_LINE, CLOSER);
   /* tight or spaced: the count is not consulted */
   check(", \"b", '"', SAME_LINE, CLOSER);
   check(" - \"b", '"', SAME_LINE, CLOSER);
