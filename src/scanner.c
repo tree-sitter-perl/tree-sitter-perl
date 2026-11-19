@@ -912,8 +912,8 @@ bool tree_sitter_perl_external_scanner_scan(void *payload, TSLexer *lexer,
     else if (valid_symbols[TOKEN_M_MODIFIERS]) { flags = "msixpogcdualn"; flags_token = TOKEN_M_MODIFIERS; }
     else if (valid_symbols[TOKEN_S_MODIFIERS]) { flags = "msixpogcedualr"; flags_token = TOKEN_S_MODIFIERS; }
     else if (valid_symbols[TOKEN_TR_MODIFIERS]) { flags = "cdsr"; flags_token = TOKEN_TR_MODIFIERS; }
-    if (flags && c > 0 && c < 128 && strchr(flags, (char)c)) {
-      while (c > 0 && c < 128 && strchr(flags, (char)c)) ADVANCE_C;
+    if (flags && c > 0 && c < 128 && tsp_strchr(flags, c)) {
+      while (c > 0 && c < 128 && tsp_strchr(flags, c)) ADVANCE_C;
       MARK_END;
       TOKEN(flags_token);
     }

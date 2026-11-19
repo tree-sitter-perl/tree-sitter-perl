@@ -6,6 +6,15 @@ published package versions (npm `tree-sitter-perl`, crates.io
 notes. Releases before 2.0.0 are described on the
 [GitHub releases page](https://github.com/tree-sitter-perl/tree-sitter-perl/releases).
 
+## v2.1.1 — 2026-11-19
+
+A patch release with no grammar or parsing change.
+
+- 2.1.0 reached npm, crates.io and PyPI, but its Wasm build failed, so it
+  has no GitHub release and no `.wasm`. The scanner called libc `strchr`,
+  which a Wasm parser cannot link; it now uses its own. CI builds the Wasm
+  parser on every pull request, so this cannot reach a release again. (#307)
+
 ## v2.1.0 — 2026-11-15
 
 A minor release: one node type is new and a few children and fields

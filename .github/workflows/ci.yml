@@ -50,3 +50,17 @@ jobs:
             cc -std=c11 -Wall -Werror -I src test/c/$t.c -o tsp_ctest
             ./tsp_ctest
           done
+
+  # The release builds a Wasm parser, and a Wasm parser links against a short
+  # allow-list of libc symbols. A scanner call outside it
+  # builds everywhere else and only fails at publish time, so build it here.
+  wasm:
+    name: Wasm build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: tree-sitter/setup-action/cli@v2
+        with:
+          tree-sitter-ref: v0.26.9   # same pin as the test job
+      - run: tree-sitter generate
+      - run: tree-sitter build --wasm
