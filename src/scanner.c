@@ -163,7 +163,8 @@ static int32_t close_for_open(int32_t c) {
 
 /* The rule is tsp_closer_opens_next_string; this only reads it the rest of
  * the closer's line.  Called with the lookahead just past the closer. */
-static bool closer_opens_next_string(TSLexer *lexer, int32_t quote, bool crossed_line) {
+static bool closer_opens_next_string(TSLexer *lexer, int32_t quote, bool crossed_line,
+                                     const int32_t before[2]) {
   int32_t rest[TSP_CLOSER_WINDOW];
   int len = 0;
   while (len < TSP_CLOSER_WINDOW && !lexer->eof(lexer) && lexer->lookahead != '\n' &&
@@ -171,7 +172,7 @@ static bool closer_opens_next_string(TSLexer *lexer, int32_t quote, bool crossed
     rest[len++] = lexer->lookahead;
     lexer->advance(lexer, false);
   }
-  return tsp_closer_opens_next_string(rest, len, quote, crossed_line);
+  return tsp_closer_opens_next_string(rest, len, quote, crossed_line, before);
 }
 
 /* Pure lookahead: matching closer before EOF?  Covers ' and " (non-paired:
@@ -208,6 +209,7 @@ static QuoteAhead quote_closer_ahead(TSLexer *lexer, int32_t opener, bool bare,
     *leads_with_delim = false;
   int depth = 1;
   bool crossed_line = false;
+  int32_t before[2] = {0, 0};
 
   bool backslash_escapes = opener != '\\';
 
@@ -227,6 +229,8 @@ static QuoteAhead quote_closer_ahead(TSLexer *lexer, int32_t opener, bool bare,
       if (lexer->eof(lexer))
         return QUOTE_RAN_TO_EOF;
       lexer->advance(lexer, false);
+      // an escape is string content whatever it escapes
+      before[1] = '\\', before[0] = 'a';
       continue;
     }
     if (paired && c == opener) {
@@ -238,10 +242,15 @@ static QuoteAhead quote_closer_ahead(TSLexer *lexer, int32_t opener, bool bare,
       if (!bare)
         return QUOTE_CLOSED;
       lexer->advance(lexer, false);
-      return closer_opens_next_string(lexer, closer, crossed_line) ? QUOTE_GAVE_UP : QUOTE_CLOSED;
+      return closer_opens_next_string(lexer, closer, crossed_line, before) ? QUOTE_GAVE_UP
+                                                                           : QUOTE_CLOSED;
     }
-    if (c == '\n')
+    if (c == '\n') {
       crossed_line = true;
+      before[0] = before[1] = 0;
+    } else {
+      before[1] = before[0], before[0] = c;
+    }
     lexer->advance(lexer, false);
   }
   return QUOTE_RAN_TO_EOF;

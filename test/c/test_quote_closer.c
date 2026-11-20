@@ -19,9 +19,12 @@ static int failures = 0;
 enum { CLOSER = 0, OPENER = 1 };
 enum { SAME_LINE = 0, LATER_LINE = 1 };
 
+/* what stands before the quote on its line, nearest codepoint first */
+static const int32_t NOTHING[2] = {0, 0};
+
 static void check_codepoints(const char *label, const int32_t *rest, int len, int quote,
                              int crossed_line, int want) {
-  int got = tsp_closer_opens_next_string(rest, len, quote, crossed_line) ? OPENER : CLOSER;
+  int got = tsp_closer_opens_next_string(rest, len, quote, crossed_line, NOTHING) ? OPENER : CLOSER;
   if (got != want) {
     failures++;
     printf("FAIL %c%-28s %-10s got=%-6s want=%s\n", quote, label,
@@ -36,6 +39,22 @@ static void check(const char *rest, int quote, int crossed_line, int want) {
   int len = (int)strlen(rest);
   for (int i = 0; i < len; i++) wide[i] = (unsigned char)rest[i];
   check_codepoints(rest, wide, len, quote, crossed_line, want);
+}
+
+/* `before` is the text in front of the quote on its line, ASCII. */
+static void check_after(const char *before, const char *rest, int quote, int crossed_line,
+                        int want) {
+  int32_t wide[TSP_CLOSER_WINDOW];
+  int len = (int)strlen(rest), blen = (int)strlen(before);
+  for (int i = 0; i < len; i++) wide[i] = (unsigned char)rest[i];
+  int32_t near[2] = {blen > 0 ? before[blen - 1] : 0, blen > 1 ? before[blen - 2] : 0};
+  int got = tsp_closer_opens_next_string(wide, len, quote, crossed_line, near) ? OPENER : CLOSER;
+  if (got != want) {
+    failures++;
+    printf("FAIL %s%c%-24s %-10s got=%-6s want=%s\n", before, quote, rest,
+           crossed_line ? "later-line" : "same-line", got ? "opener" : "closer",
+           want ? "opener" : "closer");
+  }
 }
 
 /* the same answer wherever the opener was */
@@ -134,7 +153,11 @@ int main(void) {
   check("->new(\"a\")", '"', SAME_LINE, CLOSER);     /* two left */
   check(":\"b\";", '"', SAME_LINE, CLOSER);          /* $c ? "a":"b" */
   check("-foo\", 1);", '"', SAME_LINE, OPENER);      /* one left */
-  check(":\"b\", \"c", '"', SAME_LINE, OPENER);      /* three left */
+  /* three left, but as an opener its string would close on a bare word:
+   * the last quote starts a string that runs on.  $c ? "a":"b", "c... */
+  check(":\"b\", \"c", '"', SAME_LINE, CLOSER);
+  /* <td>$i ".($new ? "*":"")."</td>  with the last string running on */
+  check(":\"\").\"</td>", '"', SAME_LINE, CLOSER);
   check("-foo\\\", 1);", '"', SAME_LINE, CLOSER);    /* the one left is escaped */
   check("-foo', 1);", '"', SAME_LINE, CLOSER);       /* the other quote does not count */
   check("-foo', 1);", '\'', SAME_LINE, OPENER);
@@ -151,6 +174,33 @@ int main(void) {
   /* tight or spaced: the count is not consulted */
   check(", \"b", '"', SAME_LINE, CLOSER);
   check(" - \"b", '"', SAME_LINE, CLOSER);
+
+  /* --- an opener sits where a term may start ------------------------------ */
+  /* the closer of a string that runs over several lines, an operator glued on:
+   *   $c ? "a
+   *   b":"c
+   *   d"                                                                      */
+  check_after("b", ":\"c", '"', LATER_LINE, CLOSER);
+  check_after("<pre>", ":\"<br></pre>", '"', LATER_LINE, CLOSER);
+  check_after("b", "?1:0", '"', LATER_LINE, CLOSER);
+  check_after("b", "x3;", '"', LATER_LINE, CLOSER);
+  check_after("b", "->new", '\'', LATER_LINE, CLOSER);
+  check_after("f()", "-1", '"', LATER_LINE, CLOSER);
+  check_after("$h{k}", "/2", '"', LATER_LINE, CLOSER);
+  check_after("$a[0]", ":1", '"', LATER_LINE, CLOSER);
+  /* a term may start here: the next string under an unclosed one */
+  check_after("print ", "-w\";", '"', LATER_LINE, OPENER);
+  check_after("foo(", "/x\")", '"', LATER_LINE, OPENER);
+  check_after("name => ", "x\", size => \"y\");", '"', LATER_LINE, OPENER);
+  check_after("name=>", "x\", size=>\"y\");", '"', LATER_LINE, OPENER);
+  check_after("$a, ", "-\"", '"', LATER_LINE, OPENER);
+  check_after("", ":\"b\"", '"', LATER_LINE, OPENER);
+  /* what follows still has to follow a term */
+  check_after("b", "hello", '"', LATER_LINE, OPENER);
+  check_after("b", "$x", '"', SAME_LINE, OPENER);
+  /* on the opener's line too: "abc"-foo", 1) has one quote left */
+  check_after("abc", "-foo\", 1);", '"', SAME_LINE, CLOSER);
+  check_after("(", "-foo\", 1);", '"', SAME_LINE, OPENER);
 
   /* --- beyond ASCII ------------------------------------------------------- */
   {

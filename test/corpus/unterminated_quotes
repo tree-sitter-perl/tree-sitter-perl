@@ -585,3 +585,82 @@ b" x 3;
           content: (string_content))
         right: (number)))))
 
+================================================================================
+closed quote - multi-line strings with the ternary glued to their closers
+================================================================================
+my $r = $c ? "a
+b":"c
+d";
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      (variable_declaration
+        (scalar
+          (varname)))
+      (conditional_expression
+        (scalar
+          (varname))
+        (interpolated_string_literal
+          (string_content))
+        (interpolated_string_literal
+          (string_content))))))
+
+================================================================================
+closed quote - multi-line string then a glued operator
+================================================================================
+my $s = "a
+b"x3;
+my $m = "a
+b"->foo;
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      (variable_declaration
+        (scalar
+          (varname)))
+      (binary_expression
+        (interpolated_string_literal
+          (string_content))
+        (number))))
+  (expression_statement
+    (assignment_expression
+      (variable_declaration
+        (scalar
+          (varname)))
+      (method_call_expression
+        (interpolated_string_literal
+          (string_content))
+        (method)))))
+
+================================================================================
+closed quote - a ternary of short strings before a string that runs on
+================================================================================
+$h .= "<tr>
+<td>$i ".($n ? "*":"")."</td>
+</tr>";
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      (scalar
+        (varname))
+      (binary_expression
+        (binary_expression
+          (interpolated_string_literal
+            (string_content
+              (scalar
+                (varname))))
+          (parenthesized_expression
+            (conditional_expression
+              (scalar
+                (varname))
+              (interpolated_string_literal
+                (string_content))
+              (interpolated_string_literal))))
+        (interpolated_string_literal
+          (string_content))))))
