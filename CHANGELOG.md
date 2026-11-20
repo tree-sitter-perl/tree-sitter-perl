@@ -6,6 +6,28 @@ published package versions (npm `tree-sitter-perl`, crates.io
 notes. Releases before 2.0.0 are described on the
 [GitHub releases page](https://github.com/tree-sitter-perl/tree-sitter-perl/releases).
 
+## v2.1.2 — 2026-11-20
+
+A patch release: a scanner fix for valid strings that 2.1.0 reported as
+`unterminated_quote`. No node type changes.
+
+- The closer of a string that runs over several lines was taken for the
+  next string's opener when an operator was glued to it
+  (`$c ? "a\nb":"c\nd"`). A quote glued to the end of a word, a closing
+  bracket or a `>` that is not `=>` cannot open a string, so it now closes
+  one whatever follows it.
+- A string on one line followed by an odd number of quotes was refused
+  when the last quote starts a string that runs on
+  (`($n ? "*":"")."</td>` then a newline). The two readings of the line
+  are now compared by whether each closer they meet can be one, before the
+  count is consulted.
+- Measured over 15,496 files against 2.1.1: three trees change, two of
+  them the FHEM files that regressed in 2.1.0 and one that already had
+  errors and has fewer. The mid-edit census is unchanged (405 bad edits of
+  6,534, none worse). Parsing takes 0.14% more instructions.
+- Still refused: a string over several lines that ends in a space or
+  punctuation with an operator outside `, ) ; ] } . =` glued to its closer.
+
 ## v2.1.1 — 2026-11-19
 
 A patch release with no grammar or parsing change.
